@@ -154,6 +154,7 @@ export function MockupViewer({
   const isFigma = !!figmaEmbedUrl;
   const isHtml = !!htmlUrl;
   const [pins, setPins] = useState<ViewerPin[]>(initialPins);
+  const [railOpen, setRailOpen] = useState(true);
   const toast = useToast();
   const [htmlHeight, setHtmlHeight] = useState(0);
   const [htmlScrollY, setHtmlScrollY] = useState(0);
@@ -162,6 +163,10 @@ export function MockupViewer({
   const [htmlError, setHtmlError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const htmlFrameRef = useRef<HTMLIFrameElement>(null);
+  // Latest signed URL, without making the fetch effect depend on it (it changes
+  // on every revalidatePath after a comment, which would reload the iframe).
+  const htmlUrlRef = useRef(htmlUrl);
+  htmlUrlRef.current = htmlUrl;
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("pins");
@@ -229,19 +234,24 @@ export function MockupViewer({
   // show source. Fetch the markup and render it via srcdoc, which is always
   // parsed as HTML and stays in the sandbox's opaque origin.
   useEffect(() => {
-    if (!isHtml || !htmlUrl) return;
+    if (!isHtml) return;
+    const url = htmlUrlRef.current;
+    if (!url) return;
     let alive = true;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 20000);
     setHtmlDoc(null);
     setHtmlError(false);
-    fetch(htmlUrl, { signal: ctrl.signal })
+    fetch(url, { signal: ctrl.signal })
       .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
       .then((text) => { if (alive) setHtmlDoc(injectHeightReporter(stripHeightReporter(text))); })
       .catch(() => { if (alive) setHtmlError(true); })
       .finally(() => clearTimeout(timer));
     return () => { alive = false; ctrl.abort(); clearTimeout(timer); };
-  }, [isHtml, htmlUrl]);
+    // Fetch ONCE per mockup, not per signed-URL change — a comment's
+    // revalidatePath() mints a fresh URL, and re-fetching it reloads the page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHtml, mockupId]);
 
   // HTML frame reports its own page height (it's cross-origin/opaque, so we
   // can't read it directly). Size the frame to it so pins line up.
@@ -268,9 +278,17 @@ export function MockupViewer({
   // is translated to match the page's reported scroll so pins stay aligned.
   const HTML_DESKTOP_W = 1440;
   const htmlDesignW = device === "mobile" ? 390 : HTML_DESKTOP_W;
-  const htmlScale = box.w > 0 ? box.w / htmlDesignW : 1; // fit the width
-  const htmlViewH = htmlScale > 0 ? box.h / htmlScale : box.h; // iframe design height (fills canvas)
+  // Desktop fills the canvas width; a phone shows at a realistic device size
+  // (fit to height, never enlarged past 1×) and is centered — not stretched.
+  const htmlScale =
+    device === "mobile"
+      ? Math.min(1, box.h > 32 ? (box.h - 32) / 844 : 1)
+      : box.w > 0
+        ? box.w / htmlDesignW
+        : 1;
+  const htmlViewH = htmlScale > 0 ? box.h / htmlScale : box.h; // iframe design height (fills canvas height)
   const htmlVisualW = htmlDesignW * htmlScale;
+  const htmlOffsetX = Math.max(0, (box.w - htmlVisualW) / 2); // center the phone; 0 when filling width
 
   // displayed width of the image for the current zoom mode
   const displayW = useMemo(() => {
@@ -330,7 +348,7 @@ export function MockupViewer({
   // the desktop scale and how far the page is scrolled inside the iframe.
   function handleHtmlClick(e: React.MouseEvent<HTMLElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
+    const cx = e.clientX - rect.left - htmlOffsetX;
     const cy = e.clientY - rect.top;
     const H = htmlHeight || 1;
     const x = Math.min(1, Math.max(0, cx / htmlScale / htmlDesignW));
@@ -507,7 +525,45 @@ export function MockupViewer({
     <div className="flex h-full flex-col">
       {/* single top bar: title | pagination | zoom + actions */}
       <header className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">{titleSlot}</div>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {!railOpen && (
+            <button
+              type="button"
+              onClick={() => setRailOpen(true)}
+              title="Show comments"
+              aria-label="Show comments panel"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-[color:var(--accent)] hover:text-ink"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                <path d="M9 4v16" stroke="currentColor" strokeWidth="1.7" />
+              </svg>
+            </button>
+          )}
+          <div className="flex min-w-0 items-center gap-2">{titleSlot}</div>
+          {isHtml && (
+            <div className="ml-1 hidden shrink-0 overflow-hidden rounded-md border sm:flex">
+              <button
+                type="button"
+                onClick={() => setHtmlMode("browse")}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold transition-colors"
+                style={htmlMode === "browse" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.7" /></svg>
+                Browse
+              </button>
+              <button
+                type="button"
+                onClick={() => setHtmlMode("comment")}
+                className="flex items-center gap-1.5 border-l px-2.5 py-1 text-xs font-semibold transition-colors"
+                style={htmlMode === "comment" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 5h16v10H9l-5 4V5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+                Comment
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* pagination (center) */}
         <div className="flex shrink-0 items-center gap-1">
@@ -607,7 +663,8 @@ export function MockupViewer({
       </header>
 
       <div className="flex min-h-0 flex-1">
-      {/* comment rail (resizable) */}
+      {/* comment rail (resizable, collapsible) */}
+      {railOpen && (
       <aside
         ref={railRef}
         style={{ width: railWidth }}
@@ -655,6 +712,14 @@ export function MockupViewer({
                       <path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
                     </svg>
                   </ToolbarButton>
+                  {/* hide the comments panel */}
+                  <ToolbarButton label="Hide comments" onClick={() => setRailOpen(false)}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                      <path d="M9 4v16" stroke="currentColor" strokeWidth="1.7" />
+                      <path d="m16 10-2 2 2 2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </ToolbarButton>
                 </div>
               </div>
               {searchOpen && (
@@ -699,33 +764,14 @@ export function MockupViewer({
           <div className="mx-auto h-full w-0.5 bg-transparent transition-colors duration-150 group-hover:bg-[color:var(--ring)]" />
         </div>
       </aside>
+      )}
 
       {/* canvas */}
       <div ref={canvasRef} className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-canvas">
-        {isHtml && (
-          <div className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 overflow-hidden rounded-lg border bg-surface shadow-md">
-            <button
-              onClick={() => setHtmlMode("browse")}
-              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold transition-colors"
-              style={htmlMode === "browse" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.7" /></svg>
-              Browse
-            </button>
-            <button
-              onClick={() => setHtmlMode("comment")}
-              className="flex items-center gap-2 border-l px-3 py-2 text-xs font-semibold transition-colors"
-              style={htmlMode === "comment" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 5h16v10H9l-5 4V5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
-              Comment
-            </button>
-          </div>
-        )}
         {isHtml ? (
           /* HTML: a real-browser view that scrolls INSIDE the iframe (so scroll
              animations play), with a pin layer translated to match its scroll. */
-          <div ref={scrollRef} className="absolute inset-x-0 top-14 bottom-0 overflow-hidden">
+          <div ref={scrollRef} className="absolute inset-0 overflow-hidden">
             {htmlError ? (
               <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">Couldn&apos;t load this HTML page.</div>
             ) : htmlDoc === null ? (
@@ -737,8 +783,8 @@ export function MockupViewer({
                 title={imageName}
                 sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-pointer-lock"
                 referrerPolicy="no-referrer"
-                className="absolute top-0 left-0 origin-top-left border-0 bg-white"
-                style={{ width: htmlDesignW, height: htmlViewH, transform: `scale(${htmlScale})`, pointerEvents: htmlMode === "comment" ? "none" : "auto" }}
+                className={`absolute top-0 origin-top-left border-0 bg-white ${device === "mobile" ? "rounded-[28px] shadow-2xl ring-1 ring-black/10" : ""}`}
+                style={{ left: htmlOffsetX, width: htmlDesignW, height: htmlViewH, transform: `scale(${htmlScale})`, pointerEvents: htmlMode === "comment" ? "none" : "auto" }}
               />
             )}
             {/* comment mode: capture clicks (drop pins); forward wheel to the page */}
@@ -747,8 +793,8 @@ export function MockupViewer({
             )}
             {/* pin layer spans the full page and is translated to the live scroll */}
             <div
-              className="pointer-events-none absolute top-0 left-0"
-              style={{ width: htmlVisualW, height: (htmlHeight || 0) * htmlScale, transform: `translate3d(0, ${-htmlScrollY * htmlScale}px, 0)` }}
+              className="pointer-events-none absolute top-0"
+              style={{ left: htmlOffsetX, width: htmlVisualW, height: (htmlHeight || 0) * htmlScale, transform: `translate3d(0, ${-htmlScrollY * htmlScale}px, 0)` }}
             >
               {pinsOverlay}
             </div>
