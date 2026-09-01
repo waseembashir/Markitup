@@ -21,7 +21,7 @@ export function PinComposer({
 }) {
   return (
     <div
-      className="absolute z-50 w-72 -translate-x-1/2 rounded-xl border bg-surface p-3 shadow-xl"
+      className="pointer-events-auto absolute z-50 w-72 -translate-x-1/2 rounded-xl border bg-surface p-3 shadow-xl"
       style={{ left: `${xPct}%`, top: `${yPct}%`, marginTop: "14px" }}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => {

@@ -6,11 +6,12 @@ import { toNormalized } from "@/lib/coords";
 import { PinMarker } from "./PinMarker";
 import { PinComposer } from "./PinComposer";
 import { CommentThread, type Member } from "./CommentThread";
-import { HTML_HEIGHT_MESSAGE, injectHeightReporter, stripHeightReporter } from "@/lib/html-embed";
+import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, injectHeightReporter, stripHeightReporter } from "@/lib/html-embed";
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment } from "@/app/app/mockups/[mockupId]/actions";
 import { timeAgo } from "@/lib/format";
+import { useToast } from "@/components/ui/toast";
 
 export type ViewerComment = {
   id: string;
@@ -153,7 +154,9 @@ export function MockupViewer({
   const isFigma = !!figmaEmbedUrl;
   const isHtml = !!htmlUrl;
   const [pins, setPins] = useState<ViewerPin[]>(initialPins);
+  const toast = useToast();
   const [htmlHeight, setHtmlHeight] = useState(0);
+  const [htmlScrollY, setHtmlScrollY] = useState(0);
   const [htmlMode, setHtmlMode] = useState<"browse" | "comment">("browse");
   const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
   const [htmlError, setHtmlError] = useState(false);
@@ -169,7 +172,6 @@ export function MockupViewer({
   const [zoomOpen, setZoomOpen] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [draft, setDraft] = useState<{ x: number; y: number; pinId?: string; number?: number } | null>(null);
-  const [savingPin, setSavingPin] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -250,17 +252,25 @@ export function MockupViewer({
       const d = e.data;
       if (d && d.type === HTML_HEIGHT_MESSAGE && typeof d.height === "number") {
         setHtmlHeight(Math.min(60000, Math.max(200, Math.ceil(d.height))));
+      } else if (d && d.type === HTML_SCROLL_MESSAGE && typeof d.y === "number") {
+        // The page scrolls inside the iframe (like a real browser); it reports
+        // its scroll position so the pin layer can follow it.
+        setHtmlScrollY(d.y);
       }
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, [isHtml]);
 
-  // Width of the HTML page: full canvas on desktop, phone width on mobile.
-  const htmlWidth = useMemo(() => {
-    const availW = Math.max(0, box.w - 48);
-    return device === "mobile" ? Math.min(390, availW) : availW;
-  }, [box.w, device]);
+  // HTML renders at a real DESKTOP width (never the canvas width) and scrolls
+  // INTERNALLY like a live browser, so uploaded pages show their true desktop
+  // layout and their scroll-triggered animations actually play. The pin layer
+  // is translated to match the page's reported scroll so pins stay aligned.
+  const HTML_DESKTOP_W = 1440;
+  const htmlDesignW = device === "mobile" ? 390 : HTML_DESKTOP_W;
+  const htmlScale = box.w > 0 ? box.w / htmlDesignW : 1; // fit the width
+  const htmlViewH = htmlScale > 0 ? box.h / htmlScale : box.h; // iframe design height (fills canvas)
+  const htmlVisualW = htmlDesignW * htmlScale;
 
   // displayed width of the image for the current zoom mode
   const displayW = useMemo(() => {
@@ -316,50 +326,88 @@ export function MockupViewer({
     setDraft({ x, y });
   }
 
+  // HTML comment mode: map a click to page-normalized coords, accounting for
+  // the desktop scale and how far the page is scrolled inside the iframe.
+  function handleHtmlClick(e: React.MouseEvent<HTMLElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const H = htmlHeight || 1;
+    const x = Math.min(1, Math.max(0, cx / htmlScale / htmlDesignW));
+    const y = Math.min(1, Math.max(0, (cy / htmlScale + htmlScrollY) / H));
+    setActivePinId(null);
+    setPinError(null);
+    setDraft({ x, y });
+  }
+
+  // HTML comment mode: the click layer covers the iframe, so forward the wheel
+  // into the page (which then reports its new scroll position back).
+  function handleHtmlWheel(e: React.WheelEvent<HTMLElement>) {
+    htmlFrameRef.current?.contentWindow?.postMessage(
+      { type: HTML_SCROLLBY_MESSAGE, dx: e.deltaX, dy: e.deltaY },
+      "*",
+    );
+  }
+
   async function saveDraft(body: string, attachments: PendingAttachment[] = []) {
     if (!draft) return;
-    setSavingPin(true);
+    const { x, y } = draft;
+    const existingPinId = draft.pinId;
+    const tmpPinId = existingPinId ?? `tmp-pin-${Date.now()}`;
+    const tmpCommentId = `tmp-c-${Date.now()}`;
+    const optimistic: ViewerComment = {
+      id: tmpCommentId,
+      body, // the user's own input; swapped for the server-sanitized copy on success
+      authorName: currentUserName,
+      parentCommentId: null,
+      createdAt: new Date().toISOString(),
+      attachments: [],
+    };
+
+    // Show the pin + comment IMMEDIATELY — no waiting on the server.
+    if (existingPinId) {
+      setPins((ps) => ps.map((p) => (p.id === existingPinId ? { ...p, comments: [...p.comments, optimistic] } : p)));
+    } else {
+      setPins((ps) => [...ps, { id: tmpPinId, x, y, number: 0, status: "active", comments: [optimistic] }]);
+    }
+    const closedDraft = draft;
+    setDraft(null);
     setPinError(null);
+
+    // Persist in the background; reconcile temp ids, or roll back on failure.
+    let uiPinId = tmpPinId;
     try {
-      let pinId = draft.pinId;
-      let number = draft.number;
+      let pinId = existingPinId;
       if (!pinId) {
-        const res = await createPin(mockupId, draft.x, draft.y);
-        if (res.error || !res.id || res.number == null) {
-          setPinError(res.error || "Could not save your comment. Please try again.");
-          return;
-        }
+        const res = await createPin(mockupId, x, y);
+        if (res.error || !res.id || res.number == null) throw new Error(res.error || "Could not save your comment.");
         pinId = res.id;
-        number = res.number;
-        // remember the created pin so a retry doesn't create a duplicate
-        setDraft((d) => (d ? { ...d, pinId, number } : d));
+        const realNumber = res.number;
+        uiPinId = pinId;
+        setPins((ps) => ps.map((p) => (p.id === tmpPinId ? { ...p, id: pinId!, number: realNumber } : p)));
       }
       const cRes = attachments.length
         ? await addComment(mockupId, pinId, body, undefined, attachments)
         : await addComment(mockupId, pinId, body);
-      if (cRes.error) {
-        setPinError(cRes.error);
-        return;
+      if (cRes.error) throw new Error(cRes.error);
+      setPins((ps) =>
+        ps.map((p) =>
+          p.id === pinId
+            ? { ...p, comments: p.comments.map((c) => (c.id === tmpCommentId ? { ...c, body: cRes.body ?? c.body } : c)) }
+            : p,
+        ),
+      );
+    } catch (e) {
+      // Roll the optimistic pin/comment back out and let the user retry.
+      const msg = e instanceof Error && e.message ? e.message : "Couldn't save your comment — please try again.";
+      if (existingPinId) {
+        setPins((ps) => ps.map((p) => (p.id === existingPinId ? { ...p, comments: p.comments.filter((c) => c.id !== tmpCommentId) } : p)));
+      } else {
+        setPins((ps) => ps.filter((p) => p.id !== uiPinId));
       }
-      setPins((p) => [
-        ...p,
-        {
-          id: pinId!,
-          x: draft.x,
-          y: draft.y,
-          number: number!,
-          status: "active",
-          comments: [
-            // Render only the server-sanitized HTML, never the raw editor input.
-            { id: `tmp-${pinId}`, body: cRes.body ?? "", authorName: currentUserName, parentCommentId: null, createdAt: new Date().toISOString(), attachments: [] },
-          ],
-        },
-      ]);
-      setDraft(null);
-    } catch {
-      setPinError("Something went wrong. Please try again.");
-    } finally {
-      setSavingPin(false);
+      setDraft(closedDraft);
+      setPinError(msg);
+      toast.error(msg);
     }
   }
 
@@ -428,7 +476,7 @@ export function MockupViewer({
           xPct={draft.x * 100}
           yPct={draft.y * 100}
           projectId={projectId}
-          pending={savingPin}
+          pending={false}
           error={pinError}
           onCancel={() => { setDraft(null); setPinError(null); }}
           onSubmit={saveDraft}
@@ -436,7 +484,7 @@ export function MockupViewer({
       )}
       {!draft && activePin && (
         <div
-          className="absolute z-50 w-80 -translate-x-1/2 overflow-hidden rounded-xl border bg-surface shadow-xl"
+          className="pointer-events-auto absolute z-50 w-80 -translate-x-1/2 overflow-hidden rounded-xl border bg-surface shadow-xl"
           style={{ left: `${activePin.x * 100}%`, top: `${activePin.y * 100}%`, marginTop: "14px" }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -674,106 +722,111 @@ export function MockupViewer({
             </button>
           </div>
         )}
-        <div ref={scrollRef} className="relative h-full overflow-auto">
-          <div className={`flex min-h-full min-w-full items-center justify-center px-6 pb-6 ${isHtml ? "pt-16" : "pt-6"}`}>
-            <div ref={surfaceRef} className="relative shrink-0" style={{ width: isHtml ? htmlWidth || "100%" : displayW || "100%" }}>
-              {isFigma ? (
-                <>
-                  {/* hidden probe: read the rendered frame's aspect ratio so the
-                      embed box matches the design and pins line up */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imageUrl}
-                    alt=""
-                    className="hidden"
-                    onLoad={(e) => setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
-                  />
-                  <div
-                    className="relative w-full overflow-hidden rounded-lg bg-surface shadow-lg ring-1 ring-border"
-                    style={{ aspectRatio: nat.w && nat.h ? `${nat.w} / ${nat.h}` : "16 / 10" }}
-                  >
-                    <iframe
-                      src={figmaEmbedUrl ?? undefined}
-                      title="Figma prototype"
-                      allow="fullscreen"
-                      className="absolute inset-0 h-full w-full border-0"
-                      style={{ pointerEvents: "none" }}
-                    />
-                    {/* transparent capture layer: clicks drop pins; the embed
-                        underneath keeps animating video/GIF */}
-                    <div className="absolute inset-0 cursor-crosshair" onClick={handleSurfaceClick}>
-                      {pinsOverlay}
-                    </div>
-                  </div>
-                </>
-              ) : isHtml ? (
-                <>
-                  {/* Untrusted uploaded HTML: sandboxed (no same-origin), so it
-                      runs isolated in an opaque origin, cross-origin to the app. */}
-                  {htmlError ? (
-                    <div className="grid h-96 w-full place-items-center rounded-lg bg-surface text-sm text-faint ring-1 ring-border">
-                      Couldn&apos;t load this HTML page.
-                    </div>
-                  ) : htmlDoc === null ? (
-                    <div className="grid h-96 w-full place-items-center rounded-lg bg-surface text-sm text-faint ring-1 ring-border">
-                      Loading page…
-                    </div>
-                  ) : (
-                    <iframe
-                      ref={htmlFrameRef}
-                      srcDoc={htmlDoc}
-                      title={imageName}
-                      sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-pointer-lock"
-                      referrerPolicy="no-referrer"
-                      className="block w-full rounded-lg bg-white shadow-lg ring-1 ring-border"
-                      style={{ height: htmlHeight || 900, pointerEvents: htmlMode === "comment" ? "none" : "auto" }}
-                    />
-                  )}
-                  {/* Comment mode: capture clicks to drop pins (page interaction off). */}
-                  {htmlMode === "comment" && <div className="absolute inset-0 cursor-crosshair" onClick={handleSurfaceClick} />}
-                  {pinsOverlay}
-                </>
-              ) : (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {!imgLoaded && <div className="skeleton absolute inset-0 rounded-lg" />}
-                  <img
-                    ref={imgRef}
-                    src={imageUrl}
-                    alt="mockup"
-                    onLoad={(e) => { setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgLoaded(true); }}
-                    onClick={handleSurfaceClick}
-                    draggable={false}
-                    className="block w-full cursor-crosshair rounded-lg shadow-lg ring-1 ring-border select-none"
-                    style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s var(--ease-out-quart)" }}
-                  />
-                  {pinsOverlay}
-                </>
-              )}
+        {isHtml ? (
+          /* HTML: a real-browser view that scrolls INSIDE the iframe (so scroll
+             animations play), with a pin layer translated to match its scroll. */
+          <div ref={scrollRef} className="absolute inset-x-0 top-14 bottom-0 overflow-hidden">
+            {htmlError ? (
+              <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">Couldn&apos;t load this HTML page.</div>
+            ) : htmlDoc === null ? (
+              <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">Loading page…</div>
+            ) : (
+              <iframe
+                ref={htmlFrameRef}
+                srcDoc={htmlDoc}
+                title={imageName}
+                sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-pointer-lock"
+                referrerPolicy="no-referrer"
+                className="absolute top-0 left-0 origin-top-left border-0 bg-white"
+                style={{ width: htmlDesignW, height: htmlViewH, transform: `scale(${htmlScale})`, pointerEvents: htmlMode === "comment" ? "none" : "auto" }}
+              />
+            )}
+            {/* comment mode: capture clicks (drop pins); forward wheel to the page */}
+            {htmlMode === "comment" && (
+              <div className="absolute inset-0 cursor-crosshair" onClick={handleHtmlClick} onWheel={handleHtmlWheel} />
+            )}
+            {/* pin layer spans the full page and is translated to the live scroll */}
+            <div
+              className="pointer-events-none absolute top-0 left-0"
+              style={{ width: htmlVisualW, height: (htmlHeight || 0) * htmlScale, transform: `translate3d(0, ${-htmlScrollY * htmlScale}px, 0)` }}
+            >
+              {pinsOverlay}
             </div>
+            {htmlMode === "browse" ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
+                <span className="rounded-full px-4 py-2 text-xs font-medium shadow-lg" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                  Interacting with the live page — switch to Comment to leave feedback
+                </span>
+              </div>
+            ) : counts.all === 0 ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
+                <span className="rounded-full px-4 py-2 text-xs font-medium shadow-lg" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                  Click anywhere on the design to leave a comment
+                </span>
+              </div>
+            ) : null}
           </div>
-
-          {counts.all === 0 && (!isHtml || htmlMode === "comment") && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
-              <span
-                className="rounded-full px-4 py-2 text-xs font-medium shadow-lg"
-                style={{ background: "var(--foreground)", color: "var(--background)" }}
-              >
-                Click anywhere on the design to leave a comment
-              </span>
+        ) : (
+          <div ref={scrollRef} className="relative h-full overflow-auto">
+            <div className="flex min-h-full min-w-full items-center justify-center p-6">
+              <div ref={surfaceRef} className="relative shrink-0" style={{ width: displayW || "100%" }}>
+                {isFigma ? (
+                  <>
+                    {/* hidden probe: read the rendered frame's aspect ratio so the
+                        embed box matches the design and pins line up */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="hidden"
+                      onLoad={(e) => setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+                    />
+                    <div
+                      className="relative w-full overflow-hidden rounded-lg bg-surface shadow-lg ring-1 ring-border"
+                      style={{ aspectRatio: nat.w && nat.h ? `${nat.w} / ${nat.h}` : "16 / 10" }}
+                    >
+                      <iframe
+                        src={figmaEmbedUrl ?? undefined}
+                        title="Figma prototype"
+                        allow="fullscreen"
+                        className="absolute inset-0 h-full w-full border-0"
+                        style={{ pointerEvents: "none" }}
+                      />
+                      {/* transparent capture layer: clicks drop pins; the embed
+                          underneath keeps animating video/GIF */}
+                      <div className="absolute inset-0 cursor-crosshair" onClick={handleSurfaceClick}>
+                        {pinsOverlay}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {!imgLoaded && <div className="skeleton absolute inset-0 rounded-lg" />}
+                    <img
+                      ref={imgRef}
+                      src={imageUrl}
+                      alt="mockup"
+                      onLoad={(e) => { setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgLoaded(true); }}
+                      onClick={handleSurfaceClick}
+                      draggable={false}
+                      className="block w-full cursor-crosshair rounded-lg shadow-lg ring-1 ring-border select-none"
+                      style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s var(--ease-out-quart)" }}
+                    />
+                    {pinsOverlay}
+                  </>
+                )}
+              </div>
             </div>
-          )}
-          {isHtml && htmlMode === "browse" && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
-              <span
-                className="rounded-full px-4 py-2 text-xs font-medium shadow-lg"
-                style={{ background: "var(--foreground)", color: "var(--background)" }}
-              >
-                Interacting with the live page — switch to Comment to leave feedback
-              </span>
-            </div>
-          )}
-        </div>
+            {counts.all === 0 && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
+                <span className="rounded-full px-4 py-2 text-xs font-medium shadow-lg" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                  Click anywhere on the design to leave a comment
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       </div>
     </div>
