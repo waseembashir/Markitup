@@ -11,6 +11,7 @@ export async function archiveProject(projectId: string) {
     .eq("id", projectId);
   if (error) return { error: error.message };
   revalidatePath("/app");
+  revalidatePath("/app/projects");
   revalidatePath("/app/archive");
   return {};
 }
@@ -23,6 +24,7 @@ export async function unarchiveProject(projectId: string) {
     .eq("id", projectId);
   if (error) return { error: error.message };
   revalidatePath("/app");
+  revalidatePath("/app/projects");
   revalidatePath("/app/archive");
   return {};
 }
@@ -54,6 +56,7 @@ export async function deleteProject(projectId: string) {
   const { error } = await supabase.from("projects").delete().eq("id", projectId);
   if (error) return { error: error.message };
   revalidatePath("/app");
+  revalidatePath("/app/projects");
   revalidatePath("/app/archive");
   return {};
 }

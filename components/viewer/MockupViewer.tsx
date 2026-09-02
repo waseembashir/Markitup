@@ -130,6 +130,7 @@ export function MockupViewer({
   siblings,
   members,
   currentUserName,
+  currentUserEmail,
   figmaEmbedUrl,
   htmlUrl,
   titleSlot,
@@ -143,6 +144,7 @@ export function MockupViewer({
   siblings: Sibling[];
   members: Member[];
   currentUserName: string;
+  currentUserEmail?: string;
   // When set, the canvas is a live Figma prototype embed (animations/video play)
   // with a transparent pin-capture overlay on top, instead of a static image.
   figmaEmbedUrl?: string | null;
@@ -510,6 +512,7 @@ export function MockupViewer({
           projectId={projectId}
           pending={false}
           error={pinError}
+          author={{ name: currentUserName, email: currentUserEmail ?? "" }}
           onCancel={() => { setDraft(null); setPinError(null); }}
           onSubmit={saveDraft}
         />

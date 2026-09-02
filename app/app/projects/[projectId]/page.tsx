@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { NewSubProjectDialog } from "@/components/app/NewSubProjectDialog";
 import { ProjectBrowser, type FileItem } from "@/components/app/ProjectBrowser";
@@ -25,6 +26,10 @@ export default async function ProjectPage({
   const supabase = await createServerSupabase();
 
   const { data: project } = await supabase.from("projects").select("name").eq("id", projectId).maybeSingle();
+  // Deleting the project you're viewing used to leave you here on a shell page
+  // with no folders and no files — i.e. staring at the upload dropzone. Send
+  // people back to the project list instead.
+  if (!project) redirect("/app/projects");
 
   // all folders in the project → drives breadcrumb, current level and move picker
   const { data: folderRows } = await supabase

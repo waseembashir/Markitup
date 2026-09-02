@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { createAttachmentUploadUrl } from "@/app/app/mockups/[mockupId]/attachment-actions";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { MAX_UPLOAD_BYTES } from "@/lib/validation";
+import { Avatar } from "@/components/app/AppSidebar";
 
 export type PendingAttachment = { path: string; type: "image" | "pdf"; name: string };
 
@@ -30,12 +31,15 @@ export function RichCommentInput({
   pending,
   placeholder,
   projectId,
+  author,
 }: {
   value?: string;
   onSubmit: (html: string, attachments: PendingAttachment[]) => void;
   pending?: boolean;
   placeholder?: string;
   projectId: string;
+  // Shown at the top-left of the box so it's obvious who is about to speak.
+  author?: { name: string; email: string };
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -181,6 +185,12 @@ export function RichCommentInput({
 
   return (
     <div className="rounded-lg border bg-surface">
+      {author && (
+        <div className="flex items-center gap-2 px-3 pt-3 pb-1">
+          <Avatar name={author.name} email={author.email} size={26} />
+          <span className="truncate text-sm font-semibold text-ink">{author.name}</span>
+        </div>
+      )}
       <div className="flex items-center gap-0.5 border-b px-2 py-1">
         <ToolBtn label="Bold" onClick={() => exec("bold")}><span className="text-sm font-bold">B</span></ToolBtn>
         <ToolBtn label="Italic" onClick={() => exec("italic")}><span className="text-sm italic">I</span></ToolBtn>
@@ -208,7 +218,7 @@ export function RichCommentInput({
       />
       <div className="relative">
         {empty && placeholder && (
-          <span className="pointer-events-none absolute left-3 top-2 text-sm text-faint">{placeholder}</span>
+          <span className="pointer-events-none absolute left-3.5 top-3 text-sm text-faint">{placeholder}</span>
         )}
         <div
           ref={ref}
@@ -222,7 +232,7 @@ export function RichCommentInput({
           onDragOver={(e) => e.preventDefault()}
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); submit(); } }}
           data-project={projectId}
-          className="min-h-[3.5rem] w-full px-3 py-2 text-sm leading-relaxed text-ink outline-none [&_a]:text-brand-ink [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5"
+          className="max-h-64 min-h-[6.5rem] w-full overflow-y-auto px-3.5 py-3 text-sm leading-relaxed text-ink outline-none [&_a]:text-brand-ink [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5"
         />
       </div>
       {attachments.length > 0 && (

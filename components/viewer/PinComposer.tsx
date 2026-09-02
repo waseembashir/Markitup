@@ -10,6 +10,7 @@ export function PinComposer({
   onSubmit,
   pending,
   error,
+  author,
 }: {
   xPct: number;
   yPct: number;
@@ -18,10 +19,11 @@ export function PinComposer({
   onSubmit: (body: string, attachments: PendingAttachment[]) => void;
   pending: boolean;
   error?: string | null;
+  author?: { name: string; email: string };
 }) {
   return (
     <div
-      className="pointer-events-auto absolute z-50 w-72 -translate-x-1/2 rounded-xl border bg-surface p-3 shadow-xl"
+      className="pointer-events-auto absolute z-50 w-80 -translate-x-1/2 rounded-xl border bg-surface p-3 shadow-xl"
       style={{ left: `${xPct}%`, top: `${yPct}%`, marginTop: "14px" }}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
@@ -37,6 +39,7 @@ export function PinComposer({
         projectId={projectId}
         placeholder="Add comment here…"
         pending={pending}
+        author={author}
         onSubmit={(html, attachments) => onSubmit(html, attachments)}
       />
       {error && (

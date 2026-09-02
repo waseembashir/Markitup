@@ -213,6 +213,7 @@ export default async function MockupPage({
             siblings={siblings ?? [{ id: mockupId }]}
             members={members}
             currentUserName={currentUserName}
+            currentUserEmail={currentUserEmail}
             figmaEmbedUrl={figmaEmbedUrl}
             htmlUrl={mockup.type === "html" ? url : null}
             titleSlot={titleSlot}
