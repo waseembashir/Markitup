@@ -24,9 +24,11 @@ export function PinMarker({
   const isArea = w > 0 && h > 0;
   return (
     <>
-      {/* A dragged region: dashed outline with the marker pinned to its
-          bottom-right, so the badge never covers what is being pointed at. */}
-      {isArea && (
+      {/* A dragged region, revealed only while its pin is selected. Left on
+          screen permanently, the dashed boxes read as marks on the design
+          itself and confuse whoever is doing the work. The marker sits at the
+          region's bottom-right either way, so nothing shifts when it opens. */}
+      {isArea && selected && (
         <span
           aria-hidden
           onClick={(e) => { e.stopPropagation(); onClick?.(); }}
@@ -36,7 +38,7 @@ export function PinMarker({
             width: `${w * 100}%`,
             height: `${h * 100}%`,
             borderColor: bg,
-            background: selected ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
+            background: "color-mix(in srgb, var(--primary) 12%, transparent)",
           }}
           className="pointer-events-auto absolute cursor-pointer rounded-[3px] border-2 border-dashed transition-colors"
         />

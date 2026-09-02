@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "./AppSidebar";
 
@@ -17,9 +17,14 @@ export function AppChrome({
   // compare screen (whose left rail is the comments panel instead).
   const isViewer = path.startsWith("/app/mockups/") || path.endsWith("/compare");
   const [reveal, setReveal] = useState(false);
-  useEffect(() => {
+  // Collapse the revealed nav on navigation. Adjusted during render rather than
+  // in an effect — React's documented way to reset state when a prop changes,
+  // and it avoids rendering the old route's reveal state for a frame.
+  const [revealPath, setRevealPath] = useState(pathname);
+  if (revealPath !== pathname) {
+    setRevealPath(pathname);
     setReveal(false);
-  }, [pathname]);
+  }
   const showSidebar = !isViewer || reveal;
 
   return (

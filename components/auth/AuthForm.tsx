@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { celebrate } from "@/lib/confetti";
 
@@ -24,11 +24,12 @@ export function AuthForm({
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const router = useRouter();
-  const [done, setDone] = useState(false);
+  // Derived, not stored: the form is "done" exactly when the action came back
+  // with a redirect. No effect and no extra render needed to know that.
+  const done = !!(state?.ok && state.redirect);
 
   useEffect(() => {
     if (!state?.ok || !state.redirect) return;
-    setDone(true);
     if (withConfetti) {
       // A generous welcome burst — a few bloom points feel more celebratory.
       const w = window.innerWidth;

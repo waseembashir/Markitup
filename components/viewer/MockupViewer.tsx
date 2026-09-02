@@ -175,7 +175,12 @@ export function MockupViewer({
   // Latest signed URL, without making the fetch effect depend on it (it changes
   // on every revalidatePath after a comment, which would reload the iframe).
   const htmlUrlRef = useRef(htmlUrl);
-  htmlUrlRef.current = htmlUrl;
+  // Synced in an effect rather than assigned during render — writing a ref while
+  // rendering is unsafe under concurrent rendering. Declared before the fetch
+  // effect below so it has the current URL by the time that effect runs.
+  useEffect(() => {
+    htmlUrlRef.current = htmlUrl;
+  }, [htmlUrl]);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("pins");
@@ -198,16 +203,18 @@ export function MockupViewer({
   const railWidthRef = useRef(RAIL_DEFAULT);
   const [nat, setNat] = useState({ w: 0, h: 0 });
   const [box, setBox] = useState({ w: 0, h: 0 });
-  const [railWidth, setRailWidth] = useState(RAIL_DEFAULT);
-
-  // restore the saved rail width once, on mount
+  // The rail's width is driven imperatively rather than through state. React
+  // never renders a width for the <aside>, so writing it on the node can't be
+  // undone by a re-render — and dragging the handle no longer re-renders the
+  // whole viewer on every mousemove, which is what made resizing feel heavy.
+  // Re-runs when the rail is reopened, since it remounts at the default width.
   useEffect(() => {
+    if (!railOpen || !railRef.current) return;
     const saved = Number(localStorage.getItem("markitup-rail-width"));
-    if (saved >= RAIL_MIN && saved <= RAIL_MAX) {
-      railWidthRef.current = saved;
-      setRailWidth(saved);
-    }
-  }, []);
+    const w = saved >= RAIL_MIN && saved <= RAIL_MAX ? saved : RAIL_DEFAULT;
+    railWidthRef.current = w;
+    railRef.current.style.width = `${w}px`;
+  }, [railOpen]);
 
   function startRailResize(e: React.MouseEvent) {
     e.preventDefault();
@@ -217,7 +224,7 @@ export function MockupViewer({
     const onMove = (ev: MouseEvent) => {
       const w = Math.min(RAIL_MAX, Math.max(RAIL_MIN, ev.clientX - left));
       railWidthRef.current = w;
-      setRailWidth(w);
+      if (railRef.current) railRef.current.style.width = `${w}px`;
     };
     const onUp = () => {
       document.body.style.cursor = "";
@@ -261,7 +268,7 @@ export function MockupViewer({
     return () => { alive = false; ctrl.abort(); clearTimeout(timer); };
     // Fetch ONCE per mockup, not per signed-URL change — a comment's
     // revalidatePath() mints a fresh URL, and re-fetching it reloads the page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // htmlUrl is read through htmlUrlRef for exactly that reason.
   }, [isHtml, mockupId]);
 
   // HTML frame reports its own page height (it's cross-origin/opaque, so we
@@ -359,6 +366,33 @@ export function MockupViewer({
     const p = pins.find((x) => x.id === id);
     if (p) requestAnimationFrame(() => scrollToPin(p));
   }
+
+  // Pin popups are centred on their pin, which puts them half outside the canvas
+  // for any pin near an edge — and the canvas is `overflow-hidden`, so the
+  // overhang was being clipped by the comments rail. Nudge each popup back
+  // inside after layout, and flip it above its pin when there's no room below.
+  // Written straight to the node (not through state) so it can't loop, and
+  // re-run on every render so it stays correct as the canvas resizes.
+  const clampPopup = (el: HTMLDivElement | null) => {
+    const canvas = canvasRef.current;
+    if (!el || !canvas) return;
+    const PAD = 8;
+    el.style.transform = "translateX(-50%)";
+    el.style.marginTop = "14px";
+    const c = canvas.getBoundingClientRect();
+    let r = el.getBoundingClientRect();
+
+    let dx = 0;
+    if (r.left < c.left + PAD) dx = c.left + PAD - r.left;
+    else if (r.right > c.right - PAD) dx = c.right - PAD - r.right;
+    if (dx) el.style.transform = `translateX(calc(-50% + ${Math.round(dx)}px))`;
+
+    r = el.getBoundingClientRect();
+    // Not enough room below the pin but more above it → flip up.
+    if (r.bottom > c.bottom - PAD && r.height + PAD < r.top - c.top) {
+      el.style.marginTop = `-${Math.round(r.height + 20)}px`;
+    }
+  };
 
   // Each surface maps a viewport point into the same 0–1 space the pins live in.
   // The static surface is a plain rect; the HTML surface also has to undo the
@@ -579,6 +613,7 @@ export function MockupViewer({
       )}
       {draft && (
         <PinComposer
+          innerRef={clampPopup}
           xPct={(draft.x + (draft.w ?? 0)) * 100}
           yPct={(draft.y + (draft.h ?? 0)) * 100}
           projectId={projectId}
@@ -591,8 +626,14 @@ export function MockupViewer({
       )}
       {!draft && activePin && (
         <div
-          className="pointer-events-auto absolute z-50 w-80 -translate-x-1/2 overflow-hidden rounded-xl border bg-surface shadow-xl"
-          style={{ left: `${activePin.x * 100}%`, top: `${activePin.y * 100}%`, marginTop: "14px" }}
+          ref={clampPopup}
+          className="pointer-events-auto absolute z-50 w-80 overflow-hidden rounded-xl border bg-surface shadow-xl"
+          style={{
+            left: `${(activePin.x + activePin.w) * 100}%`,
+            top: `${(activePin.y + activePin.h) * 100}%`,
+            transform: "translateX(-50%)",
+            marginTop: "14px",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <CommentThread
@@ -748,8 +789,7 @@ export function MockupViewer({
       {railOpen && (
       <aside
         ref={railRef}
-        style={{ width: railWidth }}
-        className="relative flex shrink-0 flex-col border-r bg-surface"
+        className="relative flex w-[280px] shrink-0 flex-col border-r bg-surface"
       >
         {(
           <>
@@ -879,13 +919,6 @@ export function MockupViewer({
             >
               {pinsOverlay}
             </div>
-            {htmlMode !== "browse" && counts.all === 0 ? (
-              <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
-                <span className="rounded-full px-4 py-2 text-xs font-medium shadow-lg" style={{ background: "var(--foreground)", color: "var(--background)" }}>
-                  Click anywhere on the design to leave a comment
-                </span>
-              </div>
-            ) : null}
           </div>
         ) : (
           <div ref={scrollRef} className="relative h-full overflow-auto">
@@ -922,8 +955,10 @@ export function MockupViewer({
                   </>
                 ) : (
                   <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     {!imgLoaded && <div className="skeleton absolute inset-0 rounded-lg" />}
+                    {/* Signed Supabase URLs rotate on every revalidate, so
+                        next/image would re-optimize each new URL for nothing. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       ref={imgRef}
                       src={imageUrl}
@@ -939,13 +974,6 @@ export function MockupViewer({
                 )}
               </div>
             </div>
-            {counts.all === 0 && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
-                <span className="rounded-full px-4 py-2 text-xs font-medium shadow-lg" style={{ background: "var(--foreground)", color: "var(--background)" }}>
-                  Click anywhere on the design to leave a comment
-                </span>
-              </div>
-            )}
           </div>
         )}
       </div>

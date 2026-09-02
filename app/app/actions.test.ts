@@ -1,3 +1,6 @@
+/* Hand-rolled Supabase test doubles: the real client's builder chain is far too
+   large to model faithfully here, so the fakes are deliberately loosely typed. */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 
 const state = { members: [] as any[], workspaces: [] as any[] };

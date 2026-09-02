@@ -24,6 +24,10 @@ export function HtmlThumbnail({ url, className = "" }: { url: string; className?
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // No IntersectionObserver (older browser, jsdom): show it immediately rather
+    // than never. Can't be derived during render — the check is client-only, so
+    // doing it there would desync from the server's markup.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (typeof IntersectionObserver === "undefined") { setVisible(true); return; }
     const io = new IntersectionObserver(
       (entries) => {

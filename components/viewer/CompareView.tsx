@@ -6,7 +6,23 @@ import { CompareComments, type CompareCommentGroup } from "./CompareComments";
 import { PinMarker } from "./PinMarker";
 import type { ViewerPin } from "./MockupViewer";
 
-export type CompareMockup = { id: string; name: string; url: string; version?: number };
+export type CompareMockup = { id: string; name: string; url: string; version?: number; isHtml?: boolean };
+
+// An uploaded HTML page renders as a live frame that scrolls internally, rather
+// than a flat image. Pins aren't drawn over it: their coordinates are normalized
+// to the page's full scroll height, which this unscaled frame doesn't reproduce,
+// so they would land in the wrong places. Open the file itself to see them.
+function HtmlPane({ m }: { m: CompareMockup }) {
+  return (
+    <iframe
+      src={m.url}
+      title={m.name}
+      sandbox="allow-scripts allow-popups allow-forms allow-modals"
+      referrerPolicy="no-referrer"
+      className="block h-full w-full rounded-lg border-0 bg-white shadow-lg ring-1 ring-border"
+    />
+  );
+}
 
 // Pins overlaid on a compare image, positioned by their normalized x/y.
 function PinOverlay({ pins, openPin, onPinClick }: { pins: ViewerPin[]; openPin: string | null; onPinClick: (id: string) => void }) {
@@ -75,15 +91,21 @@ function Panel({
           ))}
         </select>
       </div>
-      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-auto bg-canvas p-4">
-        {m?.url ? (
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className={`min-h-0 flex-1 bg-canvas ${m?.isHtml ? "overflow-hidden p-2" : "overflow-auto p-4"}`}
+      >
+        {!m?.url ? (
+          <div className="grid h-full place-items-center text-sm text-faint">No preview.</div>
+        ) : m.isHtml ? (
+          <HtmlPane m={m} />
+        ) : (
           <div className="relative mx-auto w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.url} alt={m.name} className="block w-full rounded-lg shadow-lg ring-1 ring-border" />
             <PinOverlay pins={pins} openPin={openPin} onPinClick={onPinClick} />
           </div>
-        ) : (
-          <div className="grid h-full place-items-center text-sm text-faint">No preview.</div>
         )}
       </div>
     </div>
@@ -247,17 +269,29 @@ export function CompareView({
           <div className="relative mx-auto w-full">
             {newM?.url && (
               <div className="relative" style={{ opacity: peek ? 0 : 1, pointerEvents: peek ? "none" : "auto" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={newM.url} alt="" className="block w-full rounded-lg shadow-lg ring-1 ring-border" />
-                <PinOverlay pins={pinsFor(newM.id)} openPin={openPin} onPinClick={togglePin} />
+                {newM.isHtml ? (
+                  <div className="h-[calc(100vh-8rem)]"><HtmlPane m={newM} /></div>
+                ) : (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={newM.url} alt="" className="block w-full rounded-lg shadow-lg ring-1 ring-border" />
+                    <PinOverlay pins={pinsFor(newM.id)} openPin={openPin} onPinClick={togglePin} />
+                  </>
+                )}
               </div>
             )}
             {oldM?.url && (
               <div className="absolute inset-x-0 top-0" style={{ opacity: peek ? 1 : 0, pointerEvents: peek ? "auto" : "none" }}>
                 <div className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={oldM.url} alt="" className="block w-full rounded-lg shadow-lg ring-1 ring-border" />
-                  <PinOverlay pins={pinsFor(oldM.id)} openPin={openPin} onPinClick={togglePin} />
+                  {oldM.isHtml ? (
+                    <div className="h-[calc(100vh-8rem)]"><HtmlPane m={oldM} /></div>
+                  ) : (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={oldM.url} alt="" className="block w-full rounded-lg shadow-lg ring-1 ring-border" />
+                      <PinOverlay pins={pinsFor(oldM.id)} openPin={openPin} onPinClick={togglePin} />
+                    </>
+                  )}
                 </div>
               </div>
             )}

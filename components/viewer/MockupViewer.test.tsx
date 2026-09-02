@@ -150,6 +150,29 @@ describe("MockupViewer", () => {
     expect(screen.queryByRole("textbox", { name: /comment/i })).toBeNull();
   });
 
+  it("hides a pin's region outline until its pin is selected", () => {
+    const { container } = render(
+      <MockupViewer
+        mockupId="m1"
+        projectId="proj1"
+        imageUrl="http://example.com/a.png"
+        imageName="a.png"
+        initialPins={[
+          { id: "p1", x: 0.1, y: 0.1, w: 0.4, h: 0.3, number: 1, status: "active", device: "desktop", comments: [] },
+        ]}
+        siblings={[{ id: "m1" }]}
+        members={[]}
+        currentUserName="Tester"
+      />,
+    );
+    const dashed = () => container.querySelectorAll(".border-dashed").length;
+    // Left on screen permanently, the box reads as a mark on the design itself.
+    expect(dashed()).toBe(0);
+
+    fireEvent.click(screen.getByLabelText("Pin 1, active"));
+    expect(dashed()).toBe(1);
+  });
+
   it("saves a dragged region as the pin's area", async () => {
     renderViewer();
     const img = screen.getByAltText("mockup");

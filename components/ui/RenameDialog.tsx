@@ -21,13 +21,19 @@ export function RenameDialog({
   const [value, setValue] = useState(initial);
   const ref = useRef<HTMLInputElement>(null);
 
+  // Reset the field as the dialog opens, during render rather than in an effect,
+  // so it never flashes the previous name.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open) setValue(initial);
+  }
+
   useEffect(() => {
-    if (open) {
-      setValue(initial);
-      const t = setTimeout(() => ref.current?.select(), 30);
-      return () => clearTimeout(t);
-    }
-  }, [open, initial]);
+    if (!open) return;
+    const t = setTimeout(() => ref.current?.select(), 30);
+    return () => clearTimeout(t);
+  }, [open]);
 
   if (!open) return null;
 

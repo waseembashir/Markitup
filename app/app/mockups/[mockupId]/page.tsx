@@ -98,12 +98,16 @@ export default async function MockupPage({
     .eq("mockup_id", mockupId)
     .order("number", { ascending: true });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* Supabase's untyped client infers nested one-to-many joins loosely (profiles
+     comes back as an array, attachments as unknown[]), so these row shapes are
+     `any` by necessity rather than by choice. */
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const attachmentPaths = (pins ?? []).flatMap((p: any) =>
     (p.comments ?? []).flatMap((c: any) =>
       (c.comment_attachments ?? []).map((a: any) => a.file_path as string),
     ),
   );
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   const signedAttachmentUrls = new Map<string, string>();
   if (attachmentPaths.length) {
     const { data: urls } = await supabase.storage
@@ -155,6 +159,7 @@ export default async function MockupPage({
       parentCommentId: c.parent_comment_id,
       createdAt: c.created_at,
       authorName: c.profiles?.name || emailLocalPart(c.profiles?.email ?? "") || "Unknown",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attachments: (c.comment_attachments ?? []).map((a: any) => ({
         url: signedAttachmentUrls.get(a.file_path) ?? "",
         type: a.type,

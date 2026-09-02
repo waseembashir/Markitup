@@ -21,8 +21,12 @@ export function ThemeSettings() {
   const [dark, setDark] = useState(false);
   const [accent, setAccent] = useState("neutral");
 
+  // One-time read of the theme the inline boot script already applied to <html>.
+  // It has to happen after hydration — reading the DOM during render would make
+  // the server and client markup disagree.
   useEffect(() => {
     const el = document.documentElement;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(el.classList.contains("dark"));
     setAccent(el.getAttribute("data-theme") || "neutral");
   }, []);

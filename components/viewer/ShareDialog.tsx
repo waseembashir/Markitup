@@ -67,11 +67,23 @@ export function ShareDialog({
     else setInfo(res);
   }
 
+  // Clear the previous result as the dialog opens, during render, so a reopened
+  // dialog never shows the last share's link or error while the fetch is in
+  // flight. The fetch itself stays in an effect below.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open) {
+      setError(null);
+      setInfo(null);
+    }
+  }
+
   // Load share info whenever the dialog opens (controlled or uncontrolled).
   useEffect(() => {
     if (!open) return;
-    setError(null);
-    setInfo(null);
+    // load() only sets state after its await, which the rule can't see through.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     // load closes over stable setters only; re-running on `open` is enough.
     // eslint-disable-next-line react-hooks/exhaustive-deps

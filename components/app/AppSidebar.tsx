@@ -122,6 +122,10 @@ const NAV = [
 // Circular light/dark toggle, mirroring the mode logic in ThemeSettings.
 function ThemeToggle() {
   const [dark, setDark] = useState(false);
+  // Same one-time post-hydration read as ThemeSettings: the boot script sets the
+  // class on <html> before React runs, and reading it during render would break
+  // hydration.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setDark(document.documentElement.classList.contains("dark")), []);
   function toggle() {
     const next = !dark;

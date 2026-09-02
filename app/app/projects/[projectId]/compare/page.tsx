@@ -27,10 +27,9 @@ export default async function ComparePage({
 
   const { data: rows } = await supabase
     .from("mockups")
-    .select("id, name, file_path, created_at, version")
+    .select("id, name, file_path, created_at, version, type")
     .eq("project_id", projectId)
     .is("archived_at", null)
-    .neq("type", "html") // compare renders images side-by-side; HTML isn't comparable here
     .order("created_at", { ascending: true });
   const mockups = rows ?? [];
 
@@ -43,8 +42,16 @@ export default async function ComparePage({
   }
 
   const list: CompareMockup[] = mockups
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((m) => ({ id: m.id, name: m.name, url: signed.get(m.file_path) ?? "", version: (m as any).version as number | undefined }))
+    .map((m) => {
+      const row = m as { version?: number; type?: string };
+      return {
+        id: m.id,
+        name: m.name,
+        url: signed.get(m.file_path) ?? "",
+        version: row.version,
+        isHtml: row.type === "html",
+      };
+    })
     .filter((m) => m.url);
 
   const latest = list[list.length - 1];

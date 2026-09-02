@@ -32,6 +32,7 @@ export function RichCommentInput({
   placeholder,
   projectId,
   author,
+  onCancel,
 }: {
   value?: string;
   onSubmit: (html: string, attachments: PendingAttachment[]) => void;
@@ -40,6 +41,8 @@ export function RichCommentInput({
   projectId: string;
   // Shown at the top-left of the box so it's obvious who is about to speak.
   author?: { name: string; email: string };
+  // When given, a Cancel button sits beside Comment in the footer.
+  onCancel?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -265,14 +268,21 @@ export function RichCommentInput({
       )}
       <div className="flex items-center justify-between gap-2 border-t px-2 py-2">
         <span className="text-xs text-faint">{uploading ? "Uploading…" : ""}</span>
-        <button
-          type="button"
-          disabled={pending || uploading || (empty && attachments.length === 0)}
-          onClick={submit}
-          className="btn-primary btn-sm"
-        >
-          {pending ? "Saving…" : "Comment"}
-        </button>
+        <div className="flex items-center gap-1">
+          {onCancel && (
+            <button type="button" onClick={onCancel} className="btn-ghost btn-sm">
+              Cancel
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={pending || uploading || (empty && attachments.length === 0)}
+            onClick={submit}
+            className="btn-primary btn-sm"
+          >
+            {pending ? "Saving…" : "Comment"}
+          </button>
+        </div>
       </div>
     </div>
   );

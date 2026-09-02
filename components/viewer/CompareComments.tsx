@@ -55,8 +55,8 @@ function CommentRow({ c, small = false }: { c: ViewerComment; small?: boolean })
           <div className="mt-2 flex flex-wrap gap-2">
             {c.attachments.map((a, i) =>
               a.type === "image" ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <a key={i} href={a.url} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={a.url} alt={a.name} className="h-20 w-20 rounded-md border object-cover" />
                 </a>
               ) : (

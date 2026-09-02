@@ -45,7 +45,12 @@ export function NotificationBell() {
     setUnread(res.unreadCount);
   }, []);
 
+  // Poll the server for notifications. `refresh` only sets state after its await,
+  // i.e. from a callback rather than synchronously during the effect — which is
+  // precisely the subscribe-to-an-external-system shape the rule allows, but it
+  // can't see through the async function.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
     const t = setInterval(refresh, 30000);
     return () => clearInterval(t);
@@ -89,7 +94,7 @@ export function NotificationBell() {
             <div className="border-b px-3 py-3 text-sm font-semibold text-ink">Notifications</div>
             <div className="max-h-96 divide-y overflow-y-auto">
               {items.length === 0 ? (
-                <p className="px-3 py-8 text-center text-sm text-faint">You're all caught up.</p>
+                <p className="px-3 py-8 text-center text-sm text-faint">You&apos;re all caught up.</p>
               ) : (
                 items.map((n) => {
                   const inner = (

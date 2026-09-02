@@ -29,8 +29,8 @@ function CommentRow({ c, small = false }: { c: ViewerComment; small?: boolean })
           <div className="mt-2 flex flex-wrap gap-2">
             {c.attachments.map((a, i) =>
               a.type === "image" ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <a key={i} href={a.url} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={a.url} alt={a.name} className="h-24 w-24 rounded-md border object-cover" />
                 </a>
               ) : (
@@ -51,7 +51,8 @@ export function CommentThread({
   mockupId,
   projectId,
   pin,
-  members,
+  // `members` stays in the props type (callers pass it, and it's what @mention
+  // autocomplete will read) but nothing in here consumes it yet.
   currentUserName,
   onChange,
   onClose,
