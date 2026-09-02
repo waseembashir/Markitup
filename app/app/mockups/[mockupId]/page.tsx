@@ -93,7 +93,7 @@ export default async function MockupPage({
   const { data: pins } = await supabase
     .from("pins")
     .select(
-      "id, x, y, number, status, device, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
+      "id, x, y, w, h, number, status, device, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
     )
     .eq("mockup_id", mockupId)
     .order("number", { ascending: true });
@@ -137,6 +137,8 @@ export default async function MockupPage({
     id: p.id,
     x: p.x,
     y: p.y,
+    w: p.w ?? 0,
+    h: p.h ?? 0,
     number: p.number,
     status: p.status,
     device: (p.device as "desktop" | "mobile") ?? "desktop",

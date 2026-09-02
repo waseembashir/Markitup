@@ -79,7 +79,7 @@ export default async function ComparePage({
   const { data: pinRows } = await supabase
     .from("pins")
     .select(
-      "id, mockup_id, x, y, number, status, device, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
+      "id, mockup_id, x, y, w, h, number, status, device, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
     )
     .in("mockup_id", ids)
     .order("number", { ascending: true });
@@ -103,6 +103,8 @@ export default async function ComparePage({
       id: row.id,
       x: row.x,
       y: row.y,
+      w: row.w ?? 0,
+      h: row.h ?? 0,
       number: row.number,
       status: row.status,
       device: (row.device as "desktop" | "mobile") ?? "desktop",

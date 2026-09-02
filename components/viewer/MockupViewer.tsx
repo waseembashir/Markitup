@@ -25,6 +25,10 @@ export type ViewerPin = {
   id: string;
   x: number;
   y: number;
+  // Normalized size of a dragged region extending right/down from x,y.
+  // 0,0 means a plain point pin.
+  w: number;
+  h: number;
   number: number;
   status: "active" | "resolved";
   // The viewport this feedback was left on. Desktop and mobile layouts put the
@@ -181,7 +185,9 @@ export function MockupViewer({
   const [zoom, setZoom] = useState<Zoom>({ mode: "fit-width", pct: 0 });
   const [zoomOpen, setZoomOpen] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-  const [draft, setDraft] = useState<{ x: number; y: number; pinId?: string; number?: number } | null>(null);
+  const [draft, setDraft] = useState<{ x: number; y: number; w?: number; h?: number; pinId?: string; number?: number } | null>(null);
+  // Live rectangle while dragging out a region, before it becomes a draft pin.
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -354,26 +360,58 @@ export function MockupViewer({
     if (p) requestAnimationFrame(() => scrollToPin(p));
   }
 
-  function handleSurfaceClick(e: React.MouseEvent<HTMLElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const { x, y } = toNormalized(e.clientX, e.clientY, rect);
-    setActivePinId(null);
-    setPinError(null);
-    setDraft({ x, y });
+  // Each surface maps a viewport point into the same 0–1 space the pins live in.
+  // The static surface is a plain rect; the HTML surface also has to undo the
+  // frame's scale, its centring offset and the page's own scroll.
+  type Mapper = (clientX: number, clientY: number) => { x: number; y: number };
+  function surfaceMapper(rect: DOMRect): Mapper {
+    return (cx, cy) => toNormalized(cx, cy, rect);
+  }
+  function htmlMapper(rect: DOMRect): Mapper {
+    return (cx, cy) => {
+      const px = cx - rect.left - htmlOffsetX;
+      const py = cy - rect.top;
+      const H = htmlHeight || 1;
+      return {
+        x: Math.min(1, Math.max(0, px / htmlScale / htmlDesignW)),
+        y: Math.min(1, Math.max(0, (py / htmlScale + htmlScrollY) / H)),
+      };
+    };
   }
 
-  // HTML comment mode: map a click to page-normalized coords, accounting for
-  // the desktop scale and how far the page is scrolled inside the iframe.
-  function handleHtmlClick(e: React.MouseEvent<HTMLElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const cx = e.clientX - rect.left - htmlOffsetX;
-    const cy = e.clientY - rect.top;
-    const H = htmlHeight || 1;
-    const x = Math.min(1, Math.max(0, cx / htmlScale / htmlDesignW));
-    const y = Math.min(1, Math.max(0, (cy / htmlScale + htmlScrollY) / H));
+  // A press that barely moves is a point pin (exactly the old behaviour); drag
+  // further and it becomes a region, the way Figma's comment tool works.
+  const DRAG_THRESHOLD_PX = 4;
+  function beginDraft(e: React.PointerEvent<HTMLElement>, makeMapper: (rect: DOMRect) => Mapper) {
+    if (e.button !== 0) return;
+    const map = makeMapper(e.currentTarget.getBoundingClientRect());
+    const start = map(e.clientX, e.clientY);
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
     setActivePinId(null);
     setPinError(null);
-    setDraft({ x, y });
+    setDraft(null);
+
+    const rectFrom = (cx: number, cy: number) => {
+      const cur = map(cx, cy);
+      return {
+        x: Math.min(start.x, cur.x),
+        y: Math.min(start.y, cur.y),
+        w: Math.abs(cur.x - start.x),
+        h: Math.abs(cur.y - start.y),
+      };
+    };
+    const onMove = (ev: PointerEvent) => setMarquee(rectFrom(ev.clientX, ev.clientY));
+    const onUp = (ev: PointerEvent) => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      setMarquee(null);
+      const moved = Math.hypot(ev.clientX - startClientX, ev.clientY - startClientY);
+      if (moved < DRAG_THRESHOLD_PX) setDraft({ x: start.x, y: start.y, w: 0, h: 0 });
+      else setDraft(rectFrom(ev.clientX, ev.clientY));
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
   }
 
   // HTML comment mode: the click layer covers the iframe, so forward the wheel
@@ -388,6 +426,8 @@ export function MockupViewer({
   async function saveDraft(body: string, attachments: PendingAttachment[] = []) {
     if (!draft) return;
     const { x, y } = draft;
+    const w = draft.w ?? 0;
+    const h = draft.h ?? 0;
     const existingPinId = draft.pinId;
     const tmpPinId = existingPinId ?? `tmp-pin-${Date.now()}`;
     const tmpCommentId = `tmp-c-${Date.now()}`;
@@ -404,7 +444,7 @@ export function MockupViewer({
     if (existingPinId) {
       setPins((ps) => ps.map((p) => (p.id === existingPinId ? { ...p, comments: [...p.comments, optimistic] } : p)));
     } else {
-      setPins((ps) => [...ps, { id: tmpPinId, x, y, number: 0, status: "active", device, comments: [optimistic] }]);
+      setPins((ps) => [...ps, { id: tmpPinId, x, y, w, h, number: 0, status: "active", device, comments: [optimistic] }]);
     }
     const closedDraft = draft;
     setDraft(null);
@@ -415,7 +455,7 @@ export function MockupViewer({
     try {
       let pinId = existingPinId;
       if (!pinId) {
-        const res = await createPin(mockupId, x, y, device);
+        const res = await createPin(mockupId, x, y, device, w, h);
         if (res.error || !res.id || res.number == null) throw new Error(res.error || "Could not save your comment.");
         pinId = res.id;
         const realNumber = res.number;
@@ -500,15 +540,47 @@ export function MockupViewer({
           number={p.number}
           x={p.x}
           y={p.y}
+          w={p.w}
+          h={p.h}
           status={p.status}
           selected={p.id === activePinId}
           onClick={() => setActivePinId(p.id)}
         />
       ))}
+      {/* the rectangle being dragged right now */}
+      {marquee && marquee.w > 0 && marquee.h > 0 && (
+        <span
+          aria-hidden
+          style={{
+            left: `${marquee.x * 100}%`,
+            top: `${marquee.y * 100}%`,
+            width: `${marquee.w * 100}%`,
+            height: `${marquee.h * 100}%`,
+            borderColor: "var(--primary)",
+            background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+          className="pointer-events-none absolute rounded-[3px] border-2 border-dashed"
+        />
+      )}
+      {/* a region still being written up — outlined until it's saved */}
+      {draft && (draft.w ?? 0) > 0 && (draft.h ?? 0) > 0 && (
+        <span
+          aria-hidden
+          style={{
+            left: `${draft.x * 100}%`,
+            top: `${draft.y * 100}%`,
+            width: `${(draft.w ?? 0) * 100}%`,
+            height: `${(draft.h ?? 0) * 100}%`,
+            borderColor: "var(--primary)",
+            background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+          className="pointer-events-none absolute rounded-[3px] border-2 border-dashed"
+        />
+      )}
       {draft && (
         <PinComposer
-          xPct={draft.x * 100}
-          yPct={draft.y * 100}
+          xPct={(draft.x + (draft.w ?? 0)) * 100}
+          yPct={(draft.y + (draft.h ?? 0)) * 100}
           projectId={projectId}
           pending={false}
           error={pinError}
@@ -798,7 +870,7 @@ export function MockupViewer({
             )}
             {/* comment mode: capture clicks (drop pins); forward wheel to the page */}
             {htmlMode === "comment" && (
-              <div className="absolute inset-0 cursor-crosshair" onClick={handleHtmlClick} onWheel={handleHtmlWheel} />
+              <div className="absolute inset-0 cursor-crosshair" onPointerDown={(e) => beginDraft(e, htmlMapper)} onWheel={handleHtmlWheel} />
             )}
             {/* pin layer spans the full page and is translated to the live scroll */}
             <div
@@ -843,7 +915,7 @@ export function MockupViewer({
                       />
                       {/* transparent capture layer: clicks drop pins; the embed
                           underneath keeps animating video/GIF */}
-                      <div className="absolute inset-0 cursor-crosshair" onClick={handleSurfaceClick}>
+                      <div className="absolute inset-0 cursor-crosshair" onPointerDown={(e) => beginDraft(e, surfaceMapper)}>
                         {pinsOverlay}
                       </div>
                     </div>
@@ -857,7 +929,7 @@ export function MockupViewer({
                       src={imageUrl}
                       alt="mockup"
                       onLoad={(e) => { setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgLoaded(true); }}
-                      onClick={handleSurfaceClick}
+                      onPointerDown={(e) => beginDraft(e, surfaceMapper)}
                       draggable={false}
                       className="block w-full cursor-crosshair rounded-lg shadow-lg ring-1 ring-border select-none"
                       style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s var(--ease-out-quart)" }}

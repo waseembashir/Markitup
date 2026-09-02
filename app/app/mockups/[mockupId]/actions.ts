@@ -8,17 +8,30 @@ import { commentNotification } from "@/lib/email/templates";
 import { workspaceSlackWebhook, postToSlack, commentSlackMessage } from "@/lib/slack";
 import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
 
+// x,y anchor the pin. w,h are optional and describe a dragged REGION extending
+// right/down from that anchor; 0,0 means a plain point pin.
 export async function createPin(
   mockupId: string,
   x: number,
   y: number,
   device: "desktop" | "mobile" = "desktop",
+  w = 0,
+  h = 0,
 ) {
   const supabase = await createServerSupabase();
   const { data: userData } = await supabase.auth.getUser();
+  const clamp = (n: number) => Math.min(1, Math.max(0, n));
   const { data, error } = await supabase
     .from("pins")
-    .insert({ mockup_id: mockupId, x, y, device, created_by: userData.user!.id })
+    .insert({
+      mockup_id: mockupId,
+      x,
+      y,
+      w: clamp(w),
+      h: clamp(h),
+      device,
+      created_by: userData.user!.id,
+    })
     .select("id, number")
     .single();
   if (error) return { error: error.message };

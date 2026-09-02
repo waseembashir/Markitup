@@ -232,7 +232,10 @@ export function RichCommentInput({
           onDragOver={(e) => e.preventDefault()}
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); submit(); } }}
           data-project={projectId}
-          className="max-h-64 min-h-[6.5rem] w-full overflow-y-auto px-3.5 py-3 text-sm leading-relaxed text-ink outline-none [&_a]:text-brand-ink [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5"
+          /* focus-visible:shadow-none opts out of the global lime focus ring in
+             globals.css — on a large writing surface it reads as a stray
+             outline, and the caret already shows focus here. */
+          className="max-h-64 min-h-[6.5rem] w-full overflow-y-auto px-3.5 py-3 text-sm leading-relaxed text-ink outline-none focus-visible:shadow-none [&_a]:text-brand-ink [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5"
         />
       </div>
       {attachments.length > 0 && (

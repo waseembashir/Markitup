@@ -31,6 +31,20 @@ beforeEach(() => {
   });
 });
 
+// A press-and-release that doesn't move: the viewer treats anything under the
+// 4px drag threshold as a point pin, which is what a plain click used to do.
+function tap(el: Element, at: { clientX: number; clientY: number } = { clientX: 0, clientY: 0 }) {
+  fireEvent.pointerDown(el, { button: 0, ...at });
+  fireEvent.pointerUp(document, at);
+}
+
+// Press, move, release — drags out a region.
+function dragOut(el: Element, from: { clientX: number; clientY: number }, to: { clientX: number; clientY: number }) {
+  fireEvent.pointerDown(el, { button: 0, ...from });
+  fireEvent.pointerMove(document, to);
+  fireEvent.pointerUp(document, to);
+}
+
 function renderViewer() {
   return render(
     <MockupViewer
@@ -54,7 +68,7 @@ describe("MockupViewer", () => {
         projectId="proj1"
         imageUrl="http://example.com/a.png"
         imageName="a.png"
-        initialPins={[{ id: "p1", x: 0.5, y: 0.5, number: 3, status: "active", device: "desktop", comments: [] }]}
+        initialPins={[{ id: "p1", x: 0.5, y: 0.5, w: 0, h: 0, number: 3, status: "active", device: "desktop", comments: [] }]}
         siblings={[{ id: "m1" }]}
         members={[]}
         currentUserName="Tester"
@@ -71,8 +85,8 @@ describe("MockupViewer", () => {
         imageUrl="http://example.com/a.png"
         imageName="a.png"
         initialPins={[
-          { id: "p1", x: 0.2, y: 0.2, number: 1, status: "active", device: "desktop", comments: [] },
-          { id: "p2", x: 0.4, y: 0.4, number: 1, status: "active", device: "mobile", comments: [] },
+          { id: "p1", x: 0.2, y: 0.2, w: 0, h: 0, number: 1, status: "active", device: "desktop", comments: [] },
+          { id: "p2", x: 0.4, y: 0.4, w: 0, h: 0, number: 1, status: "active", device: "mobile", comments: [] },
         ]}
         siblings={[{ id: "m1" }]}
         members={[]}
@@ -92,8 +106,8 @@ describe("MockupViewer", () => {
         imageUrl="http://example.com/a.png"
         imageName="a.png"
         initialPins={[
-          { id: "p1", x: 0.2, y: 0.2, number: 1, status: "active", device: "desktop", comments: [] },
-          { id: "p2", x: 0.4, y: 0.4, number: 7, status: "active", device: "mobile", comments: [] },
+          { id: "p1", x: 0.2, y: 0.2, w: 0, h: 0, number: 1, status: "active", device: "desktop", comments: [] },
+          { id: "p2", x: 0.4, y: 0.4, w: 0, h: 0, number: 7, status: "active", device: "mobile", comments: [] },
         ]}
         siblings={[{ id: "m1" }]}
         members={[]}
@@ -113,7 +127,7 @@ describe("MockupViewer", () => {
     renderViewer();
     const img = screen.getByAltText("mockup");
     fireEvent.load(img);
-    fireEvent.click(img);
+    tap(img);
     expect(screen.getByRole("textbox", { name: /comment/i })).toBeTruthy();
     expect(mockCreatePin).not.toHaveBeenCalled();
   });
@@ -122,25 +136,60 @@ describe("MockupViewer", () => {
     renderViewer();
     const img = screen.getByAltText("mockup");
     fireEvent.load(img);
-    fireEvent.click(img);
+    tap(img);
     const textbox = screen.getByRole("textbox", { name: /comment/i });
     fireEvent.input(textbox, { target: { innerHTML: "Hello there" } });
     fireEvent.click(screen.getByRole("button", { name: /^comment$/i }));
 
     await screen.findByLabelText("Pin 1, active");
     expect(mockCreatePin).toHaveBeenCalledTimes(1);
-    expect(mockCreatePin).toHaveBeenCalledWith("m1", 0, 0, "desktop");
+    expect(mockCreatePin).toHaveBeenCalledWith("m1", 0, 0, "desktop", 0, 0);
     expect(mockAddComment).toHaveBeenCalledTimes(1);
     expect(mockAddComment).toHaveBeenCalledWith("m1", "p1", "Hello there");
     // popup closes after success
     expect(screen.queryByRole("textbox", { name: /comment/i })).toBeNull();
   });
 
+  it("saves a dragged region as the pin's area", async () => {
+    renderViewer();
+    const img = screen.getByAltText("mockup");
+    fireEvent.load(img);
+    // The stubbed rect is 100x100, so 10,20 -> 60,70 is a quarter-ish region.
+    dragOut(img, { clientX: 10, clientY: 20 }, { clientX: 60, clientY: 70 });
+
+    const textbox = screen.getByRole("textbox", { name: /comment/i });
+    fireEvent.input(textbox, { target: { innerHTML: "This whole block" } });
+    fireEvent.click(screen.getByRole("button", { name: /^comment$/i }));
+
+    await screen.findByLabelText("Pin 1, active");
+    const [id, x, y, dev, w, h] = mockCreatePin.mock.calls[0];
+    expect([id, dev]).toEqual(["m1", "desktop"]);
+    expect(x).toBeCloseTo(0.1, 5);
+    expect(y).toBeCloseTo(0.2, 5);
+    expect(w).toBeCloseTo(0.5, 5);
+    expect(h).toBeCloseTo(0.5, 5);
+  });
+
+  it("treats a press that barely moves as a point pin, not a region", async () => {
+    renderViewer();
+    const img = screen.getByAltText("mockup");
+    fireEvent.load(img);
+    // 2px of jitter is below the 4px threshold.
+    dragOut(img, { clientX: 30, clientY: 30 }, { clientX: 31, clientY: 31 });
+
+    const textbox = screen.getByRole("textbox", { name: /comment/i });
+    fireEvent.input(textbox, { target: { innerHTML: "Just here" } });
+    fireEvent.click(screen.getByRole("button", { name: /^comment$/i }));
+
+    await screen.findByLabelText("Pin 1, active");
+    expect(mockCreatePin).toHaveBeenCalledWith("m1", 0.3, 0.3, "desktop", 0, 0);
+  });
+
   it("does not call any action when Cancel is clicked", () => {
     renderViewer();
     const img = screen.getByAltText("mockup");
     fireEvent.load(img);
-    fireEvent.click(img);
+    tap(img);
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(mockCreatePin).not.toHaveBeenCalled();
     expect(mockAddComment).not.toHaveBeenCalled();
@@ -152,7 +201,7 @@ describe("MockupViewer", () => {
     renderViewer();
     const img = screen.getByAltText("mockup");
     fireEvent.load(img);
-    fireEvent.click(img);
+    tap(img);
     const textbox = screen.getByRole("textbox", { name: /comment/i });
     fireEvent.input(textbox, { target: { innerHTML: "Will fail" } });
     fireEvent.click(screen.getByRole("button", { name: /^comment$/i }));
@@ -178,7 +227,7 @@ describe("MockupViewer", () => {
     );
     const img = screen.getByAltText("mockup");
     fireEvent.load(img);
-    fireEvent.click(img);
+    tap(img);
     const textbox = screen.getByRole("textbox", { name: /comment/i });
     fireEvent.input(textbox, { target: { innerHTML: "Fix the header" } });
     fireEvent.click(screen.getByRole("button", { name: /^comment$/i }));
@@ -191,7 +240,7 @@ describe("MockupViewer", () => {
     const { container } = renderViewer();
     const img = screen.getByAltText("mockup");
     fireEvent.load(img);
-    fireEvent.click(img);
+    tap(img);
     const textbox = screen.getByRole("textbox", { name: /comment/i });
     fireEvent.input(textbox, { target: { innerHTML: '<img src=x onerror="alert(1)">bad' } });
     fireEvent.click(screen.getByRole("button", { name: /^comment$/i }));
