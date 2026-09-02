@@ -277,15 +277,24 @@ export function MockupViewer({
   // layout and their scroll-triggered animations actually play. The pin layer
   // is translated to match the page's reported scroll so pins stay aligned.
   const HTML_DESKTOP_W = 1440;
-  const htmlDesignW = device === "mobile" ? 390 : HTML_DESKTOP_W;
-  // Desktop fills the canvas width; a phone shows at a realistic device size
-  // (fit to height, never enlarged past 1×) and is centered — not stretched.
-  const htmlScale =
-    device === "mobile"
-      ? Math.min(1, box.h > 32 ? (box.h - 32) / 844 : 1)
-      : box.w > 0
-        ? box.w / htmlDesignW
-        : 1;
+  const HTML_MOBILE_W = 390;
+  const HTML_MOBILE_H = 844;
+  const htmlDesignW = device === "mobile" ? HTML_MOBILE_W : HTML_DESKTOP_W;
+  // Zoom applies to HTML as well as images. A live page scrolls internally and
+  // has no fixed height, so "fit in window" means fit the DEVICE FRAME: the
+  // phone's 390×844 body on mobile, and (a desktop page being unbounded
+  // vertically) the 1440px width on desktop. Percentages are literal — 100% is
+  // the true device width — and the canvas scrolls horizontally when the scaled
+  // frame is wider than it.
+  const htmlScale = useMemo(() => {
+    if (box.w <= 0) return 1;
+    if (zoom.mode === "percent") return zoom.pct / 100;
+    if (device === "mobile" && zoom.mode === "fit-window") {
+      // never enlarge a phone past 1×, and keep it inside both dimensions
+      return Math.min(1, (box.h - 32) / HTML_MOBILE_H, box.w / HTML_MOBILE_W);
+    }
+    return box.w / htmlDesignW;
+  }, [box, zoom, device, htmlDesignW]);
   const htmlViewH = htmlScale > 0 ? box.h / htmlScale : box.h; // iframe design height (fills canvas height)
   const htmlVisualW = htmlDesignW * htmlScale;
   const htmlOffsetX = Math.max(0, (box.w - htmlVisualW) / 2); // center the phone; 0 when filling width
@@ -296,8 +305,12 @@ export function MockupViewer({
     const pad = 48; // matches p-6 on both sides
     const availW = Math.max(0, box.w - pad);
     const availH = Math.max(0, box.h - pad);
-    // Mobile preview: pin the design to a phone-ish width regardless of zoom.
-    if (device === "mobile") return Math.min(390, availW);
+    // Mobile preview frames the design at a phone width, and zoom scales that
+    // frame — so 100% is the phone's 390px, matching the HTML view's semantics.
+    if (device === "mobile") {
+      const phoneW = Math.min(HTML_MOBILE_W, availW);
+      return zoom.mode === "percent" ? HTML_MOBILE_W * (zoom.pct / 100) : phoneW;
+    }
     if (zoom.mode === "fit-width") return availW;
     if (zoom.mode === "fit-window") {
       const scale = Math.min(availW / nat.w, availH / nat.h);
@@ -429,18 +442,12 @@ export function MockupViewer({
     }
   }
 
-  async function download() {
-    try {
-      const res = await fetch(imageUrl);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = imageName || "file";
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch {
-      window.open(imageUrl, "_blank");
-    }
+  // Switching device resets zoom to that frame's natural fit, so a phone opens
+  // looking like a phone instead of inheriting the desktop's fit-width (which
+  // would stretch a 390px frame across the whole canvas).
+  function switchDevice(next: "desktop" | "mobile") {
+    setDevice(next);
+    setZoom(next === "mobile" ? { mode: "fit-window", pct: 0 } : { mode: "fit-width", pct: 0 });
   }
 
   function toggleFullscreen() {
@@ -597,7 +604,7 @@ export function MockupViewer({
           {/* device preview toggle */}
           <div className="mr-1 hidden overflow-hidden rounded-md border md:flex">
             <button
-              onClick={() => setDevice("desktop")}
+              onClick={() => switchDevice("desktop")}
               title="Desktop view"
               aria-label="Desktop view"
               className="grid h-7 w-7 place-items-center transition-colors"
@@ -609,7 +616,7 @@ export function MockupViewer({
               </svg>
             </button>
             <button
-              onClick={() => setDevice("mobile")}
+              onClick={() => switchDevice("mobile")}
               title="Mobile view"
               aria-label="Mobile view"
               className="grid h-7 w-7 place-items-center border-l transition-colors"
@@ -644,14 +651,6 @@ export function MockupViewer({
               </>
             )}
           </div>
-          {!isFigma && (
-            <ToolbarButton label="Download" onClick={download}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M12 4v11m0 0 4-4m-4 4-4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 18h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-              </svg>
-            </ToolbarButton>
-          )}
           <ToolbarButton label="Fullscreen" onClick={toggleFullscreen}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
@@ -771,7 +770,7 @@ export function MockupViewer({
         {isHtml ? (
           /* HTML: a real-browser view that scrolls INSIDE the iframe (so scroll
              animations play), with a pin layer translated to match its scroll. */
-          <div ref={scrollRef} className="absolute inset-0 overflow-hidden">
+          <div ref={scrollRef} className="absolute inset-0 overflow-x-auto overflow-y-hidden">
             {htmlError ? (
               <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">Couldn&apos;t load this HTML page.</div>
             ) : htmlDoc === null ? (
@@ -798,13 +797,7 @@ export function MockupViewer({
             >
               {pinsOverlay}
             </div>
-            {htmlMode === "browse" ? (
-              <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
-                <span className="rounded-full px-4 py-2 text-xs font-medium shadow-lg" style={{ background: "var(--foreground)", color: "var(--background)" }}>
-                  Interacting with the live page — switch to Comment to leave feedback
-                </span>
-              </div>
-            ) : counts.all === 0 ? (
+            {htmlMode !== "browse" && counts.all === 0 ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
                 <span className="rounded-full px-4 py-2 text-xs font-medium shadow-lg" style={{ background: "var(--foreground)", color: "var(--background)" }}>
                   Click anywhere on the design to leave a comment
