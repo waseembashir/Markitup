@@ -15,7 +15,7 @@ vi.mock("@/app/app/mockups/[mockupId]/actions", () => ({
 // like the real MockupViewer parent does; mirror that here so the thread
 // actually re-renders with the new comment.
 function Harness({ onChangeSpy }: { onChangeSpy: (p: ViewerPin) => void }) {
-  const [pin, setPin] = useState<ViewerPin>({ id: "p1", x: 0.5, y: 0.5, number: 1, status: "active", comments: [] });
+  const [pin, setPin] = useState<ViewerPin>({ id: "p1", x: 0.5, y: 0.5, number: 1, status: "active", device: "desktop", comments: [] });
   return (
     <CommentThread
       mockupId="m1"

@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { validateUpload } from "@/lib/validation";
+import { validateUpload, HTML_MIME } from "@/lib/validation";
+import { injectHeightReporter } from "@/lib/html-embed";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { createMockupUploadUrl, addMockupVersion } from "@/app/app/projects/[projectId]/actions";
@@ -25,12 +26,16 @@ export function useVersionUpload({
   const toast = useToast();
 
   function upload(file: File) {
-    const check = validateUpload({ size: file.size, type: file.type });
+    // `name` matters: browsers routinely report an empty MIME type for .html, so
+    // without it the extension fallback can't fire and an HTML version is
+    // rejected as an unsupported file.
+    const check = validateUpload({ size: file.size, type: file.type, name: file.name });
     if (!check.ok) {
       setError(check.error);
       toast.error(check.error);
       return;
     }
+    const isHtml = check.kind === "html";
     setError(null);
     const id = toast.push({ title: "Uploading new version…", variant: "loading", progress: 0.06 });
     let p = 0.06;
@@ -46,13 +51,21 @@ export function useVersionUpload({
         toast.update(id, { variant: "error", title: "Upload failed", description: message, progress: undefined, duration: 4000 });
       };
       try {
-        const target = await createMockupUploadUrl(projectId, file.type);
+        // Normalize the type the same way the first-upload path does — the
+        // server only accepts an exact MIME, and .html often arrives as "".
+        const uploadType = isHtml ? HTML_MIME : file.type;
+        const target = await createMockupUploadUrl(projectId, uploadType);
         if ("error" in target && target.error) return failToast(target.error);
 
+        // HTML needs the height-reporter injected before it goes up, or the
+        // viewer can't size the sandboxed frame and pins lose their anchor.
+        const body: Blob = isHtml
+          ? new Blob([injectHeightReporter(await file.text())], { type: HTML_MIME })
+          : file;
         const supabase = createBrowserSupabase();
         const { error: upErr } = await supabase.storage
           .from("mockups")
-          .uploadToSignedUrl(target.path!, target.token!, file, { contentType: file.type });
+          .uploadToSignedUrl(target.path!, target.token!, body, { contentType: uploadType });
         if (upErr) return failToast(upErr.message);
 
         const res = await addMockupVersion(baseMockupId, target.path!);

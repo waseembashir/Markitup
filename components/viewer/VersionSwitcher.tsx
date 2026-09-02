@@ -37,7 +37,7 @@ export function VersionSwitcher({
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,image/jpeg"
+        accept="image/png,image/jpeg,text/html,.html,.htm"
         className="hidden"
         onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
       />

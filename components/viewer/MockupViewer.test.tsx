@@ -54,13 +54,59 @@ describe("MockupViewer", () => {
         projectId="proj1"
         imageUrl="http://example.com/a.png"
         imageName="a.png"
-        initialPins={[{ id: "p1", x: 0.5, y: 0.5, number: 3, status: "active", comments: [] }]}
+        initialPins={[{ id: "p1", x: 0.5, y: 0.5, number: 3, status: "active", device: "desktop", comments: [] }]}
         siblings={[{ id: "m1" }]}
         members={[]}
         currentUserName="Tester"
       />,
     );
     expect(screen.getByLabelText("Pin 3, active")).toBeInTheDocument();
+  });
+
+  it("hides mobile feedback while the desktop view is active", () => {
+    render(
+      <MockupViewer
+        mockupId="m1"
+        projectId="proj1"
+        imageUrl="http://example.com/a.png"
+        imageName="a.png"
+        initialPins={[
+          { id: "p1", x: 0.2, y: 0.2, number: 1, status: "active", device: "desktop", comments: [] },
+          { id: "p2", x: 0.4, y: 0.4, number: 1, status: "active", device: "mobile", comments: [] },
+        ]}
+        siblings={[{ id: "m1" }]}
+        members={[]}
+        currentUserName="Tester"
+      />,
+    );
+    // Both pins are numbered 1 — they belong to independent per-device
+    // sequences — so exactly one marker should be on the desktop canvas.
+    expect(screen.getAllByLabelText("Pin 1, active")).toHaveLength(1);
+  });
+
+  it("switches to the mobile feedback set when the mobile view is selected", async () => {
+    render(
+      <MockupViewer
+        mockupId="m1"
+        projectId="proj1"
+        imageUrl="http://example.com/a.png"
+        imageName="a.png"
+        initialPins={[
+          { id: "p1", x: 0.2, y: 0.2, number: 1, status: "active", device: "desktop", comments: [] },
+          { id: "p2", x: 0.4, y: 0.4, number: 7, status: "active", device: "mobile", comments: [] },
+        ]}
+        siblings={[{ id: "m1" }]}
+        members={[]}
+        currentUserName="Tester"
+      />,
+    );
+    expect(screen.getByLabelText("Pin 1, active")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pin 7, active")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /mobile view/i }));
+
+    expect(await screen.findByLabelText("Pin 7, active")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pin 1, active")).not.toBeInTheDocument();
   });
 
   it("opens a comment popup when the image is clicked without creating a pin", () => {
@@ -83,7 +129,7 @@ describe("MockupViewer", () => {
 
     await screen.findByLabelText("Pin 1, active");
     expect(mockCreatePin).toHaveBeenCalledTimes(1);
-    expect(mockCreatePin).toHaveBeenCalledWith("m1", 0, 0);
+    expect(mockCreatePin).toHaveBeenCalledWith("m1", 0, 0, "desktop");
     expect(mockAddComment).toHaveBeenCalledTimes(1);
     expect(mockAddComment).toHaveBeenCalledWith("m1", "p1", "Hello there");
     // popup closes after success

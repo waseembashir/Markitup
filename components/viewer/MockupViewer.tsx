@@ -27,6 +27,9 @@ export type ViewerPin = {
   y: number;
   number: number;
   status: "active" | "resolved";
+  // The viewport this feedback was left on. Desktop and mobile layouts put the
+  // same element in different places, so their pins are kept apart.
+  device: "desktop" | "mobile";
   comments: ViewerComment[];
 };
 
@@ -277,12 +280,12 @@ export function MockupViewer({
   // layout and their scroll-triggered animations actually play. The pin layer
   // is translated to match the page's reported scroll so pins stay aligned.
   const HTML_DESKTOP_W = 1440;
-  const HTML_MOBILE_W = 390;
+  const HTML_MOBILE_W = 375;
   const HTML_MOBILE_H = 844;
   const htmlDesignW = device === "mobile" ? HTML_MOBILE_W : HTML_DESKTOP_W;
   // Zoom applies to HTML as well as images. A live page scrolls internally and
   // has no fixed height, so "fit in window" means fit the DEVICE FRAME: the
-  // phone's 390×844 body on mobile, and (a desktop page being unbounded
+  // phone's 375×844 body on mobile, and (a desktop page being unbounded
   // vertically) the 1440px width on desktop. Percentages are literal — 100% is
   // the true device width — and the canvas scrolls horizontally when the scaled
   // frame is wider than it.
@@ -306,7 +309,7 @@ export function MockupViewer({
     const availW = Math.max(0, box.w - pad);
     const availH = Math.max(0, box.h - pad);
     // Mobile preview frames the design at a phone width, and zoom scales that
-    // frame — so 100% is the phone's 390px, matching the HTML view's semantics.
+    // frame — so 100% is the phone's 375px, matching the HTML view's semantics.
     if (device === "mobile") {
       const phoneW = Math.min(HTML_MOBILE_W, availW);
       return zoom.mode === "percent" ? HTML_MOBILE_W * (zoom.pct / 100) : phoneW;
@@ -399,7 +402,7 @@ export function MockupViewer({
     if (existingPinId) {
       setPins((ps) => ps.map((p) => (p.id === existingPinId ? { ...p, comments: [...p.comments, optimistic] } : p)));
     } else {
-      setPins((ps) => [...ps, { id: tmpPinId, x, y, number: 0, status: "active", comments: [optimistic] }]);
+      setPins((ps) => [...ps, { id: tmpPinId, x, y, number: 0, status: "active", device, comments: [optimistic] }]);
     }
     const closedDraft = draft;
     setDraft(null);
@@ -410,7 +413,7 @@ export function MockupViewer({
     try {
       let pinId = existingPinId;
       if (!pinId) {
-        const res = await createPin(mockupId, x, y);
+        const res = await createPin(mockupId, x, y, device);
         if (res.error || !res.id || res.number == null) throw new Error(res.error || "Could not save your comment.");
         pinId = res.id;
         const realNumber = res.number;
@@ -444,7 +447,7 @@ export function MockupViewer({
 
   // Switching device resets zoom to that frame's natural fit, so a phone opens
   // looking like a phone instead of inheriting the desktop's fit-width (which
-  // would stretch a 390px frame across the whole canvas).
+  // would stretch a 375px frame across the whole canvas).
   function switchDevice(next: "desktop" | "mobile") {
     setDevice(next);
     setZoom(next === "mobile" ? { mode: "fit-window", pct: 0 } : { mode: "fit-width", pct: 0 });
@@ -457,13 +460,17 @@ export function MockupViewer({
     else el.requestFullscreen?.();
   }
 
+  // Desktop and mobile are separate review surfaces — a pin left on the 1440px
+  // layout points at nothing on a 375px one — so the rail, the counts and the
+  // canvas all show only the pins belonging to the viewport being viewed.
+  const devicePins = pins.filter((p) => p.device === device);
   const counts = {
-    all: pins.length,
-    active: pins.filter((p) => p.status === "active").length,
-    resolved: pins.filter((p) => p.status === "resolved").length,
+    all: devicePins.length,
+    active: devicePins.filter((p) => p.status === "active").length,
+    resolved: devicePins.filter((p) => p.status === "resolved").length,
   };
   const q = query.trim().toLowerCase();
-  const visiblePins = pins
+  const visiblePins = devicePins
     .filter((p) => (filter === "all" ? true : filter === "active" ? p.status === "active" : p.status === "resolved"))
     .filter((p) =>
       !q

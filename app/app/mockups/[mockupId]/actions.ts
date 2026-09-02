@@ -8,12 +8,17 @@ import { commentNotification } from "@/lib/email/templates";
 import { workspaceSlackWebhook, postToSlack, commentSlackMessage } from "@/lib/slack";
 import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
 
-export async function createPin(mockupId: string, x: number, y: number) {
+export async function createPin(
+  mockupId: string,
+  x: number,
+  y: number,
+  device: "desktop" | "mobile" = "desktop",
+) {
   const supabase = await createServerSupabase();
   const { data: userData } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from("pins")
-    .insert({ mockup_id: mockupId, x, y, created_by: userData.user!.id })
+    .insert({ mockup_id: mockupId, x, y, device, created_by: userData.user!.id })
     .select("id, number")
     .single();
   if (error) return { error: error.message };

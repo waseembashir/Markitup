@@ -4,6 +4,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { getMockupSignedUrl } from "@/app/app/projects/[projectId]/actions";
 import { buildEmbedUrl } from "@/lib/figma";
 import { MockupViewer, type ViewerPin } from "@/components/viewer/MockupViewer";
+import { LockedFile } from "@/components/app/LockedFile";
 import { ShareDialog } from "@/components/viewer/ShareDialog";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
 import { NotificationBell } from "@/components/app/NotificationBell";
@@ -26,7 +27,23 @@ export default async function MockupPage({
     .select("id, name, file_path, type, project_id, version_group, figma_file_key, figma_node_id, projects(name, workspace_id)")
     .eq("id", mockupId)
     .maybeSingle();
-  if (!mockup) notFound();
+  // RLS returns no row both when the file is missing AND when the viewer simply
+  // may not see it, so a bare notFound() here turned every restricted share link
+  // into a dead 404. Ask the security-definer preview which case this is.
+  if (!mockup) {
+    const { data: preview } = await supabase.rpc("mockup_access_preview", { p_mockup: mockupId });
+    const row = Array.isArray(preview) ? preview[0] : preview;
+    if (!row) notFound();
+    const { data: lockedAuth } = await supabase.auth.getUser();
+    return (
+      <LockedFile
+        mockupId={mockupId}
+        fileName={row.mockup_name}
+        projectName={row.project_name}
+        userEmail={lockedAuth.user?.email ?? ""}
+      />
+    );
+  }
 
   // All non-archived files in this project, used both for version stacking and
   // for prev/next pagination (which walks between files, not versions).
@@ -76,7 +93,7 @@ export default async function MockupPage({
   const { data: pins } = await supabase
     .from("pins")
     .select(
-      "id, x, y, number, status, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
+      "id, x, y, number, status, device, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
     )
     .eq("mockup_id", mockupId)
     .order("number", { ascending: true });
@@ -122,6 +139,7 @@ export default async function MockupPage({
     y: p.y,
     number: p.number,
     status: p.status,
+    device: (p.device as "desktop" | "mobile") ?? "desktop",
     // Supabase's untyped client infers nested one-to-many joins loosely (e.g. profiles as an
     // array); `any` here matches the query's actual runtime shape without hand-maintaining a
     // brittle structural type.

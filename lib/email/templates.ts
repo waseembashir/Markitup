@@ -109,3 +109,24 @@ export function welcome(opts: { name: string }) {
   const text = `Welcome to MarkUp, ${opts.name}!\n\nGet started: ${href}`;
   return { subject, html, text };
 }
+
+// Sent to the workspace team when someone who only has the link asks to be let
+// in. Points at Members, where they can add the person.
+export function accessRequest(opts: {
+  requesterName: string;
+  requesterEmail: string;
+  fileName: string;
+  projectName: string;
+}) {
+  const href = `${APP_URL}/app/members`;
+  const subject = `${opts.requesterName} is asking for access to ${opts.fileName}`;
+  const html = layout(
+    subject,
+    `<p style="margin:0 0 8px;font-size:14px"><strong>${esc(opts.requesterName)}</strong> (${esc(opts.requesterEmail)}) opened a link to
+     "<strong>${esc(opts.fileName)}</strong>" in <strong>${esc(opts.projectName)}</strong> but does not have access to it.</p>
+     <p style="margin:0;font-size:14px">Add them to the project to let them view the file and leave feedback.</p>`,
+    { label: "Manage members", href },
+  );
+  const text = `${opts.requesterName} (${opts.requesterEmail}) is asking for access to "${opts.fileName}" in ${opts.projectName}.\n\nManage members: ${href}`;
+  return { subject, html, text };
+}
