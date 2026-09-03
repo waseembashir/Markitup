@@ -28,9 +28,14 @@ export function GuestGate({ token, fileName }: { token: string; fileName: string
     });
     if (authError) {
       setBusy(false);
+      // "Anonymous sign-ins are disabled" is a Supabase project setting, not
+      // anything the visitor can act on — so tell them who can, and leave the
+      // real error in the console for whoever owns the app.
+      const disabled = /anonymous/i.test(authError.message) && /disabled|not enabled/i.test(authError.message);
+      if (disabled) console.error("[guest] anonymous sign-ins are disabled for this Supabase project", authError);
       setError(
-        /disabled|not enabled/i.test(authError.message)
-          ? "Guest access isn't switched on for this workspace yet."
+        disabled
+          ? "Commenting without an account isn't available right now. Ask whoever sent you this link, or sign in instead."
           : authError.message,
       );
       return;
