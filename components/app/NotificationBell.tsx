@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { getNotifications, markNotificationsRead, type NotificationItem } from "@/app/app/notifications-actions";
+import { getNotifications, markNotificationsRead, grantAccessRequest, type NotificationItem } from "@/app/app/notifications-actions";
 import { timeAgo } from "@/lib/format";
 import { Avatar } from "@/components/app/AppSidebar";
 
@@ -38,6 +38,26 @@ export function NotificationBell() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
+  // Granting is optimistic in the panel: the row flips to "Access granted"
+  // immediately, and the next poll confirms it from the server.
+  const [granted, setGranted] = useState<Set<string>>(new Set());
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [errorId, setErrorId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function allow(id: string) {
+    setBusyId(id);
+    setError(null);
+    setErrorId(null);
+    const res = await grantAccessRequest(id);
+    setBusyId(null);
+    if (res?.error) {
+      setErrorId(id);
+      setError(res.error);
+      return;
+    }
+    setGranted((s) => new Set(s).add(id));
+  }
 
   const refresh = useCallback(async () => {
     const res = await getNotifications();
@@ -97,6 +117,41 @@ export function NotificationBell() {
                 <p className="px-3 py-8 text-center text-sm text-faint">You&apos;re all caught up.</p>
               ) : (
                 items.map((n) => {
+                  // An access request is a decision, not an announcement — it
+                  // gets an action here rather than linking away to the file the
+                  // requester still can't open.
+                  if (n.type === "access_request" && n.projectId) {
+                    const done = n.granted || granted.has(n.id);
+                    return (
+                      <div key={n.id} className="flex items-start gap-3 px-3 py-3">
+                        <Avatar name={n.actorName} email={n.actorEmail} size={30} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm leading-snug text-muted">{renderBody(n.body, n.actorName)}</p>
+                          <span className="mt-0.5 block font-mono text-[0.6875rem] text-faint">{timeAgo(n.createdAt)}</span>
+                          {done ? (
+                            <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--success)" }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+                                <path d="m5 12 4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              Access granted
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={busyId === n.id}
+                              onClick={() => allow(n.id)}
+                              className="btn-primary btn-sm mt-2"
+                            >
+                              {busyId === n.id ? "Granting…" : "Allow access"}
+                            </button>
+                          )}
+                          {errorId === n.id && error && (
+                            <p className="mt-1 text-xs font-medium" style={{ color: "var(--destructive)" }}>{error}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
                   const inner = (
                     <div className="flex items-start gap-3 px-3 py-3 transition-colors hover:bg-[color:var(--accent)]">
                       <Avatar name={n.actorName} email={n.actorEmail} size={30} />

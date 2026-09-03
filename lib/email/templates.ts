@@ -118,15 +118,29 @@ export function accessRequest(opts: {
   fileName: string;
   projectName: string;
 }) {
-  const href = `${APP_URL}/app/members`;
+  const href = `${APP_URL}/app/requests`;
   const subject = `${opts.requesterName} is asking for access to ${opts.fileName}`;
   const html = layout(
     subject,
     `<p style="margin:0 0 8px;font-size:14px"><strong>${esc(opts.requesterName)}</strong> (${esc(opts.requesterEmail)}) opened a link to
      "<strong>${esc(opts.fileName)}</strong>" in <strong>${esc(opts.projectName)}</strong> but does not have access to it.</p>
      <p style="margin:0;font-size:14px">Add them to the project to let them view the file and leave feedback.</p>`,
-    { label: "Manage members", href },
+    { label: "Review the request", href },
   );
-  const text = `${opts.requesterName} (${opts.requesterEmail}) is asking for access to "${opts.fileName}" in ${opts.projectName}.\n\nManage members: ${href}`;
+  const text = `${opts.requesterName} (${opts.requesterEmail}) is asking for access to "${opts.fileName}" in ${opts.projectName}.\n\nReview it: ${href}`;
+  return { subject, html, text };
+}
+
+// Sent to the person who asked, once someone on the team lets them in.
+export function accessGranted(opts: { granterName: string; fileName: string; mockupId: string }) {
+  const href = `${APP_URL}/app/mockups/${opts.mockupId}`;
+  const subject = `You now have access to ${opts.fileName}`;
+  const html = layout(
+    subject,
+    `<p style="margin:0;font-size:14px"><strong>${esc(opts.granterName)}</strong> approved your request, so
+     "<strong>${esc(opts.fileName)}</strong>" is open to you now. Add your comments whenever you're ready.</p>`,
+    { label: "Open the file", href },
+  );
+  const text = `${opts.granterName} gave you access to "${opts.fileName}".\n\n${href}`;
   return { subject, html, text };
 }
