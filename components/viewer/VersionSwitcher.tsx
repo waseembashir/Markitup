@@ -10,10 +10,14 @@ export function VersionSwitcher({
   versions,
   currentId,
   projectId,
+  canUpload = true,
 }: {
   versions: VersionItem[]; // sorted newest (highest version) first
   currentId: string;
   projectId: string;
+  // Uploading a version belongs to the owning team; offering it to a reviewer or
+  // guest would only produce a button RLS then refuses.
+  canUpload?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +84,8 @@ export function VersionSwitcher({
                 </Link>
               ))}
             </div>
+            {canUpload && (
+            <>
             <div className="my-1 h-px bg-border" />
             <button
               type="button"
@@ -92,6 +98,8 @@ export function VersionSwitcher({
               </svg>
               Upload new version
             </button>
+            </>
+            )}
           </div>
         </>
       )}

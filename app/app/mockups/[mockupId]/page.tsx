@@ -135,6 +135,9 @@ export default async function MockupPage({
     emailLocalPart(authData.user?.email ?? "") ||
     "You";
   const currentUserEmail = authData.user?.email ?? "";
+  // A guest arrived through a public link: no account, so sharing, notifications,
+  // the profile menu and uploading are all dead ends for them.
+  const isGuest = authData.user?.is_anonymous === true;
 
   const url = await getMockupSignedUrl(mockup.file_path);
 
@@ -195,13 +198,9 @@ export default async function MockupPage({
         </svg>
       </Link>
       <h1 className="truncate text-sm font-bold text-ink">{mockup.name}</h1>
-      <VersionSwitcher versions={versions} currentId={mockupId} projectId={mockup.project_id} />
+      <VersionSwitcher versions={versions} currentId={mockupId} projectId={mockup.project_id} canUpload={!isGuest} />
     </>
   );
-  // A guest on a public link has no account, so sharing, notifications and the
-  // profile menu are all dead ends for them — they get their name and nothing
-  // that leads somewhere they can't go.
-  const isGuest = authData.user?.is_anonymous === true;
   const actionsSlot = isGuest ? (
     <>
       <RecentViewers viewers={viewers} />
