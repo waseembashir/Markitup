@@ -14,7 +14,7 @@ export default async function SignupPage({
       subtitle="Set up a workspace and start collecting feedback in minutes."
       footer={<>Already have an account? <AuthLink href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Log in</AuthLink></>}
     >
-      <AuthForm action={signUpAction} next={next} submitLabel="Create account" successLabel="You're all set!" celebrate>
+      <AuthForm action={signUpAction} next={next} submitLabel="Create account">
         <div>
           <label htmlFor="name" className="field-label">Full name</label>
           <input id="name" name="name" type="text" autoComplete="name" placeholder="Jane Designer" required className="field" />
