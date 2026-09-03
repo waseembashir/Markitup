@@ -11,6 +11,7 @@ import { NotificationBell } from "@/components/app/NotificationBell";
 import { RecentViewers, type Viewer } from "@/components/viewer/RecentViewers";
 import { VersionSwitcher } from "@/components/viewer/VersionSwitcher";
 import { RecordView } from "@/components/viewer/RecordView";
+import { Avatar } from "@/components/app/AppSidebar";
 import { emailLocalPart } from "@/lib/format";
 import { sanitizeCommentHtml } from "@/lib/sanitize";
 
@@ -197,7 +198,19 @@ export default async function MockupPage({
       <VersionSwitcher versions={versions} currentId={mockupId} projectId={mockup.project_id} />
     </>
   );
-  const actionsSlot = (
+  // A guest on a public link has no account, so sharing, notifications and the
+  // profile menu are all dead ends for them — they get their name and nothing
+  // that leads somewhere they can't go.
+  const isGuest = authData.user?.is_anonymous === true;
+  const actionsSlot = isGuest ? (
+    <>
+      <RecentViewers viewers={viewers} />
+      <span className="ml-1 flex items-center gap-2 text-sm font-semibold text-ink">
+        <Avatar name={currentUserName} email={currentUserEmail} size={26} />
+        <span className="max-w-32 truncate">{currentUserName}</span>
+      </span>
+    </>
+  ) : (
     <>
       <RecentViewers viewers={viewers} />
       <ShareDialog mockupId={mockupId} />

@@ -13,5 +13,9 @@ export default async function AppLayout({
   if (!data.user) redirect("/login");
   const ws = await getCurrentWorkspace();
 
-  return <AppChrome workspaceName={ws?.name ?? "MarkUp"}>{children}</AppChrome>;
+  return (
+    <AppChrome workspaceName={ws?.name ?? "MarkUp"} isGuest={data.user.is_anonymous === true}>
+      {children}
+    </AppChrome>
+  );
 }

@@ -23,6 +23,10 @@ export async function getCurrentWorkspace() {
     return { id: ws.id, name: ws.name };
   }
 
+  // A guest on a public link is a reviewer passing through, not an account
+  // holder. Minting them a workspace would spawn one per visitor.
+  if (user.is_anonymous) return null;
+
   const name = (user.user_metadata?.name as string) || user.email || "My";
   const { data: ws } = await supabase
     .from("workspaces")
