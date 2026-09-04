@@ -75,7 +75,7 @@ export function VersionSwitcher({
                   href={`/app/mockups/${v.id}`}
                   onClick={() => setOpen(false)}
                   className="flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-[color:var(--accent)]"
-                  style={v.id === currentId ? { color: "var(--primary)", fontWeight: 600 } : { color: "var(--foreground)" }}
+                  style={v.id === currentId ? { color: "var(--color-ink)", fontWeight: 700 } : { color: "var(--foreground)" }}
                 >
                   <span>Version {v.version}{v.id === latest?.id ? " · Latest" : ""}</span>
                   {v.id === currentId && (

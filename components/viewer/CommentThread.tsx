@@ -22,7 +22,7 @@ function CommentRow({ c, small = false }: { c: ViewerComment; small?: boolean })
           <span className="shrink-0 font-mono text-[0.6875rem] text-faint" title={formatDateTime(c.createdAt)}>{timeAgo(c.createdAt)}</span>
         </div>
         <div
-          className="mt-0.5 text-sm leading-relaxed break-words text-muted [&_a]:text-brand-ink [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5"
+          className="mt-0.5 text-sm leading-relaxed break-words text-ink [&_a]:text-brand-ink [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5"
           dangerouslySetInnerHTML={{ __html: c.body }}
         />
         {c.attachments?.length > 0 && (
@@ -181,7 +181,12 @@ export function CommentThread({
         {roots.map((c) => (
           <div key={c.id}>
             <CommentRow c={c} />
-            <div className="mt-2 ml-4 space-y-3 border-l pl-4">
+            {/* Replies get a coloured rail so an answered thread reads as
+                answered — a hairline border was indistinguishable from none. */}
+            <div
+              className={`mt-2 ml-4 space-y-3 pl-4 ${repliesOf(c.id).length > 0 ? "border-l-2" : "border-l"}`}
+              style={repliesOf(c.id).length > 0 ? { borderColor: "var(--color-brand)" } : undefined}
+            >
               {repliesOf(c.id).map((r) => (
                 <CommentRow key={r.id} c={r} small />
               ))}

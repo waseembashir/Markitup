@@ -123,6 +123,35 @@ describe("MockupViewer", () => {
     expect(screen.queryByLabelText("Pin 1, active")).not.toBeInTheDocument();
   });
 
+  it("shows who replied on a thread, not a faint message count", () => {
+    const c = (id: string, author: string, parent: string | null) => ({
+      id, authorName: author, parentCommentId: parent, body: id,
+      createdAt: new Date().toISOString(), attachments: [],
+    });
+    render(
+      <MockupViewer
+        mockupId="m1"
+        projectId="proj1"
+        imageUrl="http://example.com/a.png"
+        imageName="a.png"
+        initialPins={[
+          { id: "p1", x: .2, y: .2, w: 0, h: 0, number: 1, status: "active", device: "desktop",
+            comments: [c("r1", "Vinay", null), c("r2", "Ajit", "r1"), c("r3", "Ajit", "r1")] },
+          { id: "p2", x: .5, y: .5, w: 0, h: 0, number: 2, status: "active", device: "desktop",
+            comments: [c("r4", "Vinay", null)] },
+        ]}
+        siblings={[{ id: "m1" }]}
+        members={[]}
+        currentUserName="Vinay"
+      />,
+    );
+    // Two replies, counted excluding the opening comment.
+    expect(screen.getByText("2 replies")).toBeTruthy();
+    // A thread nobody answered stays quiet — no badge at all.
+    expect(screen.queryByText(/1 reply/)).toBeNull();
+    expect(screen.queryByText(/messages/)).toBeNull();
+  });
+
   it("opens a comment popup when the image is clicked without creating a pin", () => {
     renderViewer();
     const img = screen.getByAltText("mockup");

@@ -12,6 +12,7 @@ import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment } from "@/app/app/mockups/[mockupId]/actions";
 import { timeAgo } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
+import { Avatar } from "@/components/app/AppSidebar";
 
 export type ViewerComment = {
   id: string;
@@ -67,6 +68,11 @@ function latestAt(p: ViewerPin) {
 function PinListItem({ pin, onSelect }: { pin: ViewerPin; onSelect: () => void }) {
   const first = pin.comments.find((c) => !c.parentCommentId);
   const resolved = pin.status === "resolved";
+  // Everything after the opening comment is a reply. A faint "3 messages" read
+  // as nothing, so the people who answered are shown instead — a thread with
+  // replies should be obvious at a glance against one without.
+  const replies = pin.comments.filter((c) => c.id !== first?.id);
+  const repliers = [...new Map(replies.map((c) => [c.authorName, c])).values()];
   return (
     <button
       onClick={onSelect}
@@ -93,8 +99,22 @@ function PinListItem({ pin, onSelect }: { pin: ViewerPin; onSelect: () => void }
         <span className="mt-0.5 line-clamp-2 block text-sm text-muted">
           {first ? first.body : "No comment yet"}
         </span>
-        {pin.comments.length > 1 && (
-          <span className="mt-1 block font-mono text-[0.6875rem] text-faint">{pin.comments.length} messages</span>
+        {replies.length > 0 && (
+          <span
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full py-0.5 pr-2.5 pl-1"
+            style={{ background: "var(--color-brand-soft)" }}
+          >
+            <span className="flex -space-x-1.5">
+              {repliers.slice(0, 3).map((c) => (
+                <span key={c.id} className="rounded-full ring-2 ring-[color:var(--color-brand-soft)]">
+                  <Avatar name={c.authorName} email={c.authorName} size={17} />
+                </span>
+              ))}
+            </span>
+            <span className="text-[0.6875rem] font-bold" style={{ color: "var(--color-brand-ink)" }}>
+              {replies.length === 1 ? "1 reply" : `${replies.length} replies`}
+            </span>
+          </span>
         )}
       </span>
     </button>
@@ -764,7 +784,7 @@ export function MockupViewer({
                   {ZOOM_OPTIONS.map((o) => {
                     const on = o.value.mode === zoom.mode && (o.value.mode !== "percent" || o.value.pct === zoom.pct);
                     return (
-                      <button key={o.label} onClick={() => { setZoom(o.value); setZoomOpen(false); }} className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[color:var(--accent)]" style={on ? { color: "var(--primary)", fontWeight: 600 } : { color: "var(--foreground)" }}>
+                      <button key={o.label} onClick={() => { setZoom(o.value); setZoomOpen(false); }} className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[color:var(--accent)]" style={on ? { color: "var(--color-ink)", fontWeight: 700 } : { color: "var(--foreground)" }}>
                         {o.label}
                         {on && (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>)}
                       </button>
