@@ -1,6 +1,7 @@
 import { signUpAction } from "@/app/auth/actions";
 import { AuthShell, AuthLink } from "@/components/auth/AuthShell";
 import { AuthForm } from "@/components/auth/AuthForm";
+import { GoogleButton } from "@/components/auth/GoogleButton";
 
 export default async function SignupPage({
   searchParams,
@@ -14,6 +15,7 @@ export default async function SignupPage({
       subtitle="Set up a workspace and start collecting feedback in minutes."
       footer={<>Already have an account? <AuthLink href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Log in</AuthLink></>}
     >
+      <GoogleButton next={next} label="Sign up with Google" />
       <AuthForm action={signUpAction} next={next} submitLabel="Create account">
         <div>
           <label htmlFor="name" className="field-label">Full name</label>
