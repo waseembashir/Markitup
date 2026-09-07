@@ -3,6 +3,8 @@ import { withPooler } from "@/lib/db/pooler";
 import { sendEmail } from "@/lib/email/send";
 import { reminderEmail, neverRespondedEmail } from "@/lib/email/templates";
 import { fillTemplate } from "@/lib/reminders";
+import { decryptSecret } from "@/lib/crypto";
+import { postToSlack, commentRollupSlackMessage, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,7 +20,7 @@ export async function GET(req: NextRequest) {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  const summary = { processed: 0, sent: 0, responded: 0, done: 0, skipped_weekend: 0 };
+  const summary = { processed: 0, sent: 0, responded: 0, done: 0, skipped_weekend: 0, slack_rollups: 0 };
 
   try {
     await withPooler(async (db) => {
@@ -118,7 +120,63 @@ export async function GET(req: NextRequest) {
     return json({ error: (e as Error).message, summary }, 500);
   }
 
+  // Backstop for Slack comment roll-ups. A burst is normally flushed by the next
+  // comment in that workspace, but a client's LAST burst has nothing following
+  // it — this catches those. Failures here must not fail the reminder run.
+  try {
+    summary.slack_rollups = await flushSlackRollups();
+  } catch (e) {
+    console.error("[cron/reminders] slack roll-up flush failed", e);
+  }
+
   return json({ ok: true, ...summary }, 200);
+}
+
+// Post one roll-up per burst that has gone quiet, across every workspace.
+async function flushSlackRollups(): Promise<number> {
+  return withPooler(async (db) => {
+    const { rows } = await db.query(
+      `select b.workspace_id, b.project_id, b.author_id, b.mockup_id, b.project_name, b.author_name, b.pending,
+              wi.slack_webhook_cipher, wi.slack_webhook_iv
+         from public.slack_comment_batches b
+         join public.workspace_integrations wi on wi.workspace_id = b.workspace_id
+        where b.pending > 0
+          and b.last_comment_at <= now() - make_interval(mins => $1::int)
+          and wi.slack_webhook_cipher is not null`,
+      [SLACK_BATCH_WINDOW_MINUTES],
+    );
+    if (!rows.length) return 0;
+
+    let posted = 0;
+    for (const r of rows) {
+      // Clear first: a failed post is better than a duplicate one on the next run.
+      await db.query(
+        `update public.slack_comment_batches
+            set pending = 0, last_posted_at = now()
+          where workspace_id = $1 and project_id = $2 and author_id = $3`,
+        [r.workspace_id, r.project_id, r.author_id],
+      );
+      let webhook: string;
+      try {
+        webhook = decryptSecret(r.slack_webhook_cipher, r.slack_webhook_iv);
+      } catch {
+        continue;
+      }
+      const ok = await postToSlack(
+        webhook,
+        commentRollupSlackMessage({
+          commenter: r.author_name,
+          projectName: r.project_name,
+          count: r.pending,
+          href: r.mockup_id
+            ? `${APP_URL}/app/mockups/${r.mockup_id}`
+            : `${APP_URL}/app/projects/${r.project_id}`,
+        }),
+      );
+      if (ok) posted++;
+    }
+    return posted;
+  });
 }
 
 function json(body: unknown, status: number) {

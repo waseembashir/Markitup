@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { commentNotification } from "@/lib/email/templates";
-import { workspaceSlackWebhook, postToSlack, commentSlackMessage } from "@/lib/slack";
+import { workspaceSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
 import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
 
 // x,y anchor the pin. w,h are optional and describe a dragged REGION extending
@@ -79,7 +79,7 @@ export async function addComment(
     try {
       const { data: mk } = await supabase
         .from("mockups")
-        .select("name, project_id, projects(workspace_id)")
+        .select("name, project_id, projects(name, workspace_id)")
         .eq("id", mockupId)
         .maybeSingle();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,20 +125,66 @@ export async function addComment(
         }),
       );
 
-      // Slack (best-effort): post the comment to the workspace's channel.
-      if (workspaceId) {
+      // Slack (best-effort), batched per project and person. One message opens
+      // the burst; the rest are counted and announced once it goes quiet, so a
+      // client working through a page doesn't produce a dozen notifications.
+      if (workspaceId && projectId) {
         const webhook = await workspaceSlackWebhook(supabase, workspaceId);
         if (webhook) {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
-          await postToSlack(
-            webhook,
-            commentSlackMessage({
-              commenter: commenterName,
-              mockupName: mk.name as string,
-              body: plain,
-              href: `${appUrl}/app/mockups/${mockupId}`,
-            }),
-          );
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const projectName = ((mk as any).projects?.name as string) || "a project";
+
+          const { data: opensBurst } = await supabase.rpc("slack_batch_record", {
+            p_workspace: workspaceId,
+            p_project: projectId,
+            p_author: author.id,
+            p_mockup: mockupId,
+            p_project_name: projectName,
+            p_author_name: commenterName,
+            p_window_minutes: SLACK_BATCH_WINDOW_MINUTES,
+          });
+
+          if (opensBurst) {
+            await postToSlack(
+              webhook,
+              commentSlackMessage({
+                commenter: commenterName,
+                projectName,
+                mockupName: mk.name as string,
+                body: plain,
+                href: `${appUrl}/app/mockups/${mockupId}`,
+              }),
+            );
+          }
+
+          // Any burst in this workspace that has since gone quiet gets its
+          // roll-up now. Vercel's plan allows only a daily cron, so activity is
+          // the main trigger; the nightly job is the backstop for a last burst
+          // nobody follows.
+          const { data: due } = await supabase.rpc("slack_batches_due", {
+            p_workspace: workspaceId,
+            p_window_minutes: SLACK_BATCH_WINDOW_MINUTES,
+          });
+          for (const b of (due ?? []) as {
+            mockup_id: string | null;
+            project_id: string;
+            project_name: string;
+            author_name: string;
+            pending: number;
+          }[]) {
+            await postToSlack(
+              webhook,
+              commentRollupSlackMessage({
+                commenter: b.author_name,
+                projectName: b.project_name,
+                count: b.pending,
+                href: b.mockup_id
+                  ? `${appUrl}/app/mockups/${b.mockup_id}`
+                  : `${appUrl}/app/projects/${b.project_id}`,
+              }),
+            );
+          }
         }
       }
     } catch (e) {
