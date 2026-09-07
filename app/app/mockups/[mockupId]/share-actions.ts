@@ -21,11 +21,19 @@ export type ShareInfo = {
 
 async function mockupContext(mockupId: string) {
   const supabase = await createServerSupabase();
-  const { data: mk } = await supabase
+  const { data: mk, error } = await supabase
     .from("mockups")
-    .select("project_id, projects(workspace_id, name, workspaces(name))")
+    // The workspace embed names its foreign key explicitly. Any table with keys
+    // to both projects and workspaces looks to PostgREST like a junction between
+    // them, which makes a bare `workspaces(...)` ambiguous and fails the whole
+    // query — a Slack batching table did exactly that and took the Share dialog
+    // down with it. Naming the key pins the path regardless of what else exists.
+    .select("project_id, projects(workspace_id, name, workspaces!projects_workspace_id_fkey(name))")
     .eq("id", mockupId)
     .maybeSingle();
+  // A query that FAILED is not a missing file. Reporting "File not found" for a
+  // schema error sent the last one looking in entirely the wrong place.
+  if (error) console.error("[share] could not load the file's context", error);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const proj = (mk as any)?.projects;
   return {
