@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CompareComments, type CompareCommentGroup } from "./CompareComments";
 import { PinMarker } from "./PinMarker";
 import type { ViewerPin } from "./MockupViewer";
+import { stripHeightReporter } from "@/lib/html-embed";
 
 export type CompareMockup = { id: string; name: string; url: string; version?: number; isHtml?: boolean };
 
@@ -13,9 +14,43 @@ export type CompareMockup = { id: string; name: string; url: string; version?: n
 // to the page's full scroll height, which this unscaled frame doesn't reproduce,
 // so they would land in the wrong places. Open the file itself to see them.
 function HtmlPane({ m }: { m: CompareMockup }) {
+  const [doc, setDoc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  // Pointing an iframe at the storage URL showed the page's SOURCE instead of the
+  // page: Supabase doesn't serve these to render inline, whatever content type
+  // they were stored with. Fetch the file and hand it to the frame directly, the
+  // same way the main viewer does — the caller keys this component by url, so a
+  // version switch remounts it rather than needing a synchronous state reset.
+  useEffect(() => {
+    let alive = true;
+    const ctrl = new AbortController();
+    fetch(m.url, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
+      // Drop the height reporter the uploader injected: compare draws no pins,
+      // so nothing here listens for what it posts.
+      .then((text) => { if (alive) setDoc(stripHeightReporter(text)); })
+      .catch((e) => { if (alive && e?.name !== "AbortError") setFailed(true); });
+    return () => { alive = false; ctrl.abort(); };
+  }, [m.url]);
+
+  if (failed) {
+    return (
+      <div className="grid h-full place-items-center rounded-lg bg-canvas text-sm text-faint">
+        Couldn&apos;t load this page.
+      </div>
+    );
+  }
+  if (doc === null) {
+    return (
+      <div className="grid h-full place-items-center rounded-lg bg-canvas text-sm text-faint">
+        Loading page…
+      </div>
+    );
+  }
   return (
     <iframe
-      src={m.url}
+      srcDoc={doc}
       title={m.name}
       sandbox="allow-scripts allow-popups allow-forms allow-modals"
       referrerPolicy="no-referrer"
@@ -99,7 +134,7 @@ function Panel({
         {!m?.url ? (
           <div className="grid h-full place-items-center text-sm text-faint">No preview.</div>
         ) : m.isHtml ? (
-          <HtmlPane m={m} />
+          <HtmlPane key={m.url} m={m} />
         ) : (
           <div className="relative mx-auto w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -270,7 +305,7 @@ export function CompareView({
             {newM?.url && (
               <div className="relative" style={{ opacity: peek ? 0 : 1, pointerEvents: peek ? "none" : "auto" }}>
                 {newM.isHtml ? (
-                  <div className="h-[calc(100vh-8rem)]"><HtmlPane m={newM} /></div>
+                  <div className="h-[calc(100vh-8rem)]"><HtmlPane key={newM.url} m={newM} /></div>
                 ) : (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -284,7 +319,7 @@ export function CompareView({
               <div className="absolute inset-x-0 top-0" style={{ opacity: peek ? 1 : 0, pointerEvents: peek ? "auto" : "none" }}>
                 <div className="relative">
                   {oldM.isHtml ? (
-                    <div className="h-[calc(100vh-8rem)]"><HtmlPane m={oldM} /></div>
+                    <div className="h-[calc(100vh-8rem)]"><HtmlPane key={oldM.url} m={oldM} /></div>
                   ) : (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
