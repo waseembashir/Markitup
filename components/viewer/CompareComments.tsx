@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import type { ViewerPin, ViewerComment } from "./MockupViewer";
 import { Avatar } from "@/components/app/AppSidebar";
-import { timeAgo, formatDateTime } from "@/lib/format";
+import { htmlToText, timeAgo, formatDateTime } from "@/lib/format";
 
 export type CompareCommentGroup = {
   key: string; // mockup id
@@ -163,7 +163,7 @@ export function CompareComments({
       !q
         ? true
         : String(p.number) === q ||
-          p.comments.some((c) => c.body.toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q)),
+          p.comments.some((c) => htmlToText(c.body).toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q)),
     )
     .sort((a, b) => {
       if (sort === "pins") return a.number - b.number;

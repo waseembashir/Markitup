@@ -10,7 +10,7 @@ import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, inject
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment } from "@/app/app/mockups/[mockupId]/actions";
-import { timeAgo } from "@/lib/format";
+import { timeAgo, htmlToText } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
 import { Avatar } from "@/components/app/AppSidebar";
 
@@ -114,7 +114,7 @@ function PinListItem({ pin, onSelect }: { pin: ViewerPin; onSelect: () => void }
           )}
         </span>
         <span className="mt-0.5 line-clamp-2 block text-sm text-muted">
-          {first ? first.body : "No comment yet"}
+          {first ? htmlToText(first.body) : "No comment yet"}
         </span>
         {replies.length > 0 && (
           <span
@@ -604,7 +604,7 @@ export function MockupViewer({
       !q
         ? true
         : String(p.number) === q ||
-          p.comments.some((c) => c.body.toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q)),
+          p.comments.some((c) => htmlToText(c.body).toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q)),
     )
     .sort((a, b) => {
       if (sort === "pins") return a.number - b.number;
