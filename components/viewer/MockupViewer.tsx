@@ -65,6 +65,23 @@ function latestAt(p: ViewerPin) {
   return p.comments.reduce((m, c) => (c.createdAt > m ? c.createdAt : m), "");
 }
 
+// How far an embedded HTML page must scroll to centre a pin in the canvas.
+// Pin y is normalized against the page's FULL height, so it multiplies back up
+// to a page offset; a region centres on its middle rather than its top edge.
+// Returns null when the page hasn't reported its height yet — scrolling by a
+// delta computed from zero would fling the reader to the top.
+export function htmlScrollDelta(
+  pin: { y: number; h: number },
+  pageHeight: number,
+  viewHeight: number,
+  currentScrollY: number,
+): number | null {
+  if (!pageHeight || !viewHeight) return null;
+  const centreOfPin = (pin.y + pin.h / 2) * pageHeight;
+  const target = Math.max(0, Math.min(centreOfPin - viewHeight / 2, pageHeight - viewHeight));
+  return Math.round(target - currentScrollY);
+}
+
 function PinListItem({ pin, onSelect }: { pin: ViewerPin; onSelect: () => void }) {
   const first = pin.comments.find((c) => !c.parentCommentId);
   const resolved = pin.status === "resolved";
@@ -368,6 +385,21 @@ export function MockupViewer({
   // Bring a pin into view (centered) when it's selected from the comment rail,
   // so the anchored popup is always visible even if the pin was scrolled off.
   function scrollToPin(p: ViewerPin) {
+    // An HTML page scrolls INSIDE its sandboxed frame, so there is no scroll
+    // container out here to move — ask the page to scroll itself, over the same
+    // bridge the wheel handler uses. Without this branch, selecting a comment on
+    // an HTML mockup did nothing at all: surfaceRef only exists on the image
+    // branch, so the code below bailed on its first line.
+    if (isHtml) {
+      const dy = htmlScrollDelta(p, htmlHeight, htmlViewH, htmlScrollY);
+      if (dy !== null) {
+        htmlFrameRef.current?.contentWindow?.postMessage(
+          { type: HTML_SCROLLBY_MESSAGE, dx: 0, dy },
+          "*",
+        );
+      }
+      return;
+    }
     const sc = scrollRef.current;
     const surf = surfaceRef.current;
     if (!sc || !surf) return;
