@@ -12,7 +12,10 @@ vi.mock("@/lib/email/send", () => ({ sendEmail: vi.fn().mockResolvedValue({ ok: 
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabase: async () => ({
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
-    rpc: async () => ({ data: null }),
+    // getCurrentWorkspace resolves the workspace through ensure_workspace now;
+    // every other rpc here is the profile lookup, which finds nothing.
+    rpc: async (name: string) =>
+      name === "ensure_workspace" ? { data: [{ id: "ws1", name: "W" }], error: null } : { data: null },
     from: (table: string) => ({
       select: () => ({
         eq: () => ({

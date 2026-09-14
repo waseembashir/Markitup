@@ -19,14 +19,18 @@ const DEV = ".env.development.local";
 const PROD = ".env.local";
 
 // Anything here that falls through to production is dangerous, not merely wrong:
-// the first three point the whole app at the live project, and APP_URL decides
+// the first two point the whole app at the live project, and APP_URL decides
 // where links in outgoing email send people.
 const CRITICAL = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  "SUPABASE_DB_URL",
   "NEXT_PUBLIC_APP_URL",
 ];
+
+// The migration scripts reach the database by either of these. Requiring a
+// specific one would block a perfectly good setup that uses the other, so check
+// that at least one is present and that neither is production's.
+const DB_ACCESS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_URL"];
 
 function parse(file) {
   const path = join(ROOT, file);
@@ -66,8 +70,19 @@ if (missing.length) {
   process.exit(1);
 }
 
-// Present but identical is the same hazard, just harder to spot.
-const clashes = CRITICAL.filter((k) => prod?.[k] && dev[k] === prod[k] && k !== "NEXT_PUBLIC_APP_URL");
+if (!DB_ACCESS.some((k) => dev[k])) {
+  console.error(`\n  ${DEV} has no way to reach the dev database. Set one of:\n`);
+  console.error(`    SUPABASE_ACCESS_TOKEN  — runs SQL over HTTPS, no database password`);
+  console.error(`    SUPABASE_DB_URL        — a direct Postgres connection`);
+  console.error(`\n  Token: https://supabase.com/dashboard/account/tokens\n`);
+  process.exit(1);
+}
+
+// Present but identical is the same hazard, just harder to spot. A shared access
+// token is fine — it is account-wide by design, and the project it acts on comes
+// from NEXT_PUBLIC_SUPABASE_URL, which is checked above.
+const sameAsProd = [...CRITICAL, "SUPABASE_DB_URL"];
+const clashes = sameAsProd.filter((k) => dev[k] && prod?.[k] && dev[k] === prod[k] && k !== "NEXT_PUBLIC_APP_URL");
 if (clashes.length) {
   console.error(`\n  ${DEV} points at the same project as ${PROD}:\n`);
   for (const k of clashes) console.error(`    ${k}`);

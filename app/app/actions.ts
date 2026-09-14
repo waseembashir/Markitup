@@ -5,41 +5,19 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { invitation } from "@/lib/email/templates";
 
+// Read-then-insert here created a workspace per concurrent caller: the layout
+// and the page both call this, they render in the same pass, and neither saw a
+// membership before the other had inserted one. ensure_workspace() does the
+// whole get-or-create in one statement behind an advisory lock on the user, so
+// concurrent callers agree on a single workspace. It also returns nothing for a
+// guest on a public link, who is a reviewer passing through, not an account
+// holder — minting them a workspace would spawn one per visitor.
 export async function getCurrentWorkspace() {
   const supabase = await createServerSupabase();
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) return null;
-
-  const { data: membership } = await supabase
-    .from("workspace_members")
-    .select("workspace_id, workspaces(id, name)")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
-
-  if (membership?.workspaces) {
-    const ws = membership.workspaces as unknown as { id: string; name: string };
-    return { id: ws.id, name: ws.name };
-  }
-
-  // A guest on a public link is a reviewer passing through, not an account
-  // holder. Minting them a workspace would spawn one per visitor.
-  if (user.is_anonymous) return null;
-
-  const name = (user.user_metadata?.name as string) || user.email || "My";
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .insert({ name: `${name}'s Workspace`, owner_id: user.id })
-    .select()
-    .single();
-  if (!ws) return null;
-
-  await supabase
-    .from("workspace_members")
-    .insert({ workspace_id: ws.id, user_id: user.id, role: "owner" });
-
-  return { id: ws.id as string, name: ws.name as string };
+  const { data, error } = await supabase.rpc("ensure_workspace");
+  if (error || !data?.length) return null;
+  const ws = data[0] as { id: string; name: string };
+  return { id: ws.id, name: ws.name };
 }
 
 export async function createProject(formData: FormData) {

@@ -4,9 +4,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const h = vi.hoisted(() => ({
   state: { profileId: null as string | null },
   sendEmail: vi.fn().mockResolvedValue({ ok: true }),
-  rpc: vi.fn(async (name: string) =>
-    name === "find_profile_id_by_email" ? { data: h.state.profileId } : { error: null }
-  ),
+  rpc: vi.fn(async (name: string) => {
+    if (name === "find_profile_id_by_email") return { data: h.state.profileId };
+    // getCurrentWorkspace resolves the workspace through this call now, rather
+    // than reading workspace_members and inserting when it finds nothing.
+    if (name === "ensure_workspace") return { data: [{ id: "w1", name: "Apexure" }], error: null };
+    return { error: null };
+  }),
 }));
 
 vi.mock("@/lib/email/send", () => ({ sendEmail: h.sendEmail, EMAIL_FROM: "x" }));
@@ -21,9 +25,8 @@ vi.mock("@/lib/supabase/server", () => ({
         select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "w1", name: "Apexure" } }) }) }),
       };
       if (table === "workspace_members") return {
-        // select() feeds getCurrentWorkspace; insert() feeds the existing-member branch.
         select: () => ({ eq: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { workspace_id: "w1", workspaces: { id: "w1", name: "Apexure" } } }) }) }) }),
-        insert: async () => ({ error: null }),
+        insert: async () => ({ error: null }), // the existing-member branch
       };
       return { insert: async () => ({ error: null }) };
     },

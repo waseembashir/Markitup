@@ -27,9 +27,10 @@ Both files are gitignored. Only the `.example` templates are committed.
    ```bash
    cp .env.development.local.example .env.development.local
    ```
-   Fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   (Settings → API) and `SUPABASE_DB_URL` (Settings → Database → Connection
-   string → URI, with your password inserted). Generate a **dev-only**
+   Fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   (Settings → API), and a `SUPABASE_ACCESS_TOKEN` from
+   [account/tokens](https://supabase.com/dashboard/account/tokens) so the
+   migration scripts can reach the database. Generate a **dev-only**
    `FIGMA_TOKEN_SECRET`; never reuse production's.
 
 3. **Build the schema.** One command applies all migrations in order and records
@@ -39,9 +40,7 @@ Both files are gitignored. Only the `.example` templates are committed.
    ```
    Check it any time with `npm run dev:status`.
 
-   If that cannot connect, your network probably has no route to the database.
-   Supabase's direct endpoint is IPv6-only, and many office and home
-   networks are IPv4-only. Build the schema through the dashboard instead:
+   If that cannot connect, the last resort is the dashboard:
    ```bash
    npm run db:bootstrap    # writes supabase/bootstrap.sql
    ```
@@ -72,6 +71,24 @@ Both files are gitignored. Only the `.example` templates are committed.
 Migrations live in `supabase/migrations/` and are applied by a runner that keeps
 a ledger in the `app_migrations` schema — filename, a checksum of the contents,
 and when it ran.
+
+### Reaching the database
+
+The runner takes either of two routes, and prefers the first:
+
+- **`SUPABASE_ACCESS_TOKEN`** — an account token from
+  [account/tokens](https://supabase.com/dashboard/account/tokens). Runs SQL over
+  HTTPS. No database password, and it works on networks that block the Postgres
+  port. The project comes from `NEXT_PUBLIC_SUPABASE_URL`, so the token is the
+  only thing to paste. It covers your whole Supabase account, so keep it to the
+  gitignored env file and revoke it from that page if it leaks.
+- **`SUPABASE_DB_URL`** — a direct Postgres connection.
+
+Prefer the token. A database password is shown exactly once, lives inside a URL
+where one wrong character changes it invisibly, and fails with
+`28P01 password authentication failed` whether it was mistyped, never saved, or
+simply stale — three very different problems that look identical. If you hit
+that error, don't reset the password again; switch to a token.
 
 ```bash
 npm run db:status      # what is applied and pending (read-only, safe on prod)

@@ -16,11 +16,14 @@
 //
 // Nothing is written unless --apply or --baseline is passed. Status is safe to
 // run against production at any time.
+//
+// Reaches the database either over HTTPS with SUPABASE_ACCESS_TOKEN or directly
+// with SUPABASE_DB_URL — see scripts/_transport.mjs for why the first exists.
 import { readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import pg from "pg";
+import { makeTransport } from "./_transport.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(ROOT, "supabase", "migrations");
@@ -52,18 +55,11 @@ function loadEnv(file) {
   }
 }
 
-// Never print the password, but always print WHICH database is about to change —
-// applying dev migrations to production is the mistake worth engineering against.
-function describe(url) {
-  try {
-    const u = new URL(url);
-    return `${u.hostname}:${u.port || 5432}${u.pathname} as ${u.username}`;
-  } catch {
-    return "(unparseable connection string)";
-  }
-}
-
 const sha = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+
+// Filenames and checksums come from the repo, never from user input, but the
+// HTTPS transport has no bind parameters, so quote them properly regardless.
+const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
 function migrationFiles() {
   return readdirSync(DIR)
@@ -86,21 +82,19 @@ const LEDGER = `
 
 async function main() {
   loadEnv(ENV_FILE);
-  const url = process.env.SUPABASE_DB_URL;
-  if (!url) {
-    console.error(`SUPABASE_DB_URL not set (expected in ${ENV_FILE})`);
+  const client = makeTransport(process.env);
+  if (!client) {
+    console.error(`No way to reach the database (expected in ${ENV_FILE}):`);
+    console.error(`  SUPABASE_ACCESS_TOKEN  — runs SQL over HTTPS, no database password needed`);
+    console.error(`  SUPABASE_DB_URL        — a direct Postgres connection`);
+    console.error(`\nGet a token at https://supabase.com/dashboard/account/tokens`);
     process.exit(2);
   }
 
   const files = migrationFiles();
-  const client = new pg.Client({
-    connectionString: url,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 15000,
-  });
   await client.connect();
 
-  console.log(`target : ${describe(url)}`);
+  console.log(`target : ${client.label}`);
   console.log(`env    : ${ENV_FILE}`);
   console.log(`mode   : ${MODE}\n`);
 
@@ -141,8 +135,9 @@ async function main() {
       }
       for (const f of pending) {
         await client.query(
-          "insert into app_migrations.applied (filename, checksum) values ($1, $2) on conflict (filename) do nothing",
-          [f.filename, f.checksum],
+          `insert into app_migrations.applied (filename, checksum)
+           values (${lit(f.filename)}, ${lit(f.checksum)})
+           on conflict (filename) do nothing`,
         );
         console.log(`recorded  ${f.filename}`);
       }
@@ -165,18 +160,26 @@ async function main() {
     for (const f of pending) {
       process.stdout.write(`applying  ${f.filename} ... `);
       // Each migration is its own transaction: a failure rolls that file back
-      // and stops, rather than leaving the schema half-changed.
-      await client.query("begin");
+      // and stops, rather than leaving the schema half-changed. The ledger row
+      // goes in the same transaction, so a database can never hold a migration
+      // it has no record of, or a record of one that did not run.
+      //
+      // Sent as a single statement rather than begin/…/commit round trips: over
+      // HTTPS each request is its own session, so a separate "begin" would open
+      // a transaction that the next request could never see. Postgres aborts the
+      // whole block on any error here, and the trailing commit then commits
+      // nothing — the same guarantee, one round trip.
+      const sql = [
+        "begin;",
+        f.sql,
+        `insert into app_migrations.applied (filename, checksum)
+         values (${lit(f.filename)}, ${lit(f.checksum)});`,
+        "commit;",
+      ].join("\n");
       try {
-        await client.query(f.sql);
-        await client.query(
-          "insert into app_migrations.applied (filename, checksum) values ($1, $2)",
-          [f.filename, f.checksum],
-        );
-        await client.query("commit");
+        await client.query(sql);
         console.log("ok");
       } catch (e) {
-        await client.query("rollback");
         console.log("FAILED");
         console.error(`\n${f.filename}: ${e.message}`);
         console.error("Rolled back. Nothing after this file was applied.");
@@ -189,4 +192,15 @@ async function main() {
   }
 }
 
-await main();
+// A connection that cannot be made is an operator problem, not a bug. Print the
+// reason and nothing else — a stack trace here buries the one line that matters.
+//
+// Set exitCode rather than calling process.exit: the HTTPS transport leaves a
+// keep-alive socket open, and tearing the process down on top of it trips a
+// libuv assertion on Windows that looks alarming and means nothing.
+try {
+  await main();
+} catch (e) {
+  console.error(`\n${e.message}\n`);
+  process.exitCode = 1;
+}
