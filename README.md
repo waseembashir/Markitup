@@ -2,27 +2,99 @@
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Local Setup
+## Environments
 
-This project uses a **cloud** Supabase project (no local Docker / Supabase CLI required).
+This project uses a **cloud Supabase project per environment** — no Docker, no
+Supabase CLI. Two environments:
 
-1. **Create or open a Supabase project** at [supabase.com](https://supabase.com/dashboard).
-2. **Copy your keys.** In the Supabase dashboard, go to your project's **Settings → API** page and copy:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon / public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **service_role key** (optional in Plan 1 — reserved for a future admin client) → `SUPABASE_SERVICE_ROLE_KEY`
-   - **Database connection string** (Settings → Database → Connection string → URI; insert your DB password) → `SUPABASE_DB_URL`. This is used **only** by the migration/verification scripts (`scripts/*.mjs`) and the E2E seed helper, never by the app runtime.
-3. **Create your local env file.** Copy `.env.example` to `.env.local` and paste in the values from step 2:
+| | Env file | Supabase project | Used by |
+|---|---|---|---|
+| **Development** | `.env.development.local` | your own dev project | `npm run dev` |
+| **Production** | `.env.local` | the live project | migration scripts, `npm run build` |
+
+Next.js loads `.env.development.local` ahead of `.env.local` when you run
+`npm run dev`, so the app points at dev automatically while the production values
+stay available to the scripts.
+
+Both files are gitignored. Only the `.example` templates are committed.
+
+## First-time local setup
+
+1. **Create a dev Supabase project** at [supabase.com](https://supabase.com/dashboard).
+   Name it something unmistakable, e.g. `markitup-dev`. The free tier is fine.
+
+2. **Create your dev env file:**
    ```bash
-   cp .env.example .env.local
+   cp .env.development.local.example .env.development.local
    ```
-   `.env.local` is already listed in `.gitignore` (via the `.env*` pattern) and must never be committed.
-4. **Apply database migrations.** The SQL in `supabase/migrations/` is applied to your cloud DB (no Docker) via:
+   Fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   (Settings → API) and `SUPABASE_DB_URL` (Settings → Database → Connection
+   string → URI, with your password inserted). Generate a **dev-only**
+   `FIGMA_TOKEN_SECRET`; never reuse production's.
+
+3. **Build the schema.** One command applies all migrations in order and records
+   each one:
    ```bash
-   node scripts/db-apply.mjs supabase/migrations/0001_profiles_workspaces.sql
-   # ...repeat for 0002 → 0005 in order
+   npm run dev:migrate
    ```
-5. **Enable sign-up.** In **Authentication → Providers → Email**, turn **OFF "Confirm email"** (or configure a custom SMTP sender). With confirmation ON and no SMTP, a new sign-up produces no session and the user cannot enter the app. (The E2E test sidesteps this by seeding pre-confirmed users directly in the DB.)
+   Check it any time with `npm run dev:status`.
+
+4. **Create the storage buckets.** Migrations cover tables and policies, not
+   buckets. In Supabase → Storage, create two **private** buckets:
+   `mockups` and `comment-files`.
+
+5. **Turn off email confirmation.** Authentication → Sign In / Providers → Email
+   → uncheck **Confirm email**. With it on and no SMTP configured, a new signup
+   produces no session and cannot enter the app.
+
+6. **Enable anonymous sign-ins** (Authentication → Sign In / Providers) if you
+   want to test public share links, which let clients comment without an account.
+   Remember to press **Save** — the toggle reverts silently otherwise.
+
+7. **Run it:**
+   ```bash
+   npm run dev
+   ```
+
+## Migrations
+
+Migrations live in `supabase/migrations/` and are applied by a runner that keeps
+a ledger in the `app_migrations` schema — filename, a checksum of the contents,
+and when it ran.
+
+```bash
+npm run db:status      # what is applied and pending (read-only, safe on prod)
+npm run db:migrate     # apply everything pending
+npm run dev:status     # the same, against the dev project
+npm run dev:migrate
+```
+
+Nothing is written unless you ask it to apply. Three rules the runner enforces:
+
+- **Order.** Files run in filename order, each in its own transaction. A failure
+  rolls that file back and stops, rather than leaving the schema half-changed.
+- **Exactly once.** An applied migration is never re-run.
+- **No silent edits.** If a file's contents change after it was applied, the
+  runner refuses to apply anything until you resolve it. Fix a mistake with a
+  *new* migration rather than editing an old one.
+
+To adopt an existing database that already has every migration applied by hand,
+record them without executing anything:
+
+```bash
+npm run db:baseline
+```
+
+### Writing a migration
+
+Create `supabase/migrations/00NN_short_name.sql`, write the SQL with a comment
+explaining *why*, then:
+
+```bash
+npm run dev:migrate    # dev first, always
+npm run test           # then the suite
+npm run db:migrate     # production, once dev is proven
+```
 
 ## Google sign-in (optional)
 

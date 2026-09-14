@@ -9,7 +9,13 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:status": "node scripts/db-migrate.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs --apply",
+    "db:baseline": "node scripts/db-migrate.mjs --baseline",
+    "dev:status": "node scripts/db-migrate.mjs --env .env.development.local",
+    "dev:migrate": "node scripts/db-migrate.mjs --apply --env .env.development.local",
+    "predev": "node scripts/check-dev-env.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.1",
