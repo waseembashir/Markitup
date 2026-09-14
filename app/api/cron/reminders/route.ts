@@ -5,6 +5,7 @@ import { reminderEmail, neverRespondedEmail } from "@/lib/email/templates";
 import { fillTemplate } from "@/lib/reminders";
 import { decryptSecret } from "@/lib/crypto";
 import { postToSlack, commentRollupSlackMessage, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
+import { reportError } from "@/lib/observability";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -116,7 +117,7 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (e) {
-    console.error("[cron/reminders] failed", e);
+    reportError(e, { where: "cron/reminders", summary });
     return json({ error: (e as Error).message, summary }, 500);
   }
 
@@ -126,7 +127,7 @@ export async function GET(req: NextRequest) {
   try {
     summary.slack_rollups = await flushSlackRollups();
   } catch (e) {
-    console.error("[cron/reminders] slack roll-up flush failed", e);
+    reportError(e, { where: "cron/reminders slack roll-up flush" });
   }
 
   return json({ ok: true, ...summary }, 200);

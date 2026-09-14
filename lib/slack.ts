@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptSecret } from "@/lib/crypto";
+import { reportIssue, reportError } from "@/lib/observability";
 
 // How long a burst of comments stays open. Everything a person says about one
 // project inside this window is announced once, not once per comment.
@@ -31,9 +32,18 @@ export async function postToSlack(webhook: string, payload: object): Promise<boo
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
+    // A rejected webhook used to return false and log nothing at all, so a
+    // revoked or deleted Slack integration looked exactly like a workspace that
+    // had never configured one.
+    if (!r.ok) {
+      reportIssue("Slack rejected the webhook post", {
+        status: r.status,
+        body: (await r.text().catch(() => "")).slice(0, 200),
+      });
+    }
     return r.ok;
   } catch (e) {
-    console.error("[slack] post failed", e);
+    reportError(e, { where: "postToSlack" });
     return false;
   }
 }

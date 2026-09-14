@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { reportIssue } from "@/lib/observability";
 
 // Where an OAuth provider returns to, and where the password-reset link lands.
 export async function GET(request: Request) {
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
   const supabase = await createServerSupabase();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    console.error("[auth/callback] code exchange failed", error);
+    reportIssue("OAuth code exchange failed - the user could not sign in", { reason: error.message });
     return back("exchange");
   }
 
