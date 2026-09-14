@@ -177,17 +177,27 @@ export async function getActivityData(supabase: SupabaseClient<any>, projectIds:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getWorkspaceStats(supabase: SupabaseClient<any>, projectIds: string[]) {
   const map = new Map<string, ProjectStats>();
-  await Promise.all(
-    projectIds.map(async (id) => {
-      const { data } = await supabase.rpc("project_stats", { p: id });
-      const row = Array.isArray(data) ? data[0] : data;
-      map.set(id, {
-        mockups: row?.mockups ?? 0,
-        comments: row?.comments ?? 0,
-        resolved: row?.resolved ?? 0,
-      });
-    }),
-  );
+  if (!projectIds.length) return map;
+
+  // One call for every project. This used to fan out into one RPC per project,
+  // which meant a workspace with fifty projects opened fifty simultaneous
+  // connections on every dashboard load.
+  const { data } = await supabase.rpc("project_stats_many", { p: projectIds });
+  for (const row of (data ?? []) as {
+    project_id: string;
+    mockups: number;
+    comments: number;
+    resolved: number;
+  }[]) {
+    map.set(row.project_id, {
+      mockups: row.mockups ?? 0,
+      comments: row.comments ?? 0,
+      resolved: row.resolved ?? 0,
+    });
+  }
+  // A project the caller cannot see returns no row; the dashboard renders zeros
+  // for it rather than leaving the card blank.
+  for (const id of projectIds) if (!map.has(id)) map.set(id, { mockups: 0, comments: 0, resolved: 0 });
   return map;
 }
 
