@@ -13,7 +13,14 @@ alter table public.pins
 -- Number pins per (mockup, device) so each surface counts from 1. Sharing one
 -- sequence would leave mobile numbered 4, 7, 9 — gaps inherited from a list the
 -- reviewer can't even see.
-alter table public.pins drop constraint pins_mockup_number_unique;
+-- Drop whichever name the old constraint carries. 0004 declares it inline and
+-- unnamed, so a database built from these files calls it
+-- pins_mockup_id_number_key, while the long-running production database carries
+-- an explicitly named pins_mockup_number_unique from before the files existed.
+-- Naming only one of them meant this migration could never run on a fresh
+-- install — which nobody could discover until someone built the schema from zero.
+alter table public.pins drop constraint if exists pins_mockup_number_unique;
+alter table public.pins drop constraint if exists pins_mockup_id_number_key;
 alter table public.pins add constraint pins_mockup_device_number_unique
   unique (mockup_id, device, number);
 

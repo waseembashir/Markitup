@@ -39,6 +39,17 @@ Both files are gitignored. Only the `.example` templates are committed.
    ```
    Check it any time with `npm run dev:status`.
 
+   If that cannot connect, your network probably has no route to the database.
+   Supabase's direct endpoint is IPv6-only, and many office and home
+   networks are IPv4-only. Build the schema through the dashboard instead:
+   ```bash
+   npm run db:bootstrap    # writes supabase/bootstrap.sql
+   ```
+   Paste that file into the Supabase **SQL Editor** and Run it once. It creates
+   everything and records all migrations as applied, so the runner will report
+   the database as up to date. The file is generated, not committed — regenerate
+   it whenever you need it.
+
 4. **Create the storage buckets.** Migrations cover tables and policies, not
    buckets. In Supabase → Storage, create two **private** buckets:
    `mockups` and `comment-files`.

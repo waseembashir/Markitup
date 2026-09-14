@@ -15,7 +15,8 @@
     "db:baseline": "node scripts/db-migrate.mjs --baseline",
     "dev:status": "node scripts/db-migrate.mjs --env .env.development.local",
     "dev:migrate": "node scripts/db-migrate.mjs --apply --env .env.development.local",
-    "predev": "node scripts/check-dev-env.mjs"
+    "predev": "node scripts/check-dev-env.mjs",
+    "db:bootstrap": "node scripts/db-bootstrap.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.1",

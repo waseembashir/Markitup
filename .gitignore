@@ -50,3 +50,7 @@ next-env.d.ts
 # superpowers scratch (progress tracking, not part of the shipped project)
 .superpowers/
 .playwright-mcp/
+
+# generated from supabase/migrations by `npm run db:bootstrap` — a stale copy
+# in git is worse than none, so it is regenerated on demand
+supabase/bootstrap.sql
