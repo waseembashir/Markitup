@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { reportIssue, reportError } from "@/lib/observability";
 
 // The whole of "signing in" for a public link: type a name, start commenting.
 // Behind it is a real but anonymous Supabase session, so pins, comments and RLS
@@ -28,16 +29,28 @@ export function GuestGate({ token, fileName }: { token: string; fileName: string
     });
     if (authError) {
       setBusy(false);
-      // "Anonymous sign-ins are disabled" is a Supabase project setting, not
-      // anything the visitor can act on — so tell them who can, and leave the
-      // real error in the console for whoever owns the app.
+      // Supabase's own wording is written for whoever configured the project,
+      // not for a client who was sent a link and wants to leave feedback.
+      // "Request rate limit reached" tells them nothing they can act on, and
+      // reads as a broken app. Translate the two cases that are really about
+      // the project's configuration, and report them, because the person who
+      // can fix either one is not the person seeing the message.
       const disabled = /anonymous/i.test(authError.message) && /disabled|not enabled/i.test(authError.message);
-      if (disabled) console.error("[guest] anonymous sign-ins are disabled for this Supabase project", authError);
-      setError(
-        disabled
-          ? "Commenting without an account isn't available right now. Ask whoever sent you this link, or sign in instead."
-          : authError.message,
-      );
+      const rateLimited = authError.status === 429 || /rate limit/i.test(authError.message);
+
+      if (disabled) {
+        reportIssue("A guest could not comment: anonymous sign-ins are disabled for this Supabase project");
+        setError("Commenting without an account isn't available right now. Ask whoever sent you this link, or sign in instead.");
+      } else if (rateLimited) {
+        // Supabase allows 30 anonymous sign-ins per hour per IP address. A
+        // client team reviewing together comes from one office IP, so they can
+        // exhaust it between them and each see a failure they did not cause.
+        reportIssue("A guest hit the anonymous sign-in rate limit (30/hour per IP)", { fileName });
+        setError("Too many people have opened this link from your network in the past hour. Try again a little later, or sign in with an account to comment now.");
+      } else {
+        reportError(authError, { where: "GuestGate.signInAnonymously" });
+        setError(authError.message);
+      }
       return;
     }
 

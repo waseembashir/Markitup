@@ -27,8 +27,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // The inline script below sets data-theme and the dark class on this very
+    // element before React hydrates, so the saved theme is applied on the first
+    // paint instead of flashing the default. React then finds attributes its own
+    // render did not produce and reports a hydration mismatch — and may strip
+    // them back off, visibly resetting the theme it just restored.
+    //
+    // suppressHydrationWarning is the sanctioned way to say "this element is
+    // intentionally changed before hydration". It applies to this element only,
+    // not to the tree beneath it.
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
