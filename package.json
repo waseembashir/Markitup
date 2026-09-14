@@ -16,7 +16,8 @@
     "dev:status": "node scripts/db-migrate.mjs --env .env.development.local",
     "dev:migrate": "node scripts/db-migrate.mjs --apply --env .env.development.local",
     "predev": "node scripts/check-dev-env.mjs",
-    "db:bootstrap": "node scripts/db-bootstrap.mjs"
+    "db:bootstrap": "node scripts/db-bootstrap.mjs",
+    "check:access": "node scripts/access-check.mjs --env .env.development.local"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.74.0",
