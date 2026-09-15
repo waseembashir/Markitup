@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMockupSignedUrl } from "@/app/app/projects/[projectId]/actions";
 import { buildEmbedUrl } from "@/lib/figma";
-import { MockupViewer, type ViewerPin } from "@/components/viewer/MockupViewer";
+import { MockupViewer } from "@/components/viewer/MockupViewer";
+import { loadViewerPins } from "./pins-data";
 import { LockedFile } from "@/components/app/LockedFile";
 import { ShareDialog } from "@/components/viewer/ShareDialog";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
@@ -13,7 +14,6 @@ import { VersionSwitcher } from "@/components/viewer/VersionSwitcher";
 import { RecordView } from "@/components/viewer/RecordView";
 import { Avatar } from "@/components/app/AppSidebar";
 import { emailLocalPart } from "@/lib/format";
-import { sanitizeCommentHtml } from "@/lib/sanitize";
 
 export default async function MockupPage({
   params,
@@ -91,31 +91,7 @@ export default async function MockupPage({
   }
   const members = [...memberMap.values()];
 
-  const { data: pins } = await supabase
-    .from("pins")
-    .select(
-      "id, x, y, w, h, number, status, device, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
-    )
-    .eq("mockup_id", mockupId)
-    .order("number", { ascending: true });
-
-  /* Supabase's untyped client infers nested one-to-many joins loosely (profiles
-     comes back as an array, attachments as unknown[]), so these row shapes are
-     `any` by necessity rather than by choice. */
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const attachmentPaths = (pins ?? []).flatMap((p: any) =>
-    (p.comments ?? []).flatMap((c: any) =>
-      (c.comment_attachments ?? []).map((a: any) => a.file_path as string),
-    ),
-  );
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-  const signedAttachmentUrls = new Map<string, string>();
-  if (attachmentPaths.length) {
-    const { data: urls } = await supabase.storage
-      .from("comment-files")
-      .createSignedUrls(attachmentPaths, 3600);
-    for (const u of urls ?? []) if (u.signedUrl && u.path) signedAttachmentUrls.set(u.path, u.signedUrl);
-  }
+  const viewerPins = await loadViewerPins(supabase, mockupId);
 
   const { data: viewRows } = await supabase
     .from("mockup_views")
@@ -123,11 +99,13 @@ export default async function MockupPage({
     .eq("mockup_id", mockupId)
     .order("viewed_at", { ascending: false })
     .limit(8);
-  const viewers: Viewer[] = (viewRows ?? []).map((r) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const p = (r as any).profiles;
-    return { id: p?.id ?? "", name: p?.name || "Someone", email: p?.email ?? "", viewedAt: r.viewed_at as string };
-  }).filter((v) => v.id);
+  const viewers: Viewer[] = (viewRows ?? [])
+    .map((r) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = (r as any).profiles;
+      return { id: p?.id ?? "", name: p?.name || "Someone", email: p?.email ?? "", viewedAt: r.viewed_at as string };
+    })
+    .filter((v) => v.id);
 
   const { data: authData } = await supabase.auth.getUser();
   const currentUserName =
@@ -140,37 +118,6 @@ export default async function MockupPage({
   const isGuest = authData.user?.is_anonymous === true;
 
   const url = await getMockupSignedUrl(mockup.file_path);
-
-  const viewerPins: ViewerPin[] = (pins ?? []).map((p) => ({
-    id: p.id,
-    x: p.x,
-    y: p.y,
-    w: p.w ?? 0,
-    h: p.h ?? 0,
-    number: p.number,
-    status: p.status,
-    device: (p.device as "desktop" | "mobile") ?? "desktop",
-    // Supabase's untyped client infers nested one-to-many joins loosely (e.g. profiles as an
-    // array); `any` here matches the query's actual runtime shape without hand-maintaining a
-    // brittle structural type.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    comments: (p.comments ?? []).map((c: any) => ({
-      id: c.id,
-      // Sanitize at render time too: the comments table is directly writable via
-      // RLS by any project member, so a raw body could bypass addComment's write-time
-      // sanitize. Idempotent with it, and covers legacy/direct-insert rows.
-      body: sanitizeCommentHtml((c.body as string) ?? ""),
-      parentCommentId: c.parent_comment_id,
-      createdAt: c.created_at,
-      authorName: c.profiles?.name || emailLocalPart(c.profiles?.email ?? "") || "Unknown",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      attachments: (c.comment_attachments ?? []).map((a: any) => ({
-        url: signedAttachmentUrls.get(a.file_path) ?? "",
-        type: a.type,
-        name: a.name,
-      })),
-    })),
-  }));
 
   // Live Figma embed (the animated prototype) is shown to ANY signed-in viewer
   // who can open this mockup — the workspace team AND invited/joined project

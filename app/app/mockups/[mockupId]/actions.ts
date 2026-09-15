@@ -7,6 +7,8 @@ import { sendEmail } from "@/lib/email/send";
 import { commentNotification } from "@/lib/email/templates";
 import { workspaceSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
 import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
+import { loadViewerPins } from "./pins-data";
+import { reportError } from "@/lib/observability";
 
 // x,y anchor the pin. w,h are optional and describe a dragged REGION extending
 // right/down from that anchor; 0,0 means a plain point pin.
@@ -215,4 +217,23 @@ export async function deletePin(mockupId: string, pinId: string) {
   if (error) return { error: error.message };
   revalidatePath(`/app/mockups/${mockupId}`);
   return {};
+}
+
+// Realtime tells the browser that something on this file changed; it does not
+// tell it what to render. A postgres_changes payload carries raw columns — no
+// author name, no signed attachment URL, no sanitized body — so rebuilding a
+// pin from one would mean a second, diverging copy of that mapping in the
+// client, and the way it would diverge is by quietly dropping sanitization.
+//
+// Ask the server instead. One query, RLS applied as usual, returning exactly
+// what the page rendered on first load.
+export async function refreshPins(mockupId: string) {
+  const supabase = await createServerSupabase();
+  try {
+    return { pins: await loadViewerPins(supabase, mockupId) };
+  } catch (e) {
+    // A failed refresh must never disturb what the viewer is already looking at.
+    reportError(e, { where: "refreshPins", mockupId });
+    return { pins: null };
+  }
 }

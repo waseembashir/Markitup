@@ -10,6 +10,7 @@ import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, inject
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment } from "@/app/app/mockups/[mockupId]/actions";
+import { useLivePins } from "./useLivePins";
 import { timeAgo, htmlToText } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
 import { Avatar } from "@/components/app/AppSidebar";
@@ -200,6 +201,8 @@ export function MockupViewer({
   const isFigma = !!figmaEmbedUrl;
   const isHtml = !!htmlUrl;
   const [pins, setPins] = useState<ViewerPin[]>(initialPins);
+  // Someone else commenting on this file updates it here, without a reload.
+  useLivePins(mockupId, setPins);
   const [railOpen, setRailOpen] = useState(true);
   const toast = useToast();
   const [htmlHeight, setHtmlHeight] = useState(0);
