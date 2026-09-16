@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toNormalized } from "@/lib/coords";
 import { PinMarker } from "./PinMarker";
 import { PinComposer } from "./PinComposer";
@@ -29,6 +30,13 @@ export type ViewerComment = {
 };
 export type ViewerPin = {
   id: string;
+  // Which version of the file this pin was left on. Feedback follows the file
+  // across versions, so the rail shows every version's comments — but a pin is
+  // a coordinate on one particular layout, so only the current version's are
+  // drawn on the canvas.
+  mockupId: string;
+  version: number;
+  isCurrentVersion: boolean;
   x: number;
   y: number;
   // Normalized size of a dragged region extending right/down from x,y.
@@ -118,9 +126,16 @@ function PinListItem({ pin, onSelect }: { pin: ViewerPin; onSelect: () => void }
           <span className="truncate text-sm font-semibold text-ink">
             {first ? first.authorName : "Empty pin"}
           </span>
-          {first && (
-            <span className="shrink-0 font-mono text-[0.6875rem] text-faint">{timeAgo(first.createdAt)}</span>
-          )}
+          <span className="flex shrink-0 items-baseline gap-1.5">
+            {/* Feedback from an earlier version is kept, and marked, so it is
+                obvious it belongs to a design that is no longer on screen. */}
+            {!pin.isCurrentVersion && (
+              <span className="rounded bg-canvas px-1 py-px font-mono text-[0.625rem] font-semibold text-faint">
+                V{pin.version}
+              </span>
+            )}
+            {first && <span className="font-mono text-[0.6875rem] text-faint">{timeAgo(first.createdAt)}</span>}
+          </span>
         </span>
         <span className="mt-0.5 line-clamp-2 block text-sm text-muted">
           {first ? htmlToText(first.body) : "No comment yet"}
@@ -182,6 +197,7 @@ export function MockupViewer({
   currentUserName,
   currentUserEmail,
   currentUserId,
+  initialPinId,
   figmaEmbedUrl,
   htmlUrl,
   titleSlot,
@@ -199,6 +215,9 @@ export function MockupViewer({
   // Whose comments carry an Edit affordance. Null for a guest, who has no
   // account and so nothing of their own to go back and change.
   currentUserId?: string | null;
+  // A thread to open on arrival, set when someone follows an earlier version's
+  // comment out of the rail.
+  initialPinId?: string | null;
   // When set, the canvas is a live Figma prototype embed (animations/video play)
   // with a transparent pin-capture overlay on top, instead of a static image.
   figmaEmbedUrl?: string | null;
@@ -210,6 +229,9 @@ export function MockupViewer({
   titleSlot?: React.ReactNode;
   actionsSlot?: React.ReactNode;
 }) {
+  const router = useRouter();
+  // The version on screen, taken from the pins the server already tagged.
+  const currentVersion = initialPins.find((p) => p.isCurrentVersion)?.version ?? 1;
   const isFigma = !!figmaEmbedUrl;
   const isHtml = !!htmlUrl;
   const [pins, setPins] = useState<ViewerPin[]>(initialPins);
@@ -233,7 +255,7 @@ export function MockupViewer({
   useEffect(() => {
     htmlUrlRef.current = htmlUrl;
   }, [htmlUrl]);
-  const [activePinId, setActivePinId] = useState<string | null>(null);
+  const [activePinId, setActivePinId] = useState<string | null>(initialPinId ?? null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("pins");
   const [sortOpen, setSortOpen] = useState(false);
@@ -512,9 +534,15 @@ export function MockupViewer({
   }
 
   function selectPin(id: string) {
+    const p = pins.find((x) => x.id === id);
+    // Feedback from an earlier version has no pin on this canvas to open, so
+    // go to the version it was left on, where it sits over the right design.
+    if (p && !p.isCurrentVersion) {
+      router.push(`/app/mockups/${p.mockupId}?pin=${p.id}`);
+      return;
+    }
     setDraft(null);
     setActivePinId(id);
-    const p = pins.find((x) => x.id === id);
     if (p) requestAnimationFrame(() => scrollToPin(p));
   }
 
@@ -623,7 +651,11 @@ export function MockupViewer({
     if (existingPinId) {
       setPins((ps) => ps.map((p) => (p.id === existingPinId ? { ...p, comments: [...p.comments, optimistic] } : p)));
     } else {
-      setPins((ps) => [...ps, { id: tmpPinId, x, y, w, h, number: 0, status: "active", device, comments: [optimistic] }]);
+      setPins((ps) => [
+        ...ps,
+        // A pin being created is by definition on the version being viewed.
+        { id: tmpPinId, mockupId, version: currentVersion, isCurrentVersion: true, x, y, w, h, number: 0, status: "active", device, comments: [optimistic] },
+      ]);
     }
     const closedDraft = draft;
     setDraft(null);
@@ -700,10 +732,18 @@ export function MockupViewer({
           p.comments.some((c) => htmlToText(c.body).toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q)),
     )
     .sort((a, b) => {
+      // Newest version first, so the feedback on what is on screen leads and
+      // older versions read as history below it.
+      if (a.version !== b.version) return b.version - a.version;
       if (sort === "pins") return a.number - b.number;
       if (sort === "newest") return latestAt(b).localeCompare(latestAt(a));
       return latestAt(a).localeCompare(latestAt(b));
     });
+
+  // Only this version's pins go on the canvas. An older version's pin is a
+  // coordinate on a layout that is no longer on screen; drawing it here would
+  // point at whatever happens to occupy that spot now.
+  const canvasPins = visiblePins.filter((p) => p.isCurrentVersion);
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
 
   const idx = siblings.findIndex((s) => s.id === mockupId);
@@ -713,7 +753,7 @@ export function MockupViewer({
   // Pins + the pinned popup composer, shared by the image and live-embed surfaces.
   const pinsOverlay = (
     <>
-      {visiblePins.map((p) => (
+      {canvasPins.map((p) => (
         <PinMarker
           key={p.id}
           number={p.number}

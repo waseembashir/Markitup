@@ -4,6 +4,12 @@ import "@testing-library/jest-dom";
 import { MockupViewer } from "./MockupViewer";
 import { createPin, addComment } from "@/app/app/mockups/[mockupId]/actions";
 
+// The viewer routes to another version when an older version's comment is
+// selected; there is no Next router in this environment to do that with.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
+}));
+
 vi.mock("@/app/app/mockups/[mockupId]/actions", () => ({
   createPin: vi.fn(async () => ({ id: "p1", number: 1 })),
   // Echo the submitted body as the server-sanitized body the client renders.
@@ -68,7 +74,7 @@ describe("MockupViewer", () => {
         projectId="proj1"
         imageUrl="http://example.com/a.png"
         imageName="a.png"
-        initialPins={[{ id: "p1", x: 0.5, y: 0.5, w: 0, h: 0, number: 3, status: "active", device: "desktop", comments: [] }]}
+        initialPins={[{ id: "p1", mockupId: "m1", version: 1, isCurrentVersion: true, x: 0.5, y: 0.5, w: 0, h: 0, number: 3, status: "active", device: "desktop", comments: [] }]}
         siblings={[{ id: "m1" }]}
         members={[]}
         currentUserName="Tester"
@@ -85,8 +91,8 @@ describe("MockupViewer", () => {
         imageUrl="http://example.com/a.png"
         imageName="a.png"
         initialPins={[
-          { id: "p1", x: 0.2, y: 0.2, w: 0, h: 0, number: 1, status: "active", device: "desktop", comments: [] },
-          { id: "p2", x: 0.4, y: 0.4, w: 0, h: 0, number: 1, status: "active", device: "mobile", comments: [] },
+          { id: "p1", mockupId: "m1", version: 1, isCurrentVersion: true, x: 0.2, y: 0.2, w: 0, h: 0, number: 1, status: "active", device: "desktop", comments: [] },
+          { id: "p2", mockupId: "m1", version: 1, isCurrentVersion: true, x: 0.4, y: 0.4, w: 0, h: 0, number: 1, status: "active", device: "mobile", comments: [] },
         ]}
         siblings={[{ id: "m1" }]}
         members={[]}
@@ -106,8 +112,8 @@ describe("MockupViewer", () => {
         imageUrl="http://example.com/a.png"
         imageName="a.png"
         initialPins={[
-          { id: "p1", x: 0.2, y: 0.2, w: 0, h: 0, number: 1, status: "active", device: "desktop", comments: [] },
-          { id: "p2", x: 0.4, y: 0.4, w: 0, h: 0, number: 7, status: "active", device: "mobile", comments: [] },
+          { id: "p1", mockupId: "m1", version: 1, isCurrentVersion: true, x: 0.2, y: 0.2, w: 0, h: 0, number: 1, status: "active", device: "desktop", comments: [] },
+          { id: "p2", mockupId: "m1", version: 1, isCurrentVersion: true, x: 0.4, y: 0.4, w: 0, h: 0, number: 7, status: "active", device: "mobile", comments: [] },
         ]}
         siblings={[{ id: "m1" }]}
         members={[]}
@@ -135,9 +141,9 @@ describe("MockupViewer", () => {
         imageUrl="http://example.com/a.png"
         imageName="a.png"
         initialPins={[
-          { id: "p1", x: .2, y: .2, w: 0, h: 0, number: 1, status: "active", device: "desktop",
+          { id: "p1", mockupId: "m1", version: 1, isCurrentVersion: true, x: .2, y: .2, w: 0, h: 0, number: 1, status: "active", device: "desktop",
             comments: [c("r1", "Vinay", null), c("r2", "Ajit", "r1"), c("r3", "Ajit", "r1")] },
-          { id: "p2", x: .5, y: .5, w: 0, h: 0, number: 2, status: "active", device: "desktop",
+          { id: "p2", mockupId: "m1", version: 1, isCurrentVersion: true, x: .5, y: .5, w: 0, h: 0, number: 2, status: "active", device: "desktop",
             comments: [c("r4", "Vinay", null)] },
         ]}
         siblings={[{ id: "m1" }]}
@@ -187,7 +193,7 @@ describe("MockupViewer", () => {
         imageUrl="http://example.com/a.png"
         imageName="a.png"
         initialPins={[
-          { id: "p1", x: 0.1, y: 0.1, w: 0.4, h: 0.3, number: 1, status: "active", device: "desktop", comments: [] },
+          { id: "p1", mockupId: "m1", version: 1, isCurrentVersion: true, x: 0.1, y: 0.1, w: 0.4, h: 0.3, number: 1, status: "active", device: "desktop", comments: [] },
         ]}
         siblings={[{ id: "m1" }]}
         members={[]}

@@ -17,10 +17,15 @@ import { emailLocalPart } from "@/lib/format";
 
 export default async function MockupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ mockupId: string }>;
+  searchParams: Promise<{ pin?: string }>;
 }) {
   const { mockupId } = await params;
+  // Set when someone follows an earlier version's comment out of the rail, so
+  // they land on the thread they clicked rather than the top of the file.
+  const { pin: initialPinId } = await searchParams;
   const supabase = await createServerSupabase();
 
   const { data: mockup } = await supabase
@@ -182,6 +187,7 @@ export default async function MockupPage({
             currentUserName={currentUserName}
             currentUserEmail={currentUserEmail}
             currentUserId={currentUserId}
+            initialPinId={initialPinId ?? null}
             figmaEmbedUrl={figmaEmbedUrl}
             htmlUrl={mockup.type === "html" ? url : null}
             titleSlot={titleSlot}

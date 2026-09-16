@@ -108,6 +108,11 @@ export default async function ComparePage({
     const row = p as any;
     const vp: ViewerPin = {
       id: row.id,
+      // Compare groups pins by mockup itself and labels each column, so the
+      // per-pin version fields carry no extra meaning here.
+      mockupId: row.mockup_id,
+      version: 1,
+      isCurrentVersion: true,
       x: row.x,
       y: row.y,
       w: row.w ?? 0,

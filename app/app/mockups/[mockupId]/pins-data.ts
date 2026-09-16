@@ -15,12 +15,43 @@ import type { ViewerPin } from "@/components/viewer/MockupViewer";
 // sanitizing or lose their attachments.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: string): Promise<ViewerPin[]> {
+  // Feedback belongs to the FILE, across every version of it — a new upload
+  // used to open with an empty rail, which reads as the client's comments
+  // having been thrown away. Load the whole version group and tag each pin
+  // with the version it was left on.
+  //
+  // Their pins are deliberately NOT drawn on a different version's canvas. A
+  // pin is a coordinate on one particular layout; a v1 pin over a redesigned v2
+  // points at whatever now occupies that spot, which is the same wrongness that
+  // put desktop pins on mobile layouts. The viewer draws the current version's
+  // pins and lists the rest.
+  const { data: self } = await supabase
+    .from("mockups")
+    .select("version_group, project_id")
+    .eq("id", mockupId)
+    .maybeSingle();
+  const group = (self as { version_group?: string } | null)?.version_group;
+
+  const { data: siblings } = group
+    ? await supabase
+        .from("mockups")
+        .select("id, version")
+        .eq("version_group", group)
+        .order("version", { ascending: true })
+    : { data: null };
+
+  const versionOf = new Map<string, number>(
+    ((siblings ?? []) as { id: string; version: number }[]).map((m) => [m.id, m.version]),
+  );
+  // Fall back to this file alone if the group lookup found nothing.
+  const ids = versionOf.size ? [...versionOf.keys()] : [mockupId];
+
   const { data: pins } = await supabase
     .from("pins")
     .select(
-      "id, x, y, w, h, number, status, device, comments(id, body, author_id, parent_comment_id, created_at, edited_at, profiles(name, email), comment_attachments(file_path, type, name))",
+      "id, mockup_id, x, y, w, h, number, status, device, comments(id, body, author_id, parent_comment_id, created_at, edited_at, profiles(name, email), comment_attachments(file_path, type, name))",
     )
-    .eq("mockup_id", mockupId)
+    .in("mockup_id", ids)
     .order("number", { ascending: true });
 
   /* Supabase's untyped client infers nested one-to-many joins loosely (profiles
@@ -40,6 +71,11 @@ export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: st
 
   return (pins ?? []).map((p) => ({
     id: p.id,
+    mockupId: p.mockup_id as string,
+    // Which version this feedback was left on, and whether that is the one on
+    // screen. Only the current version's pins are drawn on the canvas.
+    version: versionOf.get(p.mockup_id as string) ?? 1,
+    isCurrentVersion: (p.mockup_id as string) === mockupId,
     x: p.x,
     y: p.y,
     w: p.w ?? 0,
