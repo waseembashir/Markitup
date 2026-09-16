@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toNormalized } from "@/lib/coords";
 import { PinMarker } from "./PinMarker";
 import { PinComposer } from "./PinComposer";
@@ -229,7 +228,6 @@ export function MockupViewer({
   titleSlot?: React.ReactNode;
   actionsSlot?: React.ReactNode;
 }) {
-  const router = useRouter();
   // The version on screen, taken from the pins the server already tagged.
   const currentVersion = initialPins.find((p) => p.isCurrentVersion)?.version ?? 1;
   const isFigma = !!figmaEmbedUrl;
@@ -535,15 +533,13 @@ export function MockupViewer({
 
   function selectPin(id: string) {
     const p = pins.find((x) => x.id === id);
-    // Feedback from an earlier version has no pin on this canvas to open, so
-    // go to the version it was left on, where it sits over the right design.
-    if (p && !p.isCurrentVersion) {
-      router.push(`/app/mockups/${p.mockupId}?pin=${p.id}`);
-      return;
-    }
     setDraft(null);
     setActivePinId(id);
-    if (p) requestAnimationFrame(() => scrollToPin(p));
+    // Only a pin on this version has somewhere on the canvas to scroll to.
+    // Selecting an earlier version's comment opens it where you are rather than
+    // navigating: being thrown onto a different version pulls the design out
+    // from under whoever was reading it.
+    if (p?.isCurrentVersion) requestAnimationFrame(() => scrollToPin(p));
   }
 
   // Pin popups are centred on their pin, which puts them half outside the canvas
@@ -811,18 +807,39 @@ export function MockupViewer({
       )}
       {!draft && activePin && (
         <div
-          ref={clampPopup}
+          // An earlier version's pin has no place on this canvas — its
+          // coordinates belong to a layout that is no longer on screen, so
+          // anchoring the thread to them would park it over unrelated content.
+          // Centre it instead and say which version it came from.
+          ref={activePin.isCurrentVersion ? clampPopup : undefined}
           // A flex column so the capped height above flows down to the thread:
           // the comment list absorbs it and the composer keeps its place.
           className="pointer-events-auto absolute z-50 flex w-80 flex-col overflow-hidden rounded-xl border bg-surface shadow-xl"
-          style={{
-            left: `${(activePin.x + activePin.w) * 100}%`,
-            top: `${(activePin.y + activePin.h) * 100}%`,
-            transform: "translateX(-50%)",
-            marginTop: "14px",
-          }}
+          style={
+            activePin.isCurrentVersion
+              ? {
+                  left: `${(activePin.x + activePin.w) * 100}%`,
+                  top: `${(activePin.y + activePin.h) * 100}%`,
+                  transform: "translateX(-50%)",
+                  marginTop: "14px",
+                }
+              : { left: "50%", top: "50%", transform: "translate(-50%, -50%)", maxHeight: "80%" }
+          }
           onClick={(e) => e.stopPropagation()}
         >
+          {!activePin.isCurrentVersion && (
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-canvas px-3 py-2">
+              <span className="text-xs font-semibold text-muted">
+                Feedback on version {activePin.version}
+              </span>
+              <Link
+                href={`/app/mockups/${activePin.mockupId}?pin=${activePin.id}`}
+                className="shrink-0 text-xs font-semibold text-brand-ink hover:text-brand-hover"
+              >
+                Open that version
+              </Link>
+            </div>
+          )}
           <CommentThread
             mockupId={mockupId}
             projectId={projectId}
