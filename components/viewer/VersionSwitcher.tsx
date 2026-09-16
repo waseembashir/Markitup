@@ -2,9 +2,20 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useVersionUpload } from "./useVersionUpload";
+import { deleteMockupVersion } from "@/app/app/projects/[projectId]/actions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/toast";
 
-export type VersionItem = { id: string; version: number; createdAt: string };
+export type VersionItem = {
+  id: string;
+  version: number;
+  createdAt: string;
+  // How much feedback deleting this version would destroy. Shown in the
+  // confirmation, because the delete cannot be undone.
+  commentCount?: number;
+};
 
 export function VersionSwitcher({
   versions,
@@ -24,6 +35,26 @@ export function VersionSwitcher({
   // version on top, which is what this input did before.
   const [replacing, setReplacing] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // The version awaiting a delete confirmation.
+  const [confirmDelete, setConfirmDelete] = useState<VersionItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
+  const toast = useToast();
+
+  async function doDelete(v: VersionItem) {
+    setDeleting(true);
+    const res = await deleteMockupVersion(v.id);
+    setDeleting(false);
+    setConfirmDelete(null);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(`Version ${v.version} deleted`);
+    // Leaving someone on a version that no longer exists would 404 them.
+    if (v.id === currentId && res.survivorId) router.push(`/app/mockups/${res.survivorId}`);
+    else router.refresh();
+  }
   const { pending, error, upload } = useVersionUpload({
     baseMockupId: currentId,
     projectId,
@@ -92,14 +123,26 @@ export function VersionSwitcher({
                     )}
                   </Link>
                   {canUpload && (
-                    <button
-                      type="button"
-                      title={`Replace the file for version ${v.version}, keeping its comments`}
-                      onClick={() => { setReplacing(v.id); setOpen(false); inputRef.current?.click(); }}
-                      className="mr-1 shrink-0 rounded px-2 py-1 text-xs font-semibold text-muted opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-brand-ink"
-                    >
-                      Replace
-                    </button>
+                    <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                      <button
+                        type="button"
+                        title={`Replace the file for version ${v.version}, keeping its comments`}
+                        onClick={() => { setReplacing(v.id); setOpen(false); inputRef.current?.click(); }}
+                        className="rounded px-2 py-1 text-xs font-semibold text-muted hover:text-brand-ink"
+                      >
+                        Replace
+                      </button>
+                      {versions.length > 1 && (
+                        <button
+                          type="button"
+                          title={`Delete version ${v.version} and its comments`}
+                          onClick={() => { setConfirmDelete(v); setOpen(false); }}
+                          className="mr-1 rounded px-2 py-1 text-xs font-semibold text-muted hover:text-danger"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </span>
                   )}
                 </div>
               ))}
@@ -123,6 +166,20 @@ export function VersionSwitcher({
           </div>
         </>
       )}
+      <ConfirmDialog
+        open={Boolean(confirmDelete)}
+        title={confirmDelete ? `Delete version ${confirmDelete.version}?` : ""}
+        message={
+          confirmDelete?.commentCount
+            ? `Its ${confirmDelete.commentCount === 1 ? "1 comment" : `${confirmDelete.commentCount} comments`} will be deleted too. This cannot be undone.`
+            : "This cannot be undone."
+        }
+        confirmLabel="Delete version"
+        pending={deleting}
+        pendingLabel="Deleting…"
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && doDelete(confirmDelete)}
+      />
       {error && (
         <span className="absolute left-0 top-full mt-1 whitespace-nowrap text-xs font-medium" style={{ color: "var(--color-danger)" }}>{error}</span>
       )}

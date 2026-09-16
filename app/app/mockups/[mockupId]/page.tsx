@@ -64,11 +64,25 @@ export default async function MockupPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentGroup = (mockup as any).version_group as string;
 
+  // Loaded before the version list, which counts each version's comments from
+  // it: this already covers the whole version group, so the switcher needs no
+  // query of its own.
+  const viewerPins = await loadViewerPins(supabase, mockupId);
+
   // Versions of THIS file, newest first, for the switcher.
   const versions = pmRows
     .filter((m) => m.version_group === currentGroup)
     .sort((a, b) => b.version - a.version)
-    .map((m) => ({ id: m.id as string, version: m.version as number, createdAt: m.created_at as string }));
+    .map((m) => ({
+      id: m.id as string,
+      version: m.version as number,
+      createdAt: m.created_at as string,
+      // viewerPins covers the whole version group, so the count for each
+      // version is already loaded — no extra query for the dialog.
+      commentCount: viewerPins
+        .filter((p) => p.mockupId === m.id)
+        .reduce((n, p) => n + p.comments.length, 0),
+    }));
 
   // One entry per file (version group) for pagination. `pmRows` is version-desc,
   // so the first row seen per group is its latest version. The current group is
@@ -95,8 +109,6 @@ export default async function MockupPage({
     if (p?.id && p?.name) memberMap.set(p.id, { id: p.id, name: p.name });
   }
   const members = [...memberMap.values()];
-
-  const viewerPins = await loadViewerPins(supabase, mockupId);
 
   const { data: viewRows } = await supabase
     .from("mockup_views")

@@ -183,6 +183,83 @@ export async function replaceMockupFile(mockupId: string, path: string) {
   return { id: mockupId };
 }
 
+// Delete one version of a file, for an upload that should never have happened.
+//
+// This is a real delete, not an archive: the row goes, and its pins and
+// comments go with it. The caller is told how much feedback that is before
+// confirming, because it cannot be undone.
+export async function deleteMockupVersion(mockupId: string) {
+  const supabase = await createServerSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: "You must be signed in." };
+
+  const { data: target } = await supabase
+    .from("mockups")
+    .select("project_id, version_group, file_path")
+    .eq("id", mockupId)
+    .maybeSingle();
+  if (!target) return { error: "File not found." };
+
+  const { data: siblings } = await supabase
+    .from("mockups")
+    .select("id, version")
+    .eq("version_group", target.version_group)
+    .order("version", { ascending: false });
+
+  const others = (siblings ?? []).filter((m) => m.id !== mockupId);
+  // The last version IS the file. Removing it here would leave the project
+  // pointing at nothing; deleting the file itself is a separate, clearer act.
+  if (!others.length) {
+    return { error: "This is the only version. Delete the file itself instead." };
+  }
+
+  // share_links cascades from mockups, so deleting the version that happens to
+  // hold the link would take the link with it — and that URL is already sitting
+  // in a client's inbox. Move it to a surviving version first.
+  const { data: link } = await supabase
+    .from("share_links")
+    .select("token")
+    .eq("mockup_id", mockupId)
+    .maybeSingle();
+  if (link) {
+    const { error: moveErr } = await supabase
+      .from("share_links")
+      .update({ mockup_id: others[0].id })
+      .eq("mockup_id", mockupId);
+    // Losing the client's link is worse than failing to delete a version.
+    if (moveErr) return { error: "Could not move the share link off this version, so it was not deleted." };
+  }
+
+  const oldPath = target.file_path as string;
+
+  const { data: deleted, error } = await supabase
+    .from("mockups")
+    .delete()
+    .eq("id", mockupId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  // RLS turns "not allowed" into zero rows rather than an error.
+  if (!deleted) return { error: "Only the workspace team can delete a version." };
+
+  // Free the bytes, unless another row still points at the same object.
+  if (oldPath) {
+    const { data: stillUsed } = await supabase
+      .from("mockups")
+      .select("id")
+      .eq("file_path", oldPath)
+      .limit(1);
+    if (!stillUsed?.length) {
+      const { error: rmErr } = await supabase.storage.from("mockups").remove([oldPath]);
+      if (rmErr) reportIssue("Could not delete a removed version's file from Storage", { oldPath, reason: rmErr.message });
+    }
+  }
+
+  revalidatePath(`/app/projects/${target.project_id}`);
+  // Where to send someone who was looking at the version that just went.
+  return { survivorId: others[0].id as string };
+}
+
 export async function getMockupSignedUrl(filePath: string) {
   const supabase = await createServerSupabase();
   const { data } = await supabase.storage
