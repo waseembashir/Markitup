@@ -195,6 +195,46 @@ async function main() {
     body: JSON.stringify({ mockup_id: mockupId, token: `stolen-${rnd()}`, created_by: mallory.id }),
   });
 
+  // ── the files themselves, not just the rows describing them ──────────────
+  //
+  // Row-level security on `mockups` hides the record. The design itself lives in
+  // Storage, behind its own policies, and a path is guessable in a way a row is
+  // not: objects are stored as <project id>/<uuid>, so anyone who learns a
+  // project id has half of it. These check the bytes, not the bookkeeping.
+  // Alice uploads a real file first. Probing a path that holds nothing proves
+  // nothing: "no such object" and "not allowed" both come back as an error, and
+  // a check that cannot tell them apart passes whether or not the policy works.
+  const objectPath = `${projectId}/secret.png`;
+  const put = await fetch(`${URL_}/storage/v1/object/mockups/${objectPath}`, {
+    method: "POST",
+    headers: { apikey: KEY, Authorization: `Bearer ${alice.token}`, "Content-Type": "image/png" },
+    body: "PNG-ish bytes standing in for a design",
+  });
+  if (!put.ok) throw new Error(`setup: Alice could not upload her own file: ${put.status} ${(await put.text()).slice(0, 160)}`);
+  // And confirm she can read it back, so a denial below is about Mallory.
+  const aliceRead = await fetch(`${URL_}/storage/v1/object/mockups/${objectPath}`, { headers: hdr(alice) });
+  if (!aliceRead.ok) throw new Error(`setup: Alice cannot read her own file: ${aliceRead.status}`);
+
+  const dl = await fetch(`${URL_}/storage/v1/object/mockups/${objectPath}`, { headers: hdr(mallory) });
+  if (dl.ok) fail("download Alice's design file straight from Storage", `HTTP ${dl.status}`);
+  else pass(`download Alice's design file straight from Storage (rejected: ${dl.status})`);
+
+  const signed = await fetch(`${URL_}/storage/v1/object/sign/mockups/${objectPath}`, {
+    method: "POST",
+    headers: hdr(mallory),
+    body: JSON.stringify({ expiresIn: 3600 }),
+  });
+  if (signed.ok) fail("mint a signed URL for Alice's design file", await signed.text());
+  else pass(`mint a signed URL for Alice's design file (rejected: ${signed.status})`);
+
+  const upload = await fetch(`${URL_}/storage/v1/object/mockups/${projectId}/planted-${rnd()}.png`, {
+    method: "POST",
+    headers: { ...hdr(mallory), "Content-Type": "image/png" },
+    body: "not really a png",
+  });
+  if (upload.ok) fail("upload a file into Alice's project folder", await upload.text());
+  else pass(`upload a file into Alice's project folder (rejected: ${upload.status})`);
+
   // ── the request-access path must not be a way in ──────────────────────────
   const asked = await rpc(mallory, "request_mockup_access", { p_mockup: mockupId });
   if (asked === "sent" || asked === "no_recipients") {
