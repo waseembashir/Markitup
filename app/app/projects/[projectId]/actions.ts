@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { reportIssue } from "@/lib/observability";
 import { ACCEPTED_IMAGE_TYPES, HTML_MIME } from "@/lib/validation";
 
 function extForType(type: string) {
@@ -120,6 +121,66 @@ export async function addMockupVersion(baseMockupId: string, path: string) {
 
   revalidatePath(`/app/projects/${base.project_id}`);
   return { id: inserted?.id as string | undefined, version: nextVersion };
+}
+
+// Swap the file behind an EXISTING version, rather than stacking a new one on
+// top. For the case where the wrong file went up, or a version needs correcting
+// without turning a two-round review into a three-round one.
+//
+// The row keeps its id, so its pins, comments and place in the version history
+// all survive — which is the point. That also means the pins keep coordinates
+// measured against the file being replaced: fine for a corrected export of the
+// same design, wrong if the layout actually moved, in which case a new version
+// is the honest thing to upload.
+export async function replaceMockupFile(mockupId: string, path: string) {
+  const supabase = await createServerSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: "You must be signed in to upload." };
+
+  const { data: target } = await supabase
+    .from("mockups")
+    .select("project_id, file_path")
+    .eq("id", mockupId)
+    .maybeSingle();
+  if (!target) return { error: "File not found." };
+
+  // The object must live under this project's folder.
+  if (!path.startsWith(`${target.project_id}/`)) {
+    return { error: "Invalid upload path." };
+  }
+
+  const oldPath = target.file_path as string;
+
+  // RLS decides whether this person may change the file; a reviewer's update
+  // matches no rows rather than erroring.
+  const { data: updated, error } = await supabase
+    .from("mockups")
+    .update({ file_path: path, type: typeForPath(path) })
+    .eq("id", mockupId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!updated) return { error: "Only the workspace team can replace a file." };
+
+  // Storage is the tightest quota this product has, so do not leave the old
+  // object behind — but only when nothing else points at it. Versions created
+  // by copying a row share a path, and deleting it would blank the other one.
+  if (oldPath && oldPath !== path) {
+    const { data: others } = await supabase
+      .from("mockups")
+      .select("id")
+      .eq("file_path", oldPath)
+      .limit(1);
+    if (!others?.length) {
+      const { error: rmErr } = await supabase.storage.from("mockups").remove([oldPath]);
+      // A failed cleanup is wasted bytes, not a failed replace.
+      if (rmErr) reportIssue("Could not delete the replaced file from Storage", { oldPath, reason: rmErr.message });
+    }
+  }
+
+  revalidatePath(`/app/projects/${target.project_id}`);
+  revalidatePath(`/app/mockups/${mockupId}`);
+  return { id: mockupId };
 }
 
 export async function getMockupSignedUrl(filePath: string) {

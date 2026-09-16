@@ -20,6 +20,9 @@ export function VersionSwitcher({
   canUpload?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  // Which version the next picked file should replace. Null means add a new
+  // version on top, which is what this input did before.
+  const [replacing, setReplacing] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { pending, error, upload } = useVersionUpload({
     baseMockupId: currentId,
@@ -43,7 +46,13 @@ export function VersionSwitcher({
         type="file"
         accept="image/png,image/jpeg,text/html,.html,.htm"
         className="hidden"
-        onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) upload(file, replacing ?? undefined);
+          setReplacing(null);
+          // Let the same file be picked again after a mistake.
+          e.target.value = "";
+        }}
       />
       <button
         type="button"
@@ -70,18 +79,29 @@ export function VersionSwitcher({
             <p className="px-3 pb-1 pt-2 text-[0.6875rem] font-semibold tracking-wider text-faint uppercase">Versions</p>
             <div className="max-h-64 overflow-y-auto">
               {versions.map((v) => (
-                <Link
-                  key={v.id}
-                  href={`/app/mockups/${v.id}`}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-[color:var(--accent)]"
-                  style={v.id === currentId ? { color: "var(--color-ink)", fontWeight: 700 } : { color: "var(--foreground)" }}
-                >
-                  <span>Version {v.version}{v.id === latest?.id ? " · Latest" : ""}</span>
-                  {v.id === currentId && (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <div key={v.id} className="group flex items-center rounded-md transition-colors hover:bg-[color:var(--accent)]">
+                  <Link
+                    href={`/app/mockups/${v.id}`}
+                    onClick={() => setOpen(false)}
+                    className="flex min-w-0 flex-1 items-center justify-between px-3 py-2 text-sm"
+                    style={v.id === currentId ? { color: "var(--color-ink)", fontWeight: 700 } : { color: "var(--foreground)" }}
+                  >
+                    <span className="truncate">Version {v.version}{v.id === latest?.id ? " · Latest" : ""}</span>
+                    {v.id === currentId && (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    )}
+                  </Link>
+                  {canUpload && (
+                    <button
+                      type="button"
+                      title={`Replace the file for version ${v.version}, keeping its comments`}
+                      onClick={() => { setReplacing(v.id); setOpen(false); inputRef.current?.click(); }}
+                      className="mr-1 shrink-0 rounded px-2 py-1 text-xs font-semibold text-muted opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-brand-ink"
+                    >
+                      Replace
+                    </button>
                   )}
-                </Link>
+                </div>
               ))}
             </div>
             {canUpload && (

@@ -6,7 +6,7 @@ import { validateUpload, HTML_MIME } from "@/lib/validation";
 import { injectHeightReporter } from "@/lib/html-embed";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
-import { createMockupUploadUrl, addMockupVersion } from "@/app/app/projects/[projectId]/actions";
+import { createMockupUploadUrl, addMockupVersion, replaceMockupFile } from "@/app/app/projects/[projectId]/actions";
 
 // Shared client flow for uploading a new version of an existing file: signed
 // URL → direct upload → record the version row. Surfaces a live progress toast
@@ -25,7 +25,9 @@ export function useVersionUpload({
   const router = useRouter();
   const toast = useToast();
 
-  function upload(file: File) {
+  // `replaceId` swaps the file behind that existing version instead of adding
+  // a new one on top, so its pins, comments and place in the history survive.
+  function upload(file: File, replaceId?: string) {
     // `name` matters: browsers routinely report an empty MIME type for .html, so
     // without it the extension fallback can't fire and an HTML version is
     // rejected as an unsupported file.
@@ -37,7 +39,7 @@ export function useVersionUpload({
     }
     const isHtml = check.kind === "html";
     setError(null);
-    const id = toast.push({ title: "Uploading new version…", variant: "loading", progress: 0.06 });
+    const id = toast.push({ title: replaceId ? "Replacing file…" : "Uploading new version…", variant: "loading", progress: 0.06 });
     let p = 0.06;
 
     start(async () => {
@@ -68,12 +70,20 @@ export function useVersionUpload({
           .uploadToSignedUrl(target.path!, target.token!, body, { contentType: uploadType });
         if (upErr) return failToast(upErr.message);
 
-        const res = await addMockupVersion(baseMockupId, target.path!);
+        const res = replaceId
+          ? await replaceMockupFile(replaceId, target.path!)
+          : await addMockupVersion(baseMockupId, target.path!);
         clearInterval(iv);
         if (res.error) return failToast(res.error);
 
-        toast.update(id, { variant: "success", title: "New version uploaded", description: undefined, progress: 1, duration: 2500 });
-        if (navigateToNew && res.id) router.push(`/app/mockups/${res.id}`);
+        toast.update(id, {
+          variant: "success",
+          title: replaceId ? "File replaced" : "New version uploaded",
+          description: replaceId ? "Comments on this version were kept." : undefined,
+          progress: 1,
+          duration: 2500,
+        });
+        if (!replaceId && navigateToNew && res.id) router.push(`/app/mockups/${res.id}`);
         else router.refresh();
       } catch {
         failToast("Upload failed. Please try again.");
