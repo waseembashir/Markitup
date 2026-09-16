@@ -13,9 +13,30 @@ export type CompareMockup = { id: string; name: string; url: string; version?: n
 // than a flat image. Pins aren't drawn over it: their coordinates are normalized
 // to the page's full scroll height, which this unscaled frame doesn't reproduce,
 // so they would land in the wrong places. Open the file itself to see them.
+// The viewport an HTML page is given in compare. Matches HTML_DESKTOP_W in the
+// main viewer, so a page looks the same in both places.
+const HTML_COMPARE_W = 1440;
+
 function HtmlPane({ m }: { m: CompareMockup }) {
   const [doc, setDoc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [pane, setPane] = useState({ w: 0, h: 0 });
+
+  // Track the pane so the frame can be scaled to whatever width it gets, which
+  // changes with the rail, the window and the one-up / side-by-side toggle.
+  useEffect(() => {
+    const el = paneRef.current;
+    if (!el) return;
+    const measure = () => setPane({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [doc]);
+
+  const scale = pane.w > 0 ? pane.w / HTML_COMPARE_W : 0;
+  const paneH = pane.h;
 
   // Pointing an iframe at the storage URL showed the page's SOURCE instead of the
   // page: Supabase doesn't serve these to render inline, whatever content type
@@ -48,14 +69,29 @@ function HtmlPane({ m }: { m: CompareMockup }) {
       </div>
     );
   }
+  // Render at a real desktop width and scale the whole frame down to fit the
+  // pane. A compare pane is about half the screen, and an iframe sized to the
+  // pane is a ~700px viewport as far as the page inside is concerned — so its
+  // own media queries served the tablet layout, and the two versions were being
+  // compared in a form neither had been designed in. The frame is laid out at
+  // HTML_COMPARE_W and only visually scaled, so the page still believes it has
+  // a desktop viewport.
   return (
-    <iframe
-      srcDoc={doc}
-      title={m.name}
-      sandbox="allow-scripts allow-popups allow-forms allow-modals"
-      referrerPolicy="no-referrer"
-      className="block h-full w-full rounded-lg border-0 bg-white shadow-lg ring-1 ring-border"
-    />
+    <div ref={paneRef} className="relative h-full w-full overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-border">
+      <iframe
+        srcDoc={doc}
+        title={m.name}
+        sandbox="allow-scripts allow-popups allow-forms allow-modals"
+        referrerPolicy="no-referrer"
+        className="absolute top-0 left-0 block border-0 bg-white"
+        style={{
+          width: `${HTML_COMPARE_W}px`,
+          height: scale > 0 ? `${paneH / scale}px` : "100%",
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      />
+    </div>
   );
 }
 

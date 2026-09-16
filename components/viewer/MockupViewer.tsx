@@ -19,6 +19,10 @@ export type ViewerComment = {
   id: string;
   body: string;
   authorName: string;
+  // Who wrote it, so the UI can offer Edit on your own words and nobody else's.
+  authorId: string | null;
+  // Set once a comment has been changed after posting; null means never edited.
+  editedAt: string | null;
   parentCommentId: string | null;
   createdAt: string;
   attachments: { url: string; type: "image" | "pdf"; name: string }[];
@@ -173,6 +177,7 @@ export function MockupViewer({
   members,
   currentUserName,
   currentUserEmail,
+  currentUserId,
   figmaEmbedUrl,
   htmlUrl,
   titleSlot,
@@ -187,6 +192,9 @@ export function MockupViewer({
   members: Member[];
   currentUserName: string;
   currentUserEmail?: string;
+  // Whose comments carry an Edit affordance. Null for a guest, who has no
+  // account and so nothing of their own to go back and change.
+  currentUserId?: string | null;
   // When set, the canvas is a live Figma prototype embed (animations/video play)
   // with a transparent pin-capture overlay on top, instead of a static image.
   figmaEmbedUrl?: string | null;
@@ -447,6 +455,21 @@ export function MockupViewer({
     if (r.bottom > c.bottom - PAD && r.height + PAD < r.top - c.top) {
       el.style.marginTop = `-${Math.round(r.height + 20)}px`;
     }
+
+    // A thread with a few replies plus its composer can be taller than the gap
+    // above the pin AND the gap below it, so neither placement fits. The popup
+    // is overflow-hidden, so what got cut off was the bottom — the reply box —
+    // with no way to scroll to it. Cap the popup to the canvas and let the
+    // comment list inside do the scrolling, which keeps the composer on screen.
+    el.style.maxHeight = `${Math.max(200, Math.round(c.height - PAD * 2))}px`;
+
+    // Capped or not, it must still sit inside: pull it up if it hangs over.
+    r = el.getBoundingClientRect();
+    if (r.bottom > c.bottom - PAD) {
+      const lift = r.bottom - (c.bottom - PAD);
+      const current = parseFloat(el.style.marginTop) || 0;
+      el.style.marginTop = `${Math.round(current - lift)}px`;
+    }
   };
 
   // Each surface maps a viewport point into the same 0–1 space the pins live in.
@@ -505,12 +528,51 @@ export function MockupViewer({
 
   // HTML comment mode: the click layer covers the iframe, so forward the wheel
   // into the page (which then reports its new scroll position back).
-  function handleHtmlWheel(e: React.WheelEvent<HTMLElement>) {
-    htmlFrameRef.current?.contentWindow?.postMessage(
-      { type: HTML_SCROLLBY_MESSAGE, dx: e.deltaX, dy: e.deltaY },
+  // Comment mode covers the page with a click-capture layer, so the wheel never
+  // reaches it and has to be forwarded. Two things made that forwarding feel
+  // broken rather than merely indirect, and both are silent:
+  //
+  //   deltaMode — a wheel event may report lines or pages rather than pixels
+  //   (Firefox and many mice do). Passing deltaY straight through then moves
+  //   the page about three pixels where the reader expected a hundred.
+  //
+  //   scale — the frame is drawn at htmlScale, so a delta measured in screen
+  //   pixels is worth more than that in page pixels. Un-divided, the page
+  //   crawls at half speed at 50% zoom.
+  const forwardWheel = (e: WheelEvent) => {
+    const frame = htmlFrameRef.current;
+    if (!frame?.contentWindow) return;
+    // The canvas must not scroll or zoom underneath at the same time.
+    e.preventDefault();
+
+    const LINE = 16;
+    const unit = e.deltaMode === 1 ? LINE : e.deltaMode === 2 ? (htmlViewH || LINE * 20) : 1;
+    const scale = htmlScale > 0 ? htmlScale : 1;
+
+    frame.contentWindow.postMessage(
+      {
+        type: HTML_SCROLLBY_MESSAGE,
+        dx: (e.deltaX * unit) / scale,
+        dy: (e.deltaY * unit) / scale,
+      },
       "*",
     );
-  }
+  };
+  const forwardWheelRef = useRef(forwardWheel);
+  useEffect(() => {
+    forwardWheelRef.current = forwardWheel;
+  });
+
+  // React attaches wheel listeners passively, where preventDefault is ignored,
+  // so this one is bound directly to the layer.
+  const commentLayerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = commentLayerRef.current;
+    if (!el) return;
+    const onWheel = (ev: WheelEvent) => forwardWheelRef.current(ev);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [htmlMode]);
 
   async function saveDraft(body: string, attachments: PendingAttachment[] = []) {
     if (!draft) return;
@@ -524,6 +586,8 @@ export function MockupViewer({
       id: tmpCommentId,
       body, // the user's own input; swapped for the server-sanitized copy on success
       authorName: currentUserName,
+      authorId: currentUserId ?? null,
+      editedAt: null,
       parentCommentId: null,
       createdAt: new Date().toISOString(),
       attachments: [],
@@ -682,7 +746,9 @@ export function MockupViewer({
       {!draft && activePin && (
         <div
           ref={clampPopup}
-          className="pointer-events-auto absolute z-50 w-80 overflow-hidden rounded-xl border bg-surface shadow-xl"
+          // A flex column so the capped height above flows down to the thread:
+          // the comment list absorbs it and the composer keeps its place.
+          className="pointer-events-auto absolute z-50 flex w-80 flex-col overflow-hidden rounded-xl border bg-surface shadow-xl"
           style={{
             left: `${(activePin.x + activePin.w) * 100}%`,
             top: `${(activePin.y + activePin.h) * 100}%`,
@@ -697,6 +763,7 @@ export function MockupViewer({
             pin={activePin}
             members={members}
             currentUserName={currentUserName}
+            currentUserId={currentUserId}
             onClose={() => setActivePinId(null)}
             onChange={(updated) => setPins((ps) => ps.map((p) => (p.id === updated.id ? updated : p)))}
             onDelete={() => { setPins((ps) => ps.filter((p) => p.id !== activePin.id)); setActivePinId(null); }}
@@ -965,7 +1032,7 @@ export function MockupViewer({
             )}
             {/* comment mode: capture clicks (drop pins); forward wheel to the page */}
             {htmlMode === "comment" && (
-              <div className="absolute inset-0 cursor-crosshair" onPointerDown={(e) => beginDraft(e, htmlMapper)} onWheel={handleHtmlWheel} />
+              <div ref={commentLayerRef} className="absolute inset-0 cursor-crosshair" onPointerDown={(e) => beginDraft(e, htmlMapper)} />
             )}
             {/* pin layer spans the full page and is translated to the live scroll */}
             <div

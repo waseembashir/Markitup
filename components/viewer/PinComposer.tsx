@@ -39,6 +39,9 @@ export function PinComposer({
         placeholder="Add comment here…"
         pending={pending}
         author={author}
+        // Clicking the design to leave feedback is the decision to write;
+        // making someone then click again into the box is a step for nothing.
+        autoFocus
         onCancel={onCancel}
         onSubmit={(html, attachments) => onSubmit(html, attachments)}
       />

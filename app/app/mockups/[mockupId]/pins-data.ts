@@ -18,7 +18,7 @@ export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: st
   const { data: pins } = await supabase
     .from("pins")
     .select(
-      "id, x, y, w, h, number, status, device, comments(id, body, parent_comment_id, created_at, profiles(name, email), comment_attachments(file_path, type, name))",
+      "id, x, y, w, h, number, status, device, comments(id, body, author_id, parent_comment_id, created_at, edited_at, profiles(name, email), comment_attachments(file_path, type, name))",
     )
     .eq("mockup_id", mockupId)
     .order("number", { ascending: true });
@@ -55,8 +55,10 @@ export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: st
       // write-time sanitize. Idempotent with it, and covers legacy or
       // directly-inserted rows.
       body: sanitizeCommentHtml((c.body as string) ?? ""),
+      authorId: c.author_id ?? null,
       parentCommentId: c.parent_comment_id,
       createdAt: c.created_at,
+      editedAt: c.edited_at ?? null,
       authorName: c.profiles?.name || emailLocalPart(c.profiles?.email ?? "") || "Unknown",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attachments: (c.comment_attachments ?? []).map((a: any) => ({

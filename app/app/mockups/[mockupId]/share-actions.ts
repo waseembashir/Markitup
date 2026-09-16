@@ -48,12 +48,29 @@ export async function getShareInfo(mockupId: string): Promise<ShareInfo | { erro
   const { supabase, projectId, workspaceName } = await mockupContext(mockupId);
   if (!projectId) return { error: "File not found" };
 
-  // get-or-create the mockup's share link
-  let { data: link } = await supabase
-    .from("share_links")
-    .select("token, visibility")
-    .eq("mockup_id", mockupId)
+  // Get-or-create the share link for this FILE, not for this upload of it.
+  // Versions are separate mockups rows sharing a version_group, so looking the
+  // link up by mockup_id alone minted a new one for every version — and every
+  // link already in a client's inbox went on pointing at an older design.
+  const { data: self } = await supabase
+    .from("mockups")
+    .select("version_group")
+    .eq("id", mockupId)
     .maybeSingle();
+  const group = (self as { version_group?: string } | null)?.version_group;
+
+  let link: { token: string; visibility: string } | null = null;
+
+  if (group) {
+    const { data: existing } = await supabase
+      .from("share_links")
+      .select("token, visibility, mockups!inner(version_group)")
+      .eq("mockups.version_group", group)
+      .limit(1)
+      .maybeSingle();
+    if (existing) link = { token: existing.token as string, visibility: existing.visibility as string };
+  }
+
   if (!link) {
     const { data: userData } = await supabase.auth.getUser();
     const { data: created, error } = await supabase
@@ -62,7 +79,7 @@ export async function getShareInfo(mockupId: string): Promise<ShareInfo | { erro
       .select("token, visibility")
       .single();
     if (error) return { error: error.message };
-    link = created;
+    link = created as { token: string; visibility: string };
   }
 
   const { data: members } = await supabase
@@ -94,10 +111,31 @@ export async function getShareInfo(mockupId: string): Promise<ShareInfo | { erro
 
 export async function setShareVisibility(mockupId: string, visibility: "public" | "restricted") {
   const supabase = await createServerSupabase();
-  const { error } = await supabase
-    .from("share_links")
-    .update({ visibility })
-    .eq("mockup_id", mockupId);
+
+  // One link per file, so the toggle has to find it wherever in the version
+  // group it lives. Matching on mockup_id alone silently did nothing when the
+  // link had been created from an earlier version.
+  const { data: self } = await supabase
+    .from("mockups")
+    .select("version_group")
+    .eq("id", mockupId)
+    .maybeSingle();
+  const group = (self as { version_group?: string } | null)?.version_group;
+
+  const { data: link } = group
+    ? await supabase
+        .from("share_links")
+        .select("token, mockups!inner(version_group)")
+        .eq("mockups.version_group", group)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  const query = supabase.from("share_links").update({ visibility });
+  const { error } = link
+    ? await query.eq("token", (link as { token: string }).token)
+    : await query.eq("mockup_id", mockupId);
+
   if (error) return { error: error.message };
   revalidatePath(`/app/mockups/${mockupId}`);
   return {};

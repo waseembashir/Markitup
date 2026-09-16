@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createAttachmentUploadUrl } from "@/app/app/mockups/[mockupId]/attachment-actions";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { MAX_UPLOAD_BYTES } from "@/lib/validation";
@@ -33,11 +33,22 @@ export function RichCommentInput({
   projectId,
   author,
   onCancel,
+  autoFocus,
+  initialHtml,
+  submitLabel,
 }: {
   value?: string;
   onSubmit: (html: string, attachments: PendingAttachment[]) => void;
   pending?: boolean;
   placeholder?: string;
+  // Put the caret in the box as soon as it appears. Set where opening the box
+  // IS the intent to write — dropping a pin, hitting Reply — and left off where
+  // the box merely sits at the bottom of a thread someone is reading.
+  autoFocus?: boolean;
+  // Pre-fills the editor, for editing a comment that already exists.
+  initialHtml?: string;
+  // "Comment" unless this box is editing something, where "Save" is honest.
+  submitLabel?: string;
   projectId: string;
   // Shown at the top-left of the box so it's obvious who is about to speak.
   author?: { name: string; email: string };
@@ -46,10 +57,37 @@ export function RichCommentInput({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [empty, setEmpty] = useState(true);
+  const [empty, setEmpty] = useState(!initialHtml);
+
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Seed the editor once, for editing a comment that already exists.
+  useEffect(() => {
+    const el = ref.current;
+    if (el && initialHtml && !el.innerHTML) el.innerHTML = initialHtml;
+    // Mount only: re-running would overwrite what someone has since typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Focus on mount when asked, and again whenever autoFocus turns on — that is
+  // how hitting Reply moves the caret into the box without remounting it, which
+  // would throw away anything already typed there.
+  useEffect(() => {
+    const el = ref.current;
+    if (!autoFocus || !el) return;
+    el.focus();
+    // Caret to the end, so editing existing text does not start by replacing it.
+    const sel = window.getSelection();
+    if (sel && el.childNodes.length) {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      r.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+  }, [autoFocus]);
 
   function exec(cmd: string, arg?: string) {
     ref.current?.focus();
@@ -63,6 +101,17 @@ export function RichCommentInput({
   function syncEmpty() {
     const html = ref.current?.innerHTML ?? "";
     setEmpty(html.replace(/<br>|\s|&nbsp;/g, "").length === 0);
+  }
+
+  // Is the caret inside a list item of this editor?
+  function caretInList() {
+    const sel = window.getSelection();
+    let node: Node | null = sel?.anchorNode ?? null;
+    while (node && node !== ref.current) {
+      if (node.nodeName === "LI") return true;
+      node = node.parentNode;
+    }
+    return false;
   }
 
   async function uploadFile(file: File) {
@@ -233,7 +282,18 @@ export function RichCommentInput({
           onPaste={onPaste}
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
-          onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); submit(); } }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            // Shift+Enter is a line break, as it is everywhere else people type.
+            if (e.shiftKey) return;
+            // Inside a bulleted list, Enter makes the next bullet. Reviewers
+            // write their feedback as lists, and posting half a list because
+            // the second point started with a keystroke would be maddening.
+            // Ctrl/Cmd+Enter still sends from anywhere, including a list.
+            if (!e.metaKey && !e.ctrlKey && caretInList()) return;
+            e.preventDefault();
+            submit();
+          }}
           data-project={projectId}
           /* focus-visible:shadow-none opts out of the global lime focus ring in
              globals.css — on a large writing surface it reads as a stray
@@ -280,7 +340,7 @@ export function RichCommentInput({
             onClick={submit}
             className="btn-primary btn-sm"
           >
-            {pending ? "Saving…" : "Comment"}
+            {pending ? "Saving…" : (submitLabel ?? "Comment")}
           </button>
         </div>
       </div>

@@ -237,3 +237,29 @@ export async function refreshPins(mockupId: string) {
     return { pins: null };
   }
 }
+
+// Edit a comment that already exists. Only the author's own, enforced by RLS
+// rather than by this check — the check is here so a wrong attempt returns a
+// sentence instead of an empty result.
+export async function editComment(mockupId: string, commentId: string, body: string) {
+  const cleanBody = sanitizeCommentHtml(body);
+  if (!cleanBody.trim()) return { error: "A comment cannot be empty." };
+
+  const supabase = await createServerSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: "You need to be signed in to edit a comment." };
+
+  const { data, error } = await supabase
+    .from("comments")
+    .update({ body: cleanBody })
+    .eq("id", commentId)
+    .eq("author_id", userData.user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  // RLS turns "not yours" into zero rows rather than an error.
+  if (!data) return { error: "You can only edit your own comments." };
+
+  return { body: cleanBody };
+}

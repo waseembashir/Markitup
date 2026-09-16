@@ -125,7 +125,7 @@ describe("MockupViewer", () => {
 
   it("shows who replied on a thread, not a faint message count", () => {
     const c = (id: string, author: string, parent: string | null) => ({
-      id, authorName: author, parentCommentId: parent, body: id,
+      id, authorName: author, authorId: author, editedAt: null, parentCommentId: parent, body: id,
       createdAt: new Date().toISOString(), attachments: [],
     });
     render(

@@ -113,6 +113,7 @@ export default async function MockupPage({
     emailLocalPart(authData.user?.email ?? "") ||
     "You";
   const currentUserEmail = authData.user?.email ?? "";
+  const currentUserId = authData.user?.id ?? null;
   // A guest arrived through a public link: no account, so sharing, notifications,
   // the profile menu and uploading are all dead ends for them.
   const isGuest = authData.user?.is_anonymous === true;
@@ -180,6 +181,7 @@ export default async function MockupPage({
             members={members}
             currentUserName={currentUserName}
             currentUserEmail={currentUserEmail}
+            currentUserId={currentUserId}
             figmaEmbedUrl={figmaEmbedUrl}
             htmlUrl={mockup.type === "html" ? url : null}
             titleSlot={titleSlot}
