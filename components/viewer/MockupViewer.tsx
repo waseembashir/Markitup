@@ -6,7 +6,7 @@ import { toNormalized } from "@/lib/coords";
 import { PinMarker } from "./PinMarker";
 import { PinComposer } from "./PinComposer";
 import { CommentThread, type Member } from "./CommentThread";
-import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, injectHeightReporter, stripHeightReporter } from "@/lib/html-embed";
+import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, HTML_MODE_MESSAGE, HTML_POINTER_MESSAGE, injectHeightReporter, stripHeightReporter } from "@/lib/html-embed";
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment } from "@/app/app/mockups/[mockupId]/actions";
@@ -54,6 +54,10 @@ const ZOOM_OPTIONS: { label: string; value: Zoom }[] = [
     value: { mode: "percent" as const, pct: p },
   })),
 ];
+
+// A press that barely moves is a point pin (exactly the old behaviour); drag
+// further and it becomes a region, the way Figma's comment tool works.
+const DRAG_THRESHOLD_PX = 4;
 
 const RAIL_DEFAULT = 280;
 const RAIL_MIN = 220;
@@ -319,6 +323,63 @@ export function MockupViewer({
     // htmlUrl is read through htmlUrlRef for exactly that reason.
   }, [isHtml, mockupId]);
 
+  // Read inside the pointer handler below, which must not be re-subscribed on
+  // every scroll frame just to see a current value.
+  const htmlScrollYRef = useRef(0);
+  const htmlHeightRef = useRef(0);
+  const htmlDragRef = useRef<{ x: number; y: number; ix: number; iy: number } | null>(null);
+  const htmlModeRef = useRef(htmlMode);
+  const htmlDesignWRef = useRef(1440);
+  const htmlScaleRef = useRef(1);
+
+  // A pointer forwarded out of the HTML page. Coordinates arrive in the page's
+  // own CSS pixels — unscaled, and relative to its viewport — so they normalize
+  // against the design width and the page's own scroll, with no canvas geometry
+  // involved at all.
+  function handleFramePointer(d: { phase?: string; x?: number; y?: number; button?: number }) {
+    if (htmlModeRef.current !== "comment") return;
+    const ix = typeof d.x === "number" ? d.x : 0;
+    const iy = typeof d.y === "number" ? d.y : 0;
+    const norm = (px: number, py: number) => ({
+      x: Math.min(1, Math.max(0, px / htmlDesignWRef.current)),
+      y: Math.min(1, Math.max(0, (py + htmlScrollYRef.current) / (htmlHeightRef.current || 1))),
+    });
+
+    if (d.phase === "down") {
+      if (d.button !== 0) return;
+      const start = norm(ix, iy);
+      htmlDragRef.current = { ...start, ix, iy };
+      setActivePinId(null);
+      setPinError(null);
+      setDraft(null);
+      return;
+    }
+
+    const from = htmlDragRef.current;
+    if (!from) return;
+    const cur = norm(ix, iy);
+    const rect = {
+      x: Math.min(from.x, cur.x),
+      y: Math.min(from.y, cur.y),
+      w: Math.abs(cur.x - from.x),
+      h: Math.abs(cur.y - from.y),
+    };
+
+    if (d.phase === "move") {
+      setMarquee(rect);
+      return;
+    }
+
+    if (d.phase === "up") {
+      htmlDragRef.current = null;
+      setMarquee(null);
+      // Threshold in screen pixels, so it means the same thing at any zoom.
+      const moved = Math.hypot(ix - from.ix, iy - from.iy) * htmlScaleRef.current;
+      if (moved < DRAG_THRESHOLD_PX) setDraft({ x: from.x, y: from.y, w: 0, h: 0 });
+      else setDraft(rect);
+    }
+  }
+
   // HTML frame reports its own page height (it's cross-origin/opaque, so we
   // can't read it directly). Size the frame to it so pins line up.
   useEffect(() => {
@@ -327,11 +388,16 @@ export function MockupViewer({
       if (e.source !== htmlFrameRef.current?.contentWindow) return;
       const d = e.data;
       if (d && d.type === HTML_HEIGHT_MESSAGE && typeof d.height === "number") {
-        setHtmlHeight(Math.min(60000, Math.max(200, Math.ceil(d.height))));
+        const h = Math.min(60000, Math.max(200, Math.ceil(d.height)));
+        htmlHeightRef.current = h;
+        setHtmlHeight(h);
       } else if (d && d.type === HTML_SCROLL_MESSAGE && typeof d.y === "number") {
         // The page scrolls inside the iframe (like a real browser); it reports
         // its scroll position so the pin layer can follow it.
+        htmlScrollYRef.current = d.y;
         setHtmlScrollY(d.y);
+      } else if (d && d.type === HTML_POINTER_MESSAGE) {
+        handleFramePointer(d);
       }
     }
     window.addEventListener("message", onMsg);
@@ -363,6 +429,28 @@ export function MockupViewer({
   }, [box, zoom, device, htmlDesignW]);
   const htmlViewH = htmlScale > 0 ? box.h / htmlScale : box.h; // iframe design height (fills canvas height)
   const htmlVisualW = htmlDesignW * htmlScale;
+
+  // Mirror the derived frame geometry into refs. The pointer handler reads these
+  // from a listener that is deliberately subscribed once, so it cannot close
+  // over a stale scale or a stale mode.
+  useEffect(() => {
+    htmlModeRef.current = htmlMode;
+    htmlDesignWRef.current = htmlDesignW;
+    htmlScaleRef.current = htmlScale;
+  }, [htmlMode, htmlDesignW, htmlScale]);
+
+  // Tell the page whether it is being read or commented on. It swallows clicks
+  // and reports the pointer while commenting, and does nothing while browsing.
+  useEffect(() => {
+    if (!isHtml) return;
+    const send = () =>
+      htmlFrameRef.current?.contentWindow?.postMessage({ type: HTML_MODE_MESSAGE, mode: htmlMode }, "*");
+    send();
+    // The frame may still be parsing when the mode changes, and a page that
+    // never hears the message would silently swallow nothing.
+    const t = setTimeout(send, 300);
+    return () => clearTimeout(t);
+  }, [isHtml, htmlMode, htmlDoc]);
   const htmlOffsetX = Math.max(0, (box.w - htmlVisualW) / 2); // center the phone; 0 when filling width
 
   // displayed width of the image for the current zoom mode
@@ -479,21 +567,7 @@ export function MockupViewer({
   function surfaceMapper(rect: DOMRect): Mapper {
     return (cx, cy) => toNormalized(cx, cy, rect);
   }
-  function htmlMapper(rect: DOMRect): Mapper {
-    return (cx, cy) => {
-      const px = cx - rect.left - htmlOffsetX;
-      const py = cy - rect.top;
-      const H = htmlHeight || 1;
-      return {
-        x: Math.min(1, Math.max(0, px / htmlScale / htmlDesignW)),
-        y: Math.min(1, Math.max(0, (py / htmlScale + htmlScrollY) / H)),
-      };
-    };
-  }
 
-  // A press that barely moves is a point pin (exactly the old behaviour); drag
-  // further and it becomes a region, the way Figma's comment tool works.
-  const DRAG_THRESHOLD_PX = 4;
   function beginDraft(e: React.PointerEvent<HTMLElement>, makeMapper: (rect: DOMRect) => Mapper) {
     if (e.button !== 0) return;
     const map = makeMapper(e.currentTarget.getBoundingClientRect());
@@ -525,54 +599,6 @@ export function MockupViewer({
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
   }
-
-  // HTML comment mode: the click layer covers the iframe, so forward the wheel
-  // into the page (which then reports its new scroll position back).
-  // Comment mode covers the page with a click-capture layer, so the wheel never
-  // reaches it and has to be forwarded. Two things made that forwarding feel
-  // broken rather than merely indirect, and both are silent:
-  //
-  //   deltaMode — a wheel event may report lines or pages rather than pixels
-  //   (Firefox and many mice do). Passing deltaY straight through then moves
-  //   the page about three pixels where the reader expected a hundred.
-  //
-  //   scale — the frame is drawn at htmlScale, so a delta measured in screen
-  //   pixels is worth more than that in page pixels. Un-divided, the page
-  //   crawls at half speed at 50% zoom.
-  const forwardWheel = (e: WheelEvent) => {
-    const frame = htmlFrameRef.current;
-    if (!frame?.contentWindow) return;
-    // The canvas must not scroll or zoom underneath at the same time.
-    e.preventDefault();
-
-    const LINE = 16;
-    const unit = e.deltaMode === 1 ? LINE : e.deltaMode === 2 ? (htmlViewH || LINE * 20) : 1;
-    const scale = htmlScale > 0 ? htmlScale : 1;
-
-    frame.contentWindow.postMessage(
-      {
-        type: HTML_SCROLLBY_MESSAGE,
-        dx: (e.deltaX * unit) / scale,
-        dy: (e.deltaY * unit) / scale,
-      },
-      "*",
-    );
-  };
-  const forwardWheelRef = useRef(forwardWheel);
-  useEffect(() => {
-    forwardWheelRef.current = forwardWheel;
-  });
-
-  // React attaches wheel listeners passively, where preventDefault is ignored,
-  // so this one is bound directly to the layer.
-  const commentLayerRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const el = commentLayerRef.current;
-    if (!el) return;
-    const onWheel = (ev: WheelEvent) => forwardWheelRef.current(ev);
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [htmlMode]);
 
   async function saveDraft(body: string, attachments: PendingAttachment[] = []) {
     if (!draft) return;
@@ -1027,13 +1053,12 @@ export function MockupViewer({
                 sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-pointer-lock"
                 referrerPolicy="no-referrer"
                 className={`absolute top-0 origin-top-left border-0 bg-white ${device === "mobile" ? "rounded-[28px] shadow-2xl ring-1 ring-black/10" : ""}`}
-                style={{ left: htmlOffsetX, width: htmlDesignW, height: htmlViewH, transform: `scale(${htmlScale})`, pointerEvents: htmlMode === "comment" ? "none" : "auto" }}
+                style={{ left: htmlOffsetX, width: htmlDesignW, height: htmlViewH, transform: `scale(${htmlScale})` }}
               />
             )}
-            {/* comment mode: capture clicks (drop pins); forward wheel to the page */}
-            {htmlMode === "comment" && (
-              <div ref={commentLayerRef} className="absolute inset-0 cursor-crosshair" onPointerDown={(e) => beginDraft(e, htmlMapper)} />
-            )}
+            {/* No capture layer over the page: it swallowed the wheel, which is
+                why scrolling had to be forwarded back in and never felt right.
+                The page reports the pointer out instead — see lib/html-embed. */}
             {/* pin layer spans the full page and is translated to the live scroll */}
             <div
               className="pointer-events-none absolute top-0"
