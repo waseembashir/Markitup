@@ -418,10 +418,12 @@
   .btn-secondary:hover { background: color-mix(in oklch, var(--primary) 8%, transparent); }
   .btn-secondary:active { background: color-mix(in oklch, var(--primary) 14%, transparent); }
 
-  /* Text */
-  .btn-ghost { background: transparent; color: var(--primary); padding-inline: 0.75rem; }
-  .btn-ghost:hover { background: color-mix(in oklch, var(--primary) 8%, transparent); }
-  .btn-ghost:active { background: color-mix(in oklch, var(--primary) 14%, transparent); }
+  /* Text. Ink, not the brand lime: lime is a fill colour, and as text on white
+     it sits around 1.4:1 contrast — the Cancel beside Comment read as a
+     disabled button. The hover tint stays neutral to match. */
+  .btn-ghost { background: transparent; color: var(--color-ink); padding-inline: 0.75rem; }
+  .btn-ghost:hover { background: color-mix(in oklch, var(--color-ink) 7%, transparent); }
+  .btn-ghost:active { background: color-mix(in oklch, var(--color-ink) 12%, transparent); }
 
   /* Material 3 outlined text field */
   .field-label { display: block; margin-bottom: 0.375rem; font-size: 0.75rem; font-weight: 600; color: var(--muted-foreground); }
