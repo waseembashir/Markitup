@@ -63,6 +63,17 @@ export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: st
   );
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
+  // Author names come through comment_author_names rather than the profiles
+  // join, which a client cannot read for the agency team — every team comment
+  // showed as "Unknown" to them. The function returns a display name only,
+  // never an email, and only for comments the caller can already see.
+  const pinIds = (pins ?? []).map((p) => p.id as string);
+  const authorName = new Map<string, string>();
+  if (pinIds.length) {
+    const { data: names } = await supabase.rpc("comment_author_names", { p_pins: pinIds });
+    for (const n of (names ?? []) as { id: string; name: string }[]) if (n.name) authorName.set(n.id, n.name);
+  }
+
   const signedAttachmentUrls = new Map<string, string>();
   if (attachmentPaths.length) {
     const { data: urls } = await supabase.storage.from("comment-files").createSignedUrls(attachmentPaths, 3600);
@@ -96,7 +107,13 @@ export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: st
       parentCommentId: c.parent_comment_id,
       createdAt: c.created_at,
       editedAt: c.edited_at ?? null,
-      authorName: c.profiles?.name || emailLocalPart(c.profiles?.email ?? "") || "Unknown",
+      authorName:
+        authorName.get(c.author_id) ||
+        // Fallbacks for a comment whose author the function did not return,
+        // such as one whose profile has since been deleted.
+        c.profiles?.name ||
+        emailLocalPart(c.profiles?.email ?? "") ||
+        "Unknown",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attachments: (c.comment_attachments ?? []).map((a: any) => ({
         url: signedAttachmentUrls.get(a.file_path) ?? "",
