@@ -11,9 +11,26 @@ import {
   finalizeMockup,
 } from "@/app/app/projects/[projectId]/actions";
 
+type ViewChoice = "desktop" | "mobile" | "both";
+
+const DEVICES_FOR: Record<ViewChoice, string[]> = {
+  desktop: ["desktop"],
+  mobile: ["mobile"],
+  both: ["desktop", "mobile"],
+};
+
+const VIEW_OPTIONS: { value: ViewChoice; label: string }[] = [
+  { value: "both", label: "Desktop & mobile" },
+  { value: "desktop", label: "Desktop only" },
+  { value: "mobile", label: "Mobile only" },
+];
+
 export function UploadDropzone({ projectId, folderId = null, onDone }: { projectId: string; folderId?: string | null; onDone?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  // Which views clients will be offered. Chosen before the file goes up, so it
+  // is part of the upload rather than a setting someone has to remember after.
+  const [views, setViews] = useState<ViewChoice>("both");
   const [dragging, setDragging] = useState(false);
   const [pending, start] = useTransition();
   const [progress, setProgress] = useState(0);
@@ -60,7 +77,7 @@ export function UploadDropzone({ projectId, folderId = null, onDone }: { project
         if (upErr) return fail(upErr.message, iv);
 
         // 3. Record the mockup row (reference only, no bytes).
-        const res = await finalizeMockup(projectId, target.path!, file.name, folderId);
+        const res = await finalizeMockup(projectId, target.path!, file.name, folderId, DEVICES_FOR[views]);
         clearInterval(iv);
         if (res.error) return fail(res.error);
         setProgress(100);
@@ -133,6 +150,32 @@ export function UploadDropzone({ projectId, folderId = null, onDone }: { project
           )}
         </span>
       </button>
+      <fieldset className="mt-3" disabled={pending}>
+        <legend className="mb-1.5 text-xs font-semibold text-muted">Show clients</legend>
+        <div role="radiogroup" className="inline-flex rounded-md border p-0.5">
+          {VIEW_OPTIONS.map((o) => (
+            <label
+              key={o.value}
+              className="cursor-pointer rounded px-3 py-1.5 text-xs font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[color:var(--color-brand-ring)]"
+              style={
+                views === o.value
+                  ? { background: "var(--primary)", color: "var(--primary-foreground)" }
+                  : { color: "var(--muted-foreground)" }
+              }
+            >
+              <input
+                type="radio"
+                name={`views-${projectId}`}
+                value={o.value}
+                checked={views === o.value}
+                onChange={() => setViews(o.value)}
+                className="sr-only"
+              />
+              {o.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       {error && (
         <p className="mt-2 text-sm font-medium" style={{ color: "var(--color-danger)" }}>
           {error}

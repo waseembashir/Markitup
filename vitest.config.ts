@@ -7,6 +7,13 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     exclude: ["**/node_modules/**", "**/e2e/**"],
+    // The 5s default failed a different test or two each run whenever the
+    // machine was busy — a dev server, a build — and passed clean otherwise.
+    // Nothing here is slow by design; the jsdom environment alone takes most of
+    // a minute to set up across the suite, and the first test in a file pays for
+    // it. A real hang still fails, just not a scheduling hiccup.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
   resolve: {
     alias: {

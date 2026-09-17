@@ -14,6 +14,17 @@ function typeForPath(path: string): "image" | "html" {
   return /\.html?$/i.test(path) ? "html" : "image";
 }
 
+export type Device = "desktop" | "mobile";
+
+// Which views a client is offered. Anything that is not a known view is
+// dropped, and an empty choice falls back to both — a file must be reviewable
+// in at least one view, and the database refuses an empty list anyway.
+function cleanDevices(devices?: readonly string[] | null): Device[] {
+  const known = (devices ?? []).filter((d): d is Device => d === "desktop" || d === "mobile");
+  const unique = [...new Set(known)];
+  return unique.length ? unique : ["desktop", "mobile"];
+}
+
 // Step 1 of the upload. The browser sends only the file *type* here; the action
 // returns a short-lived signed upload URL so the file *bytes* can go straight
 // from the browser to Supabase Storage. This bypasses the Server Action request
@@ -50,6 +61,7 @@ export async function finalizeMockup(
   path: string,
   name: string,
   folderId?: string | null,
+  devices?: readonly string[],
 ) {
   const supabase = await createServerSupabase();
   const { data: userData } = await supabase.auth.getUser();
@@ -68,6 +80,7 @@ export async function finalizeMockup(
     file_path: path,
     created_by: userData.user.id,
     folder_id: folderId ?? null,
+    devices: cleanDevices(devices),
   });
   if (insErr) return { error: insErr.message };
 
@@ -84,7 +97,7 @@ export async function addMockupVersion(baseMockupId: string, path: string) {
 
   const { data: base } = await supabase
     .from("mockups")
-    .select("project_id, name, version_group")
+    .select("project_id, name, version_group, devices")
     .eq("id", baseMockupId)
     .maybeSingle();
   if (!base) return { error: "Original file not found." };
@@ -114,6 +127,7 @@ export async function addMockupVersion(baseMockupId: string, path: string) {
       created_by: userData.user.id,
       version: nextVersion,
       version_group: base.version_group,
+      devices: cleanDevices(base.devices as string[] | null),
     })
     .select("id")
     .maybeSingle();
@@ -258,6 +272,33 @@ export async function deleteMockupVersion(mockupId: string) {
   revalidatePath(`/app/projects/${target.project_id}`);
   // Where to send someone who was looking at the version that just went.
   return { survivorId: others[0].id as string };
+}
+
+// Change which views clients are offered. Applied to every version of the
+// file, because a client moving between versions should not find a mobile
+// view appearing and disappearing under them.
+export async function setMockupDevices(mockupId: string, devices: readonly string[]) {
+  const chosen = cleanDevices(devices);
+  const supabase = await createServerSupabase();
+
+  const { data: self } = await supabase
+    .from("mockups")
+    .select("project_id, version_group")
+    .eq("id", mockupId)
+    .maybeSingle();
+  if (!self) return { error: "File not found." };
+
+  const { data: updated, error } = await supabase
+    .from("mockups")
+    .update({ devices: chosen })
+    .eq("version_group", self.version_group)
+    .select("id");
+  if (error) return { error: error.message };
+  // RLS turns "not allowed" into zero rows rather than an error.
+  if (!updated?.length) return { error: "Only the workspace team can change this." };
+
+  revalidatePath(`/app/mockups/${mockupId}`);
+  return { devices: chosen };
 }
 
 export async function getMockupSignedUrl(filePath: string) {

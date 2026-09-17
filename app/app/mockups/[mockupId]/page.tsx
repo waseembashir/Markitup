@@ -30,7 +30,7 @@ export default async function MockupPage({
 
   const { data: mockup } = await supabase
     .from("mockups")
-    .select("id, name, file_path, type, project_id, version_group, figma_file_key, figma_node_id, projects(name, workspace_id)")
+    .select("id, name, file_path, type, project_id, version_group, devices, figma_file_key, figma_node_id, projects(name, workspace_id)")
     .eq("id", mockupId)
     .maybeSingle();
   // RLS returns no row both when the file is missing AND when the viewer simply
@@ -135,6 +135,13 @@ export default async function MockupPage({
   // the profile menu and uploading are all dead ends for them.
   const isGuest = authData.user?.is_anonymous === true;
 
+  // The owning team, as opposed to anyone reviewing. `!isGuest` stood in for
+  // this, but a client with a real account is not a guest either — they were
+  // shown Upload, Replace and Delete, which RLS then refused. Ask the same
+  // function the policies use, so the buttons and the rules agree.
+  const { data: canManageData } = await supabase.rpc("can_manage_project", { p: mockup.project_id });
+  const canManage = canManageData === true;
+
   const url = await getMockupSignedUrl(mockup.file_path);
 
   // Live Figma embed (the animated prototype) is shown to ANY signed-in viewer
@@ -163,7 +170,7 @@ export default async function MockupPage({
         </svg>
       </Link>
       <h1 className="truncate text-sm font-bold text-ink">{mockup.name}</h1>
-      <VersionSwitcher versions={versions} currentId={mockupId} projectId={mockup.project_id} canUpload={!isGuest} />
+      <VersionSwitcher versions={versions} currentId={mockupId} projectId={mockup.project_id} canUpload={canManage} />
     </>
   );
   const actionsSlot = isGuest ? (
@@ -200,6 +207,9 @@ export default async function MockupPage({
             currentUserEmail={currentUserEmail}
             currentUserId={currentUserId}
             initialPinId={initialPinId ?? null}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            devices={((mockup as any).devices as ("desktop" | "mobile")[] | null) ?? ["desktop", "mobile"]}
+            canManage={canManage}
             figmaEmbedUrl={figmaEmbedUrl}
             htmlUrl={mockup.type === "html" ? url : null}
             titleSlot={titleSlot}
