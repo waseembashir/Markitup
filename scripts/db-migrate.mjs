@@ -12,6 +12,7 @@
 //   node scripts/db-migrate.mjs                 # status (read-only, the default)
 //   node scripts/db-migrate.mjs --apply         # apply everything pending
 //   node scripts/db-migrate.mjs --baseline      # record all as applied, run nothing
+//   node scripts/db-migrate.mjs --rehash        # rewrite checksums that differ only in line endings
 //   node scripts/db-migrate.mjs --apply --env .env.development.local
 //
 // Nothing is written unless --apply or --baseline is passed. Status is safe to
@@ -20,10 +21,10 @@
 // Reaches the database either over HTTPS with SUPABASE_ACCESS_TOKEN or directly
 // with SUPABASE_DB_URL — see scripts/_transport.mjs for why the first exists.
 import { readFileSync, readdirSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { makeTransport } from "./_transport.mjs";
+import { checksum, legacyChecksums } from "./_checksum.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(ROOT, "supabase", "migrations");
@@ -35,7 +36,7 @@ const valueOf = (f) => {
   return i >= 0 ? args[i + 1] : undefined;
 };
 
-const MODE = has("--apply") ? "apply" : has("--baseline") ? "baseline" : "status";
+const MODE = has("--apply") ? "apply" : has("--baseline") ? "baseline" : has("--rehash") ? "rehash" : "status";
 const ENV_FILE = valueOf("--env") ?? ".env.local";
 
 function loadEnv(file) {
@@ -55,7 +56,6 @@ function loadEnv(file) {
   }
 }
 
-const sha = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
 
 // Filenames and checksums come from the repo, never from user input, but the
 // HTTPS transport has no bind parameters, so quote them properly regardless.
@@ -67,7 +67,7 @@ function migrationFiles() {
     .sort() // zero-padded numeric prefixes, so lexical order is apply order
     .map((filename) => {
       const sql = readFileSync(join(DIR, filename), "utf8");
-      return { filename, sql, checksum: sha(sql) };
+      return { filename, sql, checksum: checksum(sql) };
     });
 }
 
@@ -123,6 +123,39 @@ async function main() {
         for (const n of orphans) console.log(`   ? ${n}`);
       }
       if (!pending.length && !drifted.length && !orphans.length) console.log("\nup to date.");
+      return;
+    }
+
+    if (MODE === "rehash") {
+      // Checksums used to be taken over raw bytes, so a file checked out with
+      // CRLF line endings hashed differently from the same file with LF — and
+      // git on Windows does exactly that rewrite. This updates recorded
+      // checksums to the normalized form, but ONLY where the recorded value
+      // matches this file's own LF or CRLF bytes. A recorded checksum matching
+      // neither means the content genuinely changed after it was applied; that
+      // is real drift, and it is reported and left alone rather than laundered
+      // away, because hiding it is the one thing this tool must never do.
+      let fixed = 0;
+      const real = [];
+      for (const f of drifted) {
+        const recorded = applied.get(f.filename).checksum;
+        if (legacyChecksums(f.sql).has(recorded)) {
+          await client.query(
+            `update app_migrations.applied set checksum = ${lit(f.checksum)} where filename = ${lit(f.filename)}`,
+          );
+          console.log(`rehashed  ${f.filename}  (line endings only)`);
+          fixed++;
+        } else {
+          real.push(f.filename);
+        }
+      }
+      if (!drifted.length) console.log("nothing to rehash — every checksum already matches.");
+      if (real.length) {
+        console.log(`\nREAL DRIFT, not touched — content differs from what was applied:`);
+        for (const n of real) console.log(`   ~ ${n}`);
+        process.exitCode = 1;
+      }
+      if (fixed) console.log(`\nrehashed ${fixed} checksum(s). No SQL was executed.`);
       return;
     }
 

@@ -18,24 +18,21 @@
 // freshly bootstrapped database reports "up to date" instead of trying to run
 // all 31 files again over a schema that already has them.
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { checksum } from "./_checksum.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(ROOT, "supabase", "migrations");
 const OUT = join(ROOT, "supabase", "bootstrap.sql");
 
-// Must match db-migrate.mjs exactly, or the ledger this writes disagrees with
-// the ledger the runner expects and every migration looks drifted.
-const sha = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
 
 const files = readdirSync(DIR)
   .filter((f) => f.endsWith(".sql"))
   .sort() // zero-padded numeric prefixes, so lexical order is apply order
   .map((filename) => {
     const sql = readFileSync(join(DIR, filename), "utf8");
-    return { filename, sql, checksum: sha(sql) };
+    return { filename, sql, checksum: checksum(sql) };
   });
 
 if (!files.length) {

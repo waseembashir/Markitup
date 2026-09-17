@@ -1,0 +1,10 @@
+# Migrations are checksummed, and git on Windows (core.autocrlf=true) rewrote
+# their LF line endings as CRLF on checkout — changing the bytes of files nobody
+# had edited, so the runner reported drift and refused to apply anything. The
+# runner now normalizes before hashing, but the files themselves should not be
+# rewritten underneath it either.
+*.sql  text eol=lf
+*.mjs  text eol=lf
+
+# Everything else: let git decide, and store LF.
+*      text=auto
