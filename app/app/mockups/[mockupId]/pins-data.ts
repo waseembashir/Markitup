@@ -49,7 +49,7 @@ export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: st
   const { data: pins } = await supabase
     .from("pins")
     .select(
-      "id, mockup_id, x, y, w, h, number, status, device, comments(id, body, author_id, parent_comment_id, created_at, edited_at, profiles(name, email), comment_attachments(file_path, type, name))",
+      "id, mockup_id, created_by, x, y, w, h, number, status, device, comments(id, body, author_id, parent_comment_id, created_at, edited_at, profiles(name, email), comment_attachments(file_path, type, name))",
     )
     .in("mockup_id", ids)
     .order("number", { ascending: true });
@@ -72,6 +72,7 @@ export async function loadViewerPins(supabase: SupabaseClient<any>, mockupId: st
   return (pins ?? []).map((p) => ({
     id: p.id,
     mockupId: p.mockup_id as string,
+    createdBy: (p.created_by as string) ?? null,
     // Which version this feedback was left on, and whether that is the one on
     // screen. Only the current version's pins are drawn on the canvas.
     version: versionOf.get(p.mockup_id as string) ?? 1,

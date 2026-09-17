@@ -263,3 +263,36 @@ export async function editComment(mockupId: string, commentId: string, body: str
 
   return { body: cleanBody };
 }
+
+// Move a pin that landed in the wrong place. Only its position changes: the
+// pin keeps its number, its comments and its version, so a client correcting a
+// misplaced click does not lose the conversation attached to it.
+//
+// Who may move it is RLS's decision — the pin's author, or the workspace team —
+// and a refused update matches no rows rather than erroring.
+export async function movePin(mockupId: string, pinId: string, x: number, y: number) {
+  if (![x, y].every((n) => Number.isFinite(n))) return { error: "Invalid position." };
+
+  const supabase = await createServerSupabase();
+
+  // A region keeps its size, so its anchor may not move past the point where the
+  // region would hang off the edge of the design.
+  const { data: pin } = await supabase.from("pins").select("w, h").eq("id", pinId).maybeSingle();
+  if (!pin) return { error: "Comment not found." };
+  const w = (pin.w as number) ?? 0;
+  const h = (pin.h as number) ?? 0;
+  const clampedX = Math.min(Math.max(0, x), 1 - w);
+  const clampedY = Math.min(Math.max(0, y), 1 - h);
+
+  const { data: moved, error } = await supabase
+    .from("pins")
+    .update({ x: clampedX, y: clampedY })
+    .eq("id", pinId)
+    .eq("mockup_id", mockupId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!moved) return { error: "You can only move your own comments." };
+
+  return { x: clampedX, y: clampedY };
+}

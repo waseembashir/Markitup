@@ -9,11 +9,12 @@ import { CommentThread, type Member } from "./CommentThread";
 import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, HTML_MODE_MESSAGE, HTML_POINTER_MESSAGE, injectHeightReporter, stripHeightReporter } from "@/lib/html-embed";
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
-import { createPin, addComment } from "@/app/app/mockups/[mockupId]/actions";
+import { createPin, addComment, movePin } from "@/app/app/mockups/[mockupId]/actions";
 import { useLivePins } from "./useLivePins";
 import { timeAgo, htmlToText } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
 import { Avatar } from "@/components/app/AppSidebar";
+import { ClientViewsMenu } from "./ClientViewsMenu";
 
 export type ViewerComment = {
   id: string;
@@ -36,6 +37,8 @@ export type ViewerPin = {
   mockupId: string;
   version: number;
   isCurrentVersion: boolean;
+  // Who left it — they may move it, as may the team.
+  createdBy: string | null;
   x: number;
   y: number;
   // Normalized size of a dragged region extending right/down from x,y.
@@ -197,6 +200,8 @@ export function MockupViewer({
   currentUserEmail,
   currentUserId,
   initialPinId,
+  devices: initialDevices,
+  canManage = false,
   figmaEmbedUrl,
   htmlUrl,
   titleSlot,
@@ -217,6 +222,10 @@ export function MockupViewer({
   // A thread to open on arrival, set when someone follows an earlier version's
   // comment out of the rail.
   initialPinId?: string | null;
+  // The views clients are offered for this file. The team always gets both.
+  devices?: ("desktop" | "mobile")[];
+  // The owning team, who can move anyone's pin and change client views.
+  canManage?: boolean;
   // When set, the canvas is a live Figma prototype embed (animations/video play)
   // with a transparent pin-capture overlay on top, instead of a static image.
   figmaEmbedUrl?: string | null;
@@ -261,7 +270,13 @@ export function MockupViewer({
   const [query, setQuery] = useState("");
   const [zoom, setZoom] = useState<Zoom>({ mode: "fit-width", pct: 0 });
   const [zoomOpen, setZoomOpen] = useState(false);
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  // What clients are offered. Held in state so the team's change applies at once.
+  const [clientDevices, setClientDevices] = useState<("desktop" | "mobile")[]>(initialDevices ?? ["desktop", "mobile"]);
+  // The team always sees both; a client sees only what the team released.
+  const availableDevices: ("desktop" | "mobile")[] = canManage ? ["desktop", "mobile"] : clientDevices;
+  const [device, setDevice] = useState<"desktop" | "mobile">(
+    canManage || (initialDevices ?? ["desktop"]).includes("desktop") ? "desktop" : "mobile",
+  );
   const [draft, setDraft] = useState<{ x: number; y: number; w?: number; h?: number; pinId?: string; number?: number } | null>(null);
   // Live rectangle while dragging out a region, before it becomes a draft pin.
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -531,6 +546,23 @@ export function MockupViewer({
     });
   }
 
+  // Move first, confirm after: the pin is already where it was dropped, and
+  // snaps back with an explanation only if the server refuses.
+  async function handleMovePin(pin: ViewerPin, x: number, y: number) {
+    const from = { x: pin.x, y: pin.y };
+    setPins((ps) => ps.map((p) => (p.id === pin.id ? { ...p, x, y } : p)));
+    const res = await movePin(mockupId, pin.id, x, y);
+    if (res.error) {
+      setPins((ps) => ps.map((p) => (p.id === pin.id ? { ...p, ...from } : p)));
+      toast.error(res.error);
+      return;
+    }
+    // The server clamps a region to the design; keep what it actually stored.
+    if (res.x !== x || res.y !== y) {
+      setPins((ps) => ps.map((p) => (p.id === pin.id ? { ...p, x: res.x!, y: res.y! } : p)));
+    }
+  }
+
   function selectPin(id: string) {
     const p = pins.find((x) => x.id === id);
     setDraft(null);
@@ -650,7 +682,7 @@ export function MockupViewer({
       setPins((ps) => [
         ...ps,
         // A pin being created is by definition on the version being viewed.
-        { id: tmpPinId, mockupId, version: currentVersion, isCurrentVersion: true, x, y, w, h, number: 0, status: "active", device, comments: [optimistic] },
+        { id: tmpPinId, mockupId, version: currentVersion, isCurrentVersion: true, createdBy: currentUserId ?? null, x, y, w, h, number: 0, status: "active", device, comments: [optimistic] },
       ]);
     }
     const closedDraft = draft;
@@ -760,6 +792,11 @@ export function MockupViewer({
           status={p.status}
           selected={p.id === activePinId}
           onClick={() => setActivePinId(p.id)}
+          // Your own pins, or anyone's if you run the workspace. A pin still
+          // waiting for its real id cannot be moved yet — there is nothing on
+          // the server to move.
+          draggable={!p.id.startsWith("tmp-") && (canManage || (Boolean(currentUserId) && p.createdBy === currentUserId))}
+          onMove={(nx, ny) => handleMovePin(p, nx, ny)}
         />
       ))}
       {/* the rectangle being dragged right now */}
@@ -930,6 +967,13 @@ export function MockupViewer({
         {/* zoom + actions + page-supplied actions (right) */}
         <div className="flex flex-1 items-center justify-end gap-1">
           {/* device preview toggle */}
+          {canManage && (
+            <div className="mr-1 hidden md:block">
+              <ClientViewsMenu mockupId={mockupId} devices={clientDevices} onChange={setClientDevices} />
+            </div>
+          )}
+          {/* A single view has nothing to toggle between, so no toggle. */}
+          {availableDevices.length > 1 && (
           <div className="mr-1 hidden overflow-hidden rounded-md border md:flex">
             <button
               onClick={() => switchDevice("desktop")}
@@ -956,6 +1000,7 @@ export function MockupViewer({
               </svg>
             </button>
           </div>
+          )}
           <span className="mr-1 hidden font-mono text-xs text-faint lg:inline">{shownPct ? `${shownPct}%` : ""}</span>
           <div className="relative">
             <button onClick={() => setZoomOpen((o) => !o)} className="btn-secondary btn-sm gap-2">

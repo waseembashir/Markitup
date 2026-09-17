@@ -111,6 +111,7 @@ export default async function ComparePage({
       // Compare groups pins by mockup itself and labels each column, so the
       // per-pin version fields carry no extra meaning here.
       mockupId: row.mockup_id,
+      createdBy: row.created_by ?? null,
       version: 1,
       isCurrentVersion: true,
       x: row.x,
