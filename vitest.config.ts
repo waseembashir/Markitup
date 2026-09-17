@@ -7,13 +7,12 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     exclude: ["**/node_modules/**", "**/e2e/**"],
-    // The 5s default failed a different test or two each run whenever the
-    // machine was busy — a dev server, a build — and passed clean otherwise.
-    // Nothing here is slow by design; the jsdom environment alone takes most of
-    // a minute to set up across the suite, and the first test in a file pays for
-    // it. A real hang still fails, just not a scheduling hiccup.
-    testTimeout: 20_000,
-    hookTimeout: 20_000,
+    // The default 5s timeout is kept on purpose. Email tests intermittently
+    // timed out, and the timeout was briefly raised to 20s on the theory that a
+    // busy machine was to blame. It was not: lib/observability.ts statically
+    // imported the whole Sentry SDK, and the first test to touch email paid for
+    // loading it. A generous timeout would have hidden that indefinitely. A slow
+    // test is information; let it fail.
   },
   resolve: {
     alias: {
