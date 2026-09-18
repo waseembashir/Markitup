@@ -52,20 +52,21 @@ export function Avatar({
   );
 }
 
+// The landing page's pin and wordmark, stacked to fit the rail. The outline and
+// dot use the theme's on-brand colour, so the pin reads on every accent theme.
 function LogoMark() {
   return (
-    <span
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[color:var(--primary-foreground)]"
-      style={{ background: "var(--color-brand)" }}
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <span className="flex flex-col items-center gap-1">
+      <svg viewBox="0 0 24 28" className="h-8 w-7" aria-hidden>
         <path
-          d="M12 2.5c-3.9 0-7 3-7 6.8 0 4.8 5.6 10.4 6.4 11.2.3.3.9.3 1.2 0 .8-.8 6.4-6.4 6.4-11.2 0-3.8-3.1-6.8-7-6.8Z"
-          fill="currentColor"
-          opacity="0.25"
+          d="M12 26.2c-.4 0-.8-.2-1-.5C8.4 22.4 3 16.6 3 11.2a9 9 0 0 1 18 0c0 5.4-5.4 11.2-8 14.5-.2.3-.6.5-1 .5Z"
+          fill="var(--color-brand)"
+          stroke="var(--primary-foreground)"
+          strokeWidth="1.8"
         />
-        <circle cx="12" cy="9.2" r="2.6" fill="currentColor" />
+        <circle cx="12" cy="11" r="3.2" fill="var(--primary-foreground)" />
       </svg>
+      <span className="text-xs font-bold tracking-tight text-ink">MarkItUp</span>
     </span>
   );
 }
@@ -165,7 +166,7 @@ export function AppSidebar({ workspaceName }: { workspaceName: string }) {
         href="/app"
         title={workspaceName}
         aria-label={`${workspaceName} — home`}
-        className="mb-2 transition-transform duration-150 hover:scale-105 active:scale-95"
+        className="mb-4 transition-transform duration-150 hover:scale-105 active:scale-95"
       >
         <LogoMark />
       </Link>
