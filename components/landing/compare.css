@@ -17,13 +17,17 @@
   overflow: hidden;
   font-size: clamp(9px, min(1.05vw, 1.75svh), 16px);
   line-height: 1.35;
+  /* Where the caption sits, and the line the top row of pieces never rises
+     above: the caption's height, a 30px gap, and room for the idle bob. */
+  --ba-cap-top: max(96px, 11%);
+  --ba-clear: calc(var(--ba-cap-top) + 88px);
 }
 
 /* ---- Captions: one floating line that swaps from the old way to the new -- */
 .lp-ba-cap {
   position: absolute;
   z-index: 20;
-  top: max(96px, 11%);
+  top: var(--ba-cap-top);
   left: 0;
   right: 0;
   display: flex;
@@ -86,9 +90,10 @@
   to { translate: 0 -0.55em; }
 }
 
-.lp-clut-shot { z-index: 1; left: 4%; top: 19%; width: 24em; --r: -4deg; --bob: 5.6s; }
+/* the screenshot's "this one!!" note stands above its box, hence the extra em */
+.lp-clut-shot { z-index: 1; left: 4%; top: max(19%, calc(var(--ba-clear) + 1.6em)); width: 24em; --r: -4deg; --bob: 5.6s; }
 .lp-clut-shot .lp-clut-body { padding: 0.45em; border-radius: 0.8em; background: #fff; }
-.lp-clut-chat { z-index: 3; left: 36%; top: 21%; width: 15em; --r: -3deg; --bob: 4.4s; }
+.lp-clut-chat { z-index: 3; left: 36%; top: max(21%, var(--ba-clear)); width: 15em; --r: -3deg; --bob: 4.4s; }
 .lp-clut-chat .lp-clut-body { padding: 0.7em 0.9em; border-radius: 1em 1em 1em 0.25em; background: #fff; }
 .lp-clut-chat b { display: block; font-size: 0.85em; }
 .lp-clut-mail { z-index: 2; left: 27%; top: 55%; width: 24em; --r: 2deg; --bob: 6.2s; }
@@ -107,7 +112,7 @@
   font-size: 0.8em;
   color: #6b6b67;
 }
-.lp-clut-note { z-index: 4; left: 60%; top: 22%; width: 9em; --r: 6deg; --bob: 4.9s; }
+.lp-clut-note { z-index: 4; left: 60%; top: max(22%, var(--ba-clear)); width: 9em; --r: 6deg; --bob: 4.9s; }
 .lp-clut-note .lp-clut-body { padding: 0.8em 0.9em 1.1em; border-radius: 0.2em; background: #dcdcd8; font-size: 1.3em; font-style: italic; line-height: 1.05; }
 .lp-clut-sheet { z-index: 2; left: 73%; top: 36%; width: 20em; --r: -2deg; --bob: 5.2s; }
 .lp-clut-sheet .lp-clut-body { display: grid; overflow: hidden; border-radius: 0.5em; background: #fff; font-size: 0.85em; }
@@ -267,9 +272,10 @@
 /* ---- Portrait screens: the mess rearranged, the panel stacked ----------- */
 @media (max-aspect-ratio: 1 / 1) {
   .lp-ba-frame { font-size: clamp(9px, 2.5vw, 14px); }
-  .lp-ba-cap { top: max(84px, 10%); padding: 8px 14px; font-size: 0.9rem; border-radius: 18px; }
-  .lp-clut-shot { left: 3%; top: 17%; width: 22em; }
-  .lp-clut-chat { left: 54%; top: 15%; width: 15em; }
+  .lp-ba-frame { --ba-cap-top: max(84px, 10%); --ba-clear: calc(var(--ba-cap-top) + 94px); }
+  .lp-ba-cap { padding: 8px 14px; font-size: 0.9rem; border-radius: 18px; }
+  .lp-clut-shot { left: 3%; top: max(17%, calc(var(--ba-clear) + 1.6em)); width: 22em; }
+  .lp-clut-chat { left: 54%; top: max(15%, var(--ba-clear)); width: 15em; }
   .lp-clut-note { left: 64%; top: 33%; width: 10em; }
   .lp-clut-mail { left: 6%; top: 46%; width: 26em; }
   .lp-clut-sheet { left: 38%; top: 66%; width: 22em; }
@@ -299,6 +305,7 @@
     gap: 24px;
     margin: clamp(32px, 5vw, 56px) auto 0;
     overflow: visible;
+    --ba-clear: 0px;
   }
   .lp-ba-cap { position: static; }
   .lp-ba-scatter { position: relative; inset: auto; width: 100%; aspect-ratio: 16 / 8.5; }

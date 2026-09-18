@@ -36,9 +36,9 @@ const FORMATS = ["PNG & JPG", "Live HTML", "Figma frames", "Desktop & mobile", "
 
 // Pins already stuck on the wordmark, in percent of its box.
 const STUCK = [
-  { n: "1", x: 16, y: 20 },
-  { n: "2", x: 44, y: 36 },
-  { n: "✓", x: 87, y: 20, resolved: true },
+  { n: "1", x: 16, y: 28 },
+  { n: "2", x: 44, y: 51 },
+  { n: "✓", x: 87, y: 28, resolved: true },
 ];
 const QUIPS = ["Looks great", "Ship it", "Love this", "Bigger?", "Perfect", "One more pass?", "Approved"];
 
@@ -229,9 +229,6 @@ export function Footer({ base = "" }: { base?: string }) {
             {i === dropped.length - 1 && <span className="lp-wm-quip">{p.quip}</span>}
           </span>
         ))}
-        <span className="lp-wm-hint" aria-hidden>
-          Click anywhere to leave a pin
-        </span>
       </div>
     </footer>
   );

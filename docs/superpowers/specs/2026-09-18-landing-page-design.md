@@ -142,9 +142,10 @@ scrolled into view.
     LinkedIn / Instagram / X; "Got a question?" with info@apexure.com; columns
     Product, Get started, Works with, Apexure (apexure.com, Contact); bottom
     bar with © 2026 Apexure, "Privacy policy" (→ apexure.com/privacy/) and
-    "Terms and conditions" (→ /terms); the whole "MarkIt*Up*" wordmark (never
-    cropped; "Up" lime with an ink outline), letters rising in, pins stuck on
-    it and click-to-pin for visitors. Contact details are Apexure's public
+    "Terms and conditions" (→ /terms); the whole "MarkIt*Up*" wordmark ("Up" lime
+    with an ink outline), cropped by the bottom of the page at its baseline,
+    letters rising in from the crop, pins stuck on it and click-to-pin for
+    visitors (no hint line). Contact details are Apexure's public
     ones.
 
 **Name.** The product is **MarkItUp** everywhere on the landing and terms

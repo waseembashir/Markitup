@@ -18,6 +18,11 @@ const PILE = [
   { x: 52, y: 64, r: 4 },
 ];
 
+// How far each piece drifts while the mess scrolls in (px at a 15px frame
+// font), in piece order. The top row (screenshot, chat, sticky note) drifts
+// down, away from the caption above it.
+const DRIFT = [20, 24, -22, 18, -24, -20, -18];
+
 // How far above the folder the pile gathers (px at a 15px frame font).
 const LIFT = 180;
 
@@ -137,7 +142,7 @@ export function BeforeAfter() {
           inner,
           { x: 0, y: 0, rotation: 0, scale: 1, opacity: 1 },
           {
-            y: (i: number) => (i % 2 ? -26 : 20) * k(),
+            y: (i: number) => DRIFT[i] * k(),
             rotation: (i: number) => (i % 2 ? 3 : -3),
             duration: 2.6,
             ease: "sine.inOut",
