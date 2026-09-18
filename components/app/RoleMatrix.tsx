@@ -7,7 +7,7 @@ const ROWS: { label: string; admin: boolean; manager: boolean; guest: boolean }[
   { label: "See Insights", admin: true, manager: true, guest: false },
   { label: "Manage Settings & the team", admin: true, manager: false, guest: false },
   { label: "View & comment via a share link", admin: true, manager: true, guest: true },
-  { label: "Needs a MarkUp login", admin: true, manager: true, guest: false },
+  { label: "Needs a MarkItUp login", admin: true, manager: true, guest: false },
 ];
 
 function Cell({ on }: { on: boolean }) {

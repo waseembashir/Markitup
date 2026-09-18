@@ -20,7 +20,7 @@ export default async function LoginPage({
     <AuthShell
       title="Welcome back"
       subtitle="Log in to review designs and pick up the feedback."
-      footer={<>New to MarkUp? <AuthLink href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create an account</AuthLink></>}
+      footer={<>New to MarkItUp? <AuthLink href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create an account</AuthLink></>}
     >
       {notice && (
         <p

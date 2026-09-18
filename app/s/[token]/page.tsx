@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { GuestGate } from "@/components/viewer/GuestGate";
 
-// Entry point for a shared MarkUp link. Which door someone gets depends entirely
+// Entry point for a shared MarkItUp link. Which door someone gets depends entirely
 // on the link, never on whether they happen to have an account:
 //
 //   PUBLIC     → no account, ever. Give a name, get an anonymous session, comment.

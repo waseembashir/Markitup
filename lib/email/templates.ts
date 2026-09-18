@@ -5,7 +5,7 @@ function layout(heading: string, bodyHtml: string, cta?: { label: string; href: 
     ? `<a href="${cta.href}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px;margin-top:16px">${cta.label}</a>`
     : "";
   return `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111827">
-    <div style="font-weight:700;font-size:18px;margin-bottom:16px">MarkUp</div>
+    <div style="font-weight:700;font-size:18px;margin-bottom:16px">MarkItUp</div>
     <h1 style="font-size:18px;margin:0 0 12px">${esc(heading)}</h1>
     ${bodyHtml}
     ${button}
@@ -45,10 +45,10 @@ export function invitation(opts: {
   const subject = `${opts.inviterName} invited you to ${opts.workspaceName}`;
   const html = layout(
     subject,
-    `<p style="margin:0;font-size:14px"><strong>${esc(opts.inviterName)}</strong> invited you to collaborate in <strong>${esc(opts.workspaceName)}</strong> on MarkUp — upload files, drop pins, and review designs together.</p>`,
-    { label: opts.isNewUser ? "Create your account" : "Open MarkUp", href },
+    `<p style="margin:0;font-size:14px"><strong>${esc(opts.inviterName)}</strong> invited you to collaborate in <strong>${esc(opts.workspaceName)}</strong> on MarkItUp — upload files, drop pins, and review designs together.</p>`,
+    { label: opts.isNewUser ? "Create your account" : "Open MarkItUp", href },
   );
-  const text = `${opts.inviterName} invited you to ${opts.workspaceName} on MarkUp.\n\n${href}`;
+  const text = `${opts.inviterName} invited you to ${opts.workspaceName} on MarkItUp.\n\n${href}`;
   return { subject, html, text };
 }
 
@@ -80,7 +80,7 @@ export function neverRespondedEmail(opts: { pageName: string; clientEmail: strin
   const html = layout(
     subject,
     `<p style="margin:0;font-size:14px"><strong>${esc(opts.clientEmail)}</strong> hasn't left feedback on "<strong>${esc(opts.pageName)}</strong>" after all reminders. You may want to follow up directly.</p>`,
-    { label: "Open in MarkUp", href: opts.href },
+    { label: "Open in MarkItUp", href: opts.href },
   );
   const text = `${opts.clientEmail} never left feedback on "${opts.pageName}".\n\n${opts.href}`;
   return { subject, html, text };
@@ -92,7 +92,7 @@ export function templatedEmail(opts: { subject: string; message: string; buttonL
   const html = layout(
     opts.subject,
     `<p style="margin:0;font-size:14px;white-space:pre-line">${esc(opts.message)}</p>`,
-    { label: opts.buttonLabel || "Open MarkUp", href: opts.href },
+    { label: opts.buttonLabel || "Open MarkItUp", href: opts.href },
   );
   const text = `${opts.message}\n\n${opts.href}`;
   return { subject: opts.subject, html, text };
@@ -100,13 +100,13 @@ export function templatedEmail(opts: { subject: string; message: string; buttonL
 
 export function welcome(opts: { name: string }) {
   const href = `${APP_URL}/app`;
-  const subject = "Welcome to MarkUp";
+  const subject = "Welcome to MarkItUp";
   const html = layout(
     `Welcome, ${opts.name}!`,
     `<p style="margin:0;font-size:14px">Your workspace is ready. Create a project, upload a file, and share a link to start collecting pinned feedback.</p>`,
     { label: "Go to your workspace", href },
   );
-  const text = `Welcome to MarkUp, ${opts.name}!\n\nGet started: ${href}`;
+  const text = `Welcome to MarkItUp, ${opts.name}!\n\nGet started: ${href}`;
   return { subject, html, text };
 }
 

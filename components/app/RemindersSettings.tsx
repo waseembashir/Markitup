@@ -103,7 +103,7 @@ export function RemindersSettings({ initial, schedules, sample }: { initial: Rem
               <span className="h-2 w-2 rounded-full bg-[color:var(--color-border-strong)]" />
             </div>
             <p className="text-sm font-bold text-ink">{fillTemplate(s.subject, sample) || "Subject…"}</p>
-            <p className="mt-0.5 text-xs text-faint">From MarkUp · to client@email.com</p>
+            <p className="mt-0.5 text-xs text-faint">From MarkItUp · to client@email.com</p>
             <p className="mt-3 text-sm whitespace-pre-line text-muted">{fillTemplate(s.message, sample) || "Your message…"}</p>
             <span className="mt-3 inline-block rounded-md px-4 py-2 text-sm font-semibold text-[color:var(--primary-foreground)]" style={{ background: "var(--color-brand)" }}>
               {s.button_label || "Leave feedback"}

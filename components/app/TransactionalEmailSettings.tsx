@@ -101,14 +101,14 @@ export function TransactionalEmailSettings({ initial, canManage, sample }: { ini
               <span className="h-2 w-2 rounded-full bg-[color:var(--color-border-strong)]" />
             </div>
             <p className="text-sm font-bold text-ink">{previewSubject || "Subject…"}</p>
-            <p className="mt-0.5 text-xs text-faint">From MarkUp · to {meta.toLabel}</p>
+            <p className="mt-0.5 text-xs text-faint">From MarkItUp · to {meta.toLabel}</p>
             <div className="my-3 h-px bg-[color:var(--color-border)]" />
-            <p className="text-sm font-semibold" style={{ color: "var(--color-brand-ink)" }}>MarkUp</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-brand-ink)" }}>MarkItUp</p>
             <p className="mt-2 text-sm whitespace-pre-line text-muted">{previewMessage || "Your message…"}</p>
             <span className="mt-3 inline-block rounded-md px-4 py-2 text-sm font-semibold text-[color:var(--primary-foreground)]" style={{ background: "var(--color-brand)" }}>
-              {tpl.button_label || "Open MarkUp"}
+              {tpl.button_label || "Open MarkItUp"}
             </span>
-            <p className="mt-4 text-xs text-faint">Sent with MarkUp · visual feedback for your team</p>
+            <p className="mt-4 text-xs text-faint">Sent with MarkItUp · visual feedback for your team</p>
           </div>
         </div>
       </div>

@@ -13,13 +13,13 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<EmailTemplateKey, EmailTemplate> = 
   client_invite: {
     subject: '{{sender}} shared "{{page_name}}" with you',
     message:
-      '{{sender}} shared the {{type}} "{{page_name}}" with you on MarkUp. Click the button below and leave your feedback. No account needed.',
+      '{{sender}} shared the {{type}} "{{page_name}}" with you on MarkItUp. Click the button below and leave your feedback. No account needed.',
     button_label: "View & comment",
   },
   team_invite: {
     subject: "{{inviter}} invited you to {{workspace}}",
     message:
-      "{{inviter}} has invited you to join their MarkUp workspace as {{role}}. Click below to create your account and get started.",
+      "{{inviter}} has invited you to join their MarkItUp workspace as {{role}}. Click below to create your account and get started.",
     button_label: "Accept invite",
   },
 };

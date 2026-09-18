@@ -42,7 +42,7 @@ if (!files.length) {
 
 const rule = "-- " + "=".repeat(70);
 const parts = [
-  `-- MarkUp — one-shot bootstrap for a FRESH database.`,
+  `-- MarkItUp — one-shot bootstrap for a FRESH database.`,
   `-- Generated from supabase/migrations/ (${files.length} files) by scripts/db-bootstrap.mjs.`,
   `-- Do not edit: regenerate with \`npm run db:bootstrap\`.`,
   `-- Paste into the Supabase SQL Editor and Run, once, on an empty project.`,
