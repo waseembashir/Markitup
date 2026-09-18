@@ -17,8 +17,9 @@
   width: 40em;
   max-width: 100%;
   height: 26em;
-  /* fits the panel's width, and on short screens leaves room for the copy */
-  font-size: clamp(9px, min((50vw - 96px) / 40, (100svh - 420px) / 26), 15.5px);
+  /* fits the panel's width (58vw less its padding), and on short screens
+     leaves room for the copy */
+  font-size: clamp(9px, min((58vw - 96px) / 40, (100svh - 420px) / 26), 20px);
   line-height: 1.35;
   color: var(--as-ink);
 }
@@ -276,13 +277,14 @@
   48%, 90% { opacity: 1; transform: none; }
   95%, 100% { opacity: 0; transform: none; }
 }
+/* one label out, then the other in: a crossfade overlaps the two words */
 @keyframes as-open {
   0%, 67% { opacity: 1; }
-  69%, 100% { opacity: 0; }
+  68%, 100% { opacity: 0; }
 }
 @keyframes as-all {
-  0%, 67% { opacity: 0; }
-  69%, 100% { opacity: 1; }
+  0%, 68% { opacity: 0; }
+  69.5%, 100% { opacity: 1; }
 }
 @keyframes as-bar {
   0%, 63% { transform: scaleX(0); }

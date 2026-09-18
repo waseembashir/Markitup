@@ -11,7 +11,7 @@ const serif = Instrument_Serif({
   variable: "--font-serif",
 });
 
-// The MarkUp pin, in the theme's brand colour with an ink outline.
+// The MarkItUp pin, in the theme's brand colour with an ink outline.
 function Mark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 28" className={className} aria-hidden>
@@ -146,12 +146,12 @@ export function AuthShell({
     <main className="flex min-h-screen">
       {/* brand panel */}
       <section
-        className={`as-panel relative hidden w-1/2 flex-col justify-between overflow-hidden p-12 text-white lg:flex ${serif.variable}`}
+        className={`as-panel relative hidden w-[58%] flex-col justify-between overflow-hidden p-12 text-white lg:flex ${serif.variable}`}
         style={{ background: "hsl(60 5% 11%)" }}
       >
         <div className="flex items-center gap-2.5">
           <Mark className="h-8 w-7" />
-          <span className="text-lg font-bold tracking-tight">MarkUp</span>
+          <span className="text-lg font-bold tracking-tight">MarkItUp</span>
         </div>
 
         <div className="relative">
@@ -170,16 +170,11 @@ export function AuthShell({
       </section>
 
       {/* form */}
-      <section className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2">
+      <section className="flex w-full flex-col justify-center px-6 py-12 lg:w-[42%]">
         <div className="mx-auto w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="grid h-9 w-9 place-items-center rounded-lg text-[color:var(--primary-foreground)]" style={{ background: "var(--color-brand)" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M12 2.5c-3.9 0-7 3-7 6.8 0 4.8 5.6 10.4 6.4 11.2.3.3.9.3 1.2 0 .8-.8 6.4-6.4 6.4-11.2 0-3.8-3.1-6.8-7-6.8Z" fill="currentColor" opacity="0.25" />
-                <circle cx="12" cy="9.2" r="2.6" fill="currentColor" />
-              </svg>
-            </span>
-            <span className="text-lg font-bold tracking-tight text-ink">MarkUp</span>
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <Mark className="h-8 w-7" />
+            <span className="text-lg font-bold tracking-tight text-ink">MarkItUp</span>
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
