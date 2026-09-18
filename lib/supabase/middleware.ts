@@ -25,6 +25,20 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Signed-in visitors skip the marketing page and land in the app. Doing it
+  // here, not in app/page.tsx, keeps the landing page static: it never reads
+  // the session, so it can be prerendered and served from the CDN.
+  if (user && request.nextUrl.pathname === "/") {
+    const redirect = NextResponse.redirect(new URL("/app", request.url));
+    // getUser() may have refreshed the session; losing those cookies here
+    // would sign the user out on their very next request.
+    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+    return redirect;
+  }
+
   return response;
 }

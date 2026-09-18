@@ -1,0 +1,316 @@
+/* Before and after as one sticky scene. The old way's clutter is scattered
+   across the whole screen in black and white; the scroll gathers it into a
+   pile, the MarkItUp pin swallows it, and the app opens out of the pin in
+   colour. Everything is sized in em off the frame's type size, so each
+   piece scales as one picture. The resting styles are the finished state; the
+   scroll animation starts from its own explicit values. With reduced motion
+   the two halves simply stack. */
+
+.lp-ba { padding: clamp(110px, 14vw, 180px) 0 0; }
+.lp-ba-head { text-align: center; }
+
+.lp-ba-track { position: relative; height: 440svh; }
+.lp-ba-frame {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  font-size: clamp(9px, min(1.05vw, 1.75svh), 16px);
+  line-height: 1.35;
+}
+
+/* ---- Captions: one floating line that swaps from the old way to the new -- */
+.lp-ba-cap {
+  position: absolute;
+  z-index: 20;
+  top: max(96px, 11%);
+  left: 0;
+  right: 0;
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 auto;
+  padding: 10px 18px;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: var(--lp-shadow);
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--lp-muted);
+}
+.lp-ba-cap b { color: var(--lp-ink); }
+.lp-ba-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; translate: 0 -1px; }
+.lp-ba-dot[data-tone="old"] { background: #8a8a86; }
+.lp-ba-dot[data-tone="new"] { background: var(--lp-lime); box-shadow: 0 0 0 1.5px var(--lp-ink); }
+
+/* ---- The client's page (both sides; colours are variables so the old way
+   can be drawn in greys) ------------------------------------------------- */
+.lp-ba-site {
+  --site-bg: #f6efe4;
+  --site-ink: #2b4336;
+  --site-accent: #c8643b;
+  --site-img: #c8643b;
+  position: relative;
+  padding: 1.1em 1.2em 1.3em;
+  border-radius: 0.6em;
+  background: var(--site-bg);
+  color: var(--site-ink);
+}
+.lp-ba-site-nav { display: flex; align-items: center; gap: 0.8em; }
+.lp-ba-site-logo { margin-right: auto; font-size: 1.35em; font-style: italic; line-height: 1; }
+.lp-ba-site-nav i { width: 2.2em; height: 0.32em; border-radius: 1em; background: color-mix(in srgb, var(--site-ink) 20%, transparent); }
+.lp-ba-site-nav b { padding: 0.35em 0.8em; border-radius: 99px; background: var(--site-ink); color: var(--site-bg); font-size: 0.7em; }
+.lp-ba-site-h { margin-top: 1em; font-size: 1.9em; line-height: 1; letter-spacing: -0.02em; }
+.lp-ba-site-h em { color: var(--site-accent); }
+.lp-ba-site-line { display: block; height: 0.35em; margin-top: 0.55em; border-radius: 1em; background: color-mix(in srgb, var(--site-ink) 15%, transparent); }
+.lp-ba-site-img { height: 5.5em; margin-top: 0.9em; border-radius: 0.6em; background: var(--site-img); }
+.lp-ba-site-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em; margin-top: 0.8em; }
+.lp-ba-site-row i { height: 4.2em; border-radius: 0.5em; background: color-mix(in srgb, var(--site-ink) 9%, transparent); }
+
+/* ---- The old way: black and white, scattered over the whole screen ------ */
+.lp-ba-scatter { position: absolute; inset: 0; z-index: 1; }
+.lp-clut { position: absolute; color: #2a2a28; }
+.lp-clut .lp-ba-site { --site-bg: #f0f0ee; --site-ink: #3a3a38; --site-accent: #7c7c78; --site-img: #a2a29d; }
+.lp-clut .lp-ba-site-row { display: none; }
+.lp-clut-in { will-change: transform; }
+/* the turn lives on the body, so the scroll can move .lp-clut-in in plain
+   screen space; the bob keeps the mess alive while it waits */
+.lp-clut-body {
+  rotate: var(--r, 0deg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1), 0 18px 34px -16px rgb(0 0 0 / 0.38);
+  animation: lp-clut-bob var(--bob, 5s) ease-in-out infinite alternate;
+}
+@keyframes lp-clut-bob {
+  to { translate: 0 -0.55em; }
+}
+
+.lp-clut-shot { z-index: 1; left: 4%; top: 19%; width: 24em; --r: -4deg; --bob: 5.6s; }
+.lp-clut-shot .lp-clut-body { padding: 0.45em; border-radius: 0.8em; background: #fff; }
+.lp-clut-chat { z-index: 3; left: 36%; top: 21%; width: 15em; --r: -3deg; --bob: 4.4s; }
+.lp-clut-chat .lp-clut-body { padding: 0.7em 0.9em; border-radius: 1em 1em 1em 0.25em; background: #fff; }
+.lp-clut-chat b { display: block; font-size: 0.85em; }
+.lp-clut-mail { z-index: 2; left: 27%; top: 55%; width: 24em; --r: 2deg; --bob: 6.2s; }
+.lp-clut-mail .lp-clut-body { padding: 0.9em 1em; border-radius: 0.8em; background: #fff; }
+.lp-mail-subject { font-weight: 600; }
+.lp-mail-meta { margin: 0.15em 0 0.5em; font-size: 0.8em; color: #8a8a86; }
+.lp-mail-body { font-size: 0.9em; line-height: 1.45; }
+.lp-mail-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  margin-top: 0.6em;
+  padding: 0.3em 0.6em;
+  border-radius: 0.5em;
+  background: #f0f0ee;
+  font-size: 0.8em;
+  color: #6b6b67;
+}
+.lp-clut-note { z-index: 4; left: 60%; top: 22%; width: 9em; --r: 6deg; --bob: 4.9s; }
+.lp-clut-note .lp-clut-body { padding: 0.8em 0.9em 1.1em; border-radius: 0.2em; background: #dcdcd8; font-size: 1.3em; font-style: italic; line-height: 1.05; }
+.lp-clut-sheet { z-index: 2; left: 73%; top: 36%; width: 20em; --r: -2deg; --bob: 5.2s; }
+.lp-clut-sheet .lp-clut-body { display: grid; overflow: hidden; border-radius: 0.5em; background: #fff; font-size: 0.85em; }
+.lp-sheet-row { display: grid; grid-template-columns: 2.2em 1fr 5em; border-top: 1px solid #dededb; }
+.lp-sheet-row > * { padding: 0.4em 0.6em; border-left: 1px solid #dededb; font-style: normal; }
+.lp-sheet-row > :first-child { border-left: 0; color: #8a8a86; }
+.lp-sheet-head { border-top: 0; background: #ececea; }
+.lp-clut-file { z-index: 5; left: 7%; top: 76%; --r: 4deg; --bob: 4.6s; }
+.lp-clut-file .lp-clut-body { padding: 0.45em 0.75em; border-radius: 0.5em; background: #fff; font-size: 0.85em; color: #6b6b67; white-space: nowrap; }
+.lp-clut-call { z-index: 5; left: 67%; top: 78%; --r: -3deg; --bob: 5.8s; }
+.lp-clut-call .lp-clut-body {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.5em 0.9em;
+  border-radius: 99px;
+  background: #2a2a28;
+  color: #fff;
+  font-size: 0.85em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* the pen scribble on the screenshot, in the same black and white */
+.lp-scribble { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.lp-scribble path {
+  fill: none;
+  stroke: #1f1f1d;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.lp-scribble-note { position: absolute; left: 44%; top: -1em; color: #1f1f1d; font-size: 1.5em; font-style: italic; rotate: -6deg; white-space: nowrap; }
+
+/* ---- With MarkItUp: in colour, one comment start to finish ------------- */
+/* The panel is centred in the frame below the caption. */
+.lp-ba-new { position: absolute; inset: 12% 0 0; margin: auto; }
+
+/* ---- The MarkItUp folder the mess drops into ---------------------------
+   Back (with its tab) behind the pieces, front in front of them, both
+   bottom-aligned; the mouth marker is where the pieces are aimed. */
+.lp-ba-folder-back,
+.lp-ba-folder-front,
+.lp-ba-folder-glow,
+.lp-ba-merge { position: absolute; left: 50%; bottom: 11%; }
+.lp-ba-folder-back,
+.lp-ba-folder-front { width: 22em; margin-left: -11em; transform-origin: 50% 100%; opacity: 0; }
+.lp-ba-folder-back { z-index: 0; height: 16em; }
+.lp-ba-folder-front { z-index: 6; display: grid; height: 12.4em; place-items: center; }
+.lp-ba-folder-back svg,
+.lp-ba-folder-front svg.lp-ba-folder-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lp-ba-folder-shape path { stroke: var(--lp-ink); stroke-width: 3; stroke-linejoin: round; }
+.lp-ba-folder-back .lp-ba-folder-shape path { fill: #a9d52b; }
+.lp-ba-folder-front .lp-ba-folder-shape path { fill: var(--lp-lime); }
+.lp-ba-folder-front { filter: drop-shadow(0 18px 22px rgb(28 28 23 / 0.2)); }
+/* the small MarkItUp label on the front */
+.lp-ba-folder-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.4em 0.85em 0.4em 0.65em;
+  border-radius: 0.7em;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--lp-ink);
+  font-size: 1.35em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--lp-ink);
+}
+.lp-ba-folder-logo .lp-mark { width: 1em; height: 1.2em; }
+.lp-ba-folder-logo .lp-mark-pin { animation: none; }
+/* the light that comes out of the folder as it opens */
+.lp-ba-folder-glow {
+  z-index: 0;
+  width: 34em;
+  height: 20em;
+  margin-left: -17em;
+  bottom: calc(11% + 3em);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 255 236 / 0.95), rgb(197 240 74 / 0.55) 48%, rgb(197 240 74 / 0));
+  opacity: 0;
+  pointer-events: none;
+}
+.lp-ba-merge { width: 2px; height: 2px; margin-left: -1px; bottom: calc(11% + 9.6em); pointer-events: none; }
+
+.lp-ba-new {
+  --w: min(76vw, 128svh);
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 1.1em;
+  width: var(--w);
+  height: calc(var(--w) * 0.5);
+}
+.lp-ba-new .lp-ba-site-img { height: 10em; }
+
+.lp-ba-app {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1em;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(28 28 23 / 0.06), var(--lp-shadow-lg);
+}
+.lp-ba-chrome { display: flex; flex: none; align-items: center; gap: 0.35em; height: 2.4em; padding: 0 0.9em; border-bottom: 1px solid var(--lp-line); }
+.lp-ba-chrome i { width: 0.55em; height: 0.55em; border-radius: 50%; background: #e2e0d2; }
+.lp-ba-chrome span { margin-left: 0.7em; font-size: 0.75em; color: var(--lp-faint); }
+.lp-ba-canvas { flex: 1; min-height: 0; padding: 1.2em 1.6em 0; background: var(--lp-sage); }
+
+.lp-ba-pin { position: absolute; z-index: 2; left: 13%; top: 0.3em; font-size: 1em; background: var(--lp-resolved); color: #fff; transform-origin: 0 100%; }
+.lp-ba-pin > span { grid-area: 1 / 1; }
+.lp-ba-pin-num { opacity: 0; }
+.lp-ba-pin-check { display: grid; }
+.lp-ba-cursor { position: absolute; z-index: 3; left: 15%; top: 1.4em; width: 1.7em; height: 1.7em; opacity: 0; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25)); }
+.lp-ba-cursor svg { width: 100%; height: 100%; }
+
+.lp-ba-rail {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.8em;
+  padding: 1em;
+  border-radius: 1em;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(28 28 23 / 0.06), var(--lp-shadow-lg);
+}
+.lp-ba-rail-head { display: flex; align-items: center; justify-content: space-between; }
+.lp-ba-rail-count { font-size: 0.8em; color: var(--lp-muted); }
+.lp-ba-thread { display: flex; flex-direction: column; gap: 0.7em; padding: 0.85em; border: 1px solid var(--lp-line); border-radius: 0.8em; }
+.lp-ba-who { display: flex; align-items: center; gap: 0.4em; font-size: 0.85em; font-weight: 600; }
+.lp-ba-who span:not(.lp-pin) { font-weight: 400; color: var(--lp-faint); }
+.lp-ba-who .lp-pin { font-size: 0.8em; }
+.lp-ba-who .lp-avatar { width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--lp-sage); }
+.lp-ba-msg > p:last-child { margin-top: 0.25em; }
+.lp-ba-msg + .lp-ba-msg { padding-top: 0.7em; border-top: 1px solid var(--lp-line); }
+.lp-ba-resolved {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.3em 0.7em;
+  border-radius: 99px;
+  background: #e3f3ea;
+  color: var(--lp-resolved);
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.lp-ba-earlier-head { margin-top: auto; font-size: 0.75em; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); }
+.lp-ba-earlier { display: flex; align-items: center; gap: 0.5em; font-size: 0.85em; color: var(--lp-muted); }
+.lp-ba-earlier .lp-pin { font-size: 0.8em; }
+
+/* ---- Portrait screens: the mess rearranged, the panel stacked ----------- */
+@media (max-aspect-ratio: 1 / 1) {
+  .lp-ba-frame { font-size: clamp(9px, 2.5vw, 14px); }
+  .lp-ba-cap { top: max(84px, 10%); padding: 8px 14px; font-size: 0.9rem; border-radius: 18px; }
+  .lp-clut-shot { left: 3%; top: 17%; width: 22em; }
+  .lp-clut-chat { left: 54%; top: 15%; width: 15em; }
+  .lp-clut-note { left: 64%; top: 33%; width: 10em; }
+  .lp-clut-mail { left: 6%; top: 46%; width: 26em; }
+  .lp-clut-sheet { left: 38%; top: 66%; width: 22em; }
+  .lp-clut-file { left: 5%; top: 80%; }
+  .lp-clut-call { left: 26%; top: 90%; }
+  .lp-ba-new { inset: 13% 0 0; }
+  .lp-ba-new .lp-ba-site-img { height: 7em; }
+  .lp-ba-new {
+    --w: 92vw;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1.25fr 1fr;
+    height: min(76svh, calc(var(--w) * 1.75));
+  }
+}
+
+/* ---- Reduced motion: no scene, the two halves stacked and finished ------ */
+@media (prefers-reduced-motion: reduce) {
+  .lp-ba { padding-bottom: clamp(40px, 6vw, 80px); }
+  .lp-ba-track { height: auto; }
+  .lp-ba-frame {
+    position: relative;
+    display: flex;
+    width: min(1200px, 100% - 32px);
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin: clamp(32px, 5vw, 56px) auto 0;
+    overflow: visible;
+  }
+  .lp-ba-cap { position: static; }
+  .lp-ba-scatter { position: relative; inset: auto; width: 100%; aspect-ratio: 16 / 8.5; }
+  .lp-clut-body { animation: none; }
+  .lp-ba-merge,
+  .lp-ba-folder-back,
+  .lp-ba-folder-front,
+  .lp-ba-folder-glow { display: none; }
+  .lp-ba-new { position: relative; inset: auto; width: 100%; height: auto; aspect-ratio: 16 / 8.6; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) and (max-aspect-ratio: 1 / 1) {
+  .lp-ba-scatter { aspect-ratio: 1 / 1.35; }
+  .lp-ba-new { aspect-ratio: auto; }
+  .lp-ba-app { min-height: 26em; }
+}

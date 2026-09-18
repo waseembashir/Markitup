@@ -1,0 +1,182 @@
+/* Versions wipe and the drifting testimonial cards. */
+
+/* ---- Versions ------------------------------------------------------------ */
+.lp-ver { position: relative; }
+.lp-ver-track { position: relative; height: 260svh; }
+.lp-ver-frame { position: sticky; top: 0; height: 100svh; display: flex; align-items: center; overflow: clip; }
+.lp-ver-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.4fr);
+  gap: clamp(40px, 5vw, 80px);
+  align-items: center;
+  padding-top: 64px;
+}
+.lp-ver-hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+  padding: 8px 18px 8px 8px;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1.5px var(--lp-line);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow 0.2s var(--lp-ease), background-color 0.2s var(--lp-ease);
+}
+.lp-ver-hold:hover { box-shadow: inset 0 0 0 1.5px var(--lp-ink); }
+.lp-ver-hold[aria-pressed="true"] { background: var(--lp-lime); box-shadow: inset 0 0 0 1.5px var(--lp-ink); }
+.lp-ver-hold kbd {
+  padding: 7px 16px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px var(--lp-ink), 0 3px 0 var(--lp-ink);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.lp-ver-hold[aria-pressed="true"] kbd { transform: translateY(3px); box-shadow: inset 0 0 0 1.5px var(--lp-ink), 0 0 0 var(--lp-ink); }
+/* No Space bar on touch screens: the button alone does the job there. */
+@media (hover: none) {
+  .lp-ver-hold { padding-left: 18px; }
+  .lp-ver-hold kbd { display: none; }
+}
+
+.lp-ver-card {
+  --x: 50%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(28 28 23 / 0.08), var(--lp-shadow-lg);
+  container: ver / inline-size;
+}
+.lp-ver-card[data-holding] { --x: 100% !important; }
+.lp-ver-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--lp-line);
+  background: #fdfcf7;
+}
+.lp-ver-chrome .lp-film-dots i { width: 10px; height: 10px; }
+.lp-ver-switch { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--lp-ribbon); }
+.lp-ver-switch b { padding: 4px 11px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--lp-muted); }
+.lp-ver-switch b[data-on] { background: #fff; color: var(--lp-ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.1); }
+
+.lp-ver-view { position: relative; aspect-ratio: 16 / 10; background: var(--lp-sage); font-size: 1.5cqi; }
+.lp-ver-page { position: absolute; inset: 0; padding: 2.6em 3em; background: #f6efe4; color: #2b4336; }
+.lp-ver-v2 { clip-path: inset(0 0 0 var(--x)); }
+.lp-ver-nav { display: flex; align-items: center; gap: 1.6em; }
+.lp-ver-nav i { width: 3.4em; height: 0.5em; border-radius: 1em; background: rgb(43 67 54 / 0.18); }
+.lp-ver-logo { margin-right: auto; font-size: 2em; font-style: italic; line-height: 1; }
+.lp-ver-v2 .lp-ver-logo { font-size: 2.6em; }
+.lp-ver-shop { padding: 0.55em 1.25em; border-radius: 99px; background: #2b4336; color: #f6efe4; font-size: 0.85em; font-weight: 600; }
+.lp-ver-hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 2.8em; align-items: center; margin-top: 3.2em; }
+.lp-ver-h { font-size: 3.5em; line-height: 1; letter-spacing: -0.02em; }
+.lp-ver-h em { color: #c8643b; }
+.lp-ver-line { display: block; height: 0.6em; margin-top: 0.8em; border-radius: 1em; background: rgb(43 67 54 / 0.14); }
+.lp-ver-cta { display: inline-flex; margin-top: 2em; padding: 0.95em 1.7em; border-radius: 99px; background: #2b4336; color: #f6efe4; font-weight: 600; }
+.lp-ver-v2 .lp-ver-cta { background: #c8643b; }
+.lp-ver-img { position: relative; overflow: hidden; aspect-ratio: 1 / 0.86; border-radius: 1.2em; background: #c8643b; }
+.lp-ver-img span { position: absolute; right: 12%; top: 12%; width: 34%; aspect-ratio: 1; border-radius: 50%; background: #f2b880; }
+.lp-ver-v2 .lp-ver-img { background: #e3915f; }
+.lp-ver-v2 .lp-ver-img span { width: 46%; background: #ffdcae; }
+.lp-ver-pin { position: absolute; z-index: 2; translate: 0 -100%; font-size: 1.1em; }
+.lp-ver-tag {
+  position: absolute;
+  left: 1.4em;
+  bottom: 1.3em;
+  padding: 0.4em 0.85em;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: var(--lp-shadow);
+  font-size: 0.9em;
+}
+.lp-ver-v2 .lp-ver-tag { left: auto; right: 1.4em; color: var(--lp-resolved); }
+.lp-ver-divider { position: absolute; top: 0; bottom: 0; left: var(--x); z-index: 3; width: 2px; margin-left: -1px; background: var(--lp-ink); }
+.lp-ver-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--lp-lime);
+  box-shadow: inset 0 0 0 1.5px var(--lp-ink), var(--lp-shadow);
+  color: var(--lp-ink);
+  translate: -50% -50%;
+}
+
+@media (max-width: 1023.98px) {
+  .lp-ver-track { height: auto; }
+  .lp-ver-frame { position: static; height: auto; display: block; padding-block: 110px 40px; }
+  .lp-ver-grid { grid-template-columns: 1fr; padding-top: 0; }
+}
+
+/* ---- Testimonials ------------------------------------------------------- */
+.lp-quotes { padding: clamp(96px, 12vw, 150px) 0 0; }
+.lp-quotes-head { position: relative; z-index: 2; text-align: center; }
+/* Pulled up under the heading so the first card is already rising into view
+   as the heading scrolls away. No overflow on the section: it would stop the
+   view from sticking. */
+.lp-quotes-stage { position: relative; height: 230svh; margin-top: -38svh; }
+.lp-quotes-view { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+/* Parked below the view until the scroll timeline takes over. */
+.lp-quotes-view .lp-quote { position: absolute; top: 0; left: 0; transform: translateY(120vh); will-change: transform; }
+.lp-quote {
+  position: relative;
+  flex: none;
+  width: min(440px, 80vw);
+  padding: 26px 28px 24px;
+  border-radius: 30px 30px 30px 8px;
+  color: var(--lp-ink);
+  box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.6);
+}
+.lp-quote[data-tone="lime"] { background: var(--lp-lime); }
+.lp-quote[data-tone="cream"] { background: var(--lp-cream-2); }
+.lp-quote[data-tone="lilac"] { background: var(--lp-lilac); }
+.lp-quote[data-tone="peach"] { background: var(--lp-peach); }
+.lp-quote[data-tone="white"] { background: #fff; }
+.lp-quote-top { display: flex; align-items: center; gap: 10px; }
+.lp-quote-top .lp-pin { font-size: 13px; background: var(--lp-ink); color: var(--lp-lime); box-shadow: none; }
+.lp-quote[data-tone="lime"] .lp-quote-top .lp-pin { background: #fff; color: var(--lp-ink); box-shadow: inset 0 0 0 1.5px var(--lp-ink); }
+.lp-quote-top .lp-avatar { width: 38px; height: 38px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px rgb(255 255 255 / 0.7); }
+.lp-quote-who { display: flex; flex-direction: column; line-height: 1.2; }
+.lp-quote-who b { font-weight: 600; font-size: 15px; }
+.lp-quote-who span { font-size: 13px; opacity: 0.65; }
+.lp-quote-top .lp-tnum { margin-left: auto; font-size: 12px; opacity: 0.55; }
+.lp-quote blockquote { margin: 22px 0 22px; font-size: clamp(1.6rem, 2.3vw, 2.05rem); line-height: 1.08; letter-spacing: -0.015em; }
+.lp-quote figcaption { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.lp-quote-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.65);
+  color: var(--lp-resolved);
+  font-weight: 600;
+}
+.lp-quote[data-tone="white"] .lp-quote-chip { background: #e3f3ea; }
+.lp-quote figcaption > span:last-child { opacity: 0.6; }
+
+/* Narrow screens and reduced motion: a simple, gently tilted stack. */
+.lp-quotes-list { display: none; }
+@media (max-width: 1023.98px), (prefers-reduced-motion: reduce) {
+  .lp-quotes-stage { display: none; }
+  .lp-quotes-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding: 64px 16px 110px;
+  }
+  .lp-quotes-list .lp-quote { position: relative; rotate: -2deg; }
+  .lp-quotes-list .lp-quote:nth-child(even) { rotate: 2deg; translate: 18px 0; }
+}
