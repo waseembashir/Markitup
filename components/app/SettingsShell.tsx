@@ -21,14 +21,15 @@ export function SettingsShell({ sections }: { sections: SettingsSection[] }) {
             <button
               key={s.key}
               onClick={() => setActive(s.key)}
-              className="flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors"
+              className="group flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors"
               style={
                 on
                   ? { background: "var(--color-brand-soft)", color: "var(--color-brand-ink)", fontWeight: 600 }
                   : { color: "var(--color-muted)" }
               }
             >
-              <span style={{ color: on ? "var(--color-brand)" : "var(--color-faint)" }}>{s.icon}</span>
+              {/* Ink, not brand: the lime icon on the lime-tinted pill was barely visible. */}
+              <span className={`transition-colors group-hover:text-ink ${on ? "text-ink" : "text-faint"}`}>{s.icon}</span>
               {s.label}
             </button>
           );
