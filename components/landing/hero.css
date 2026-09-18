@@ -3,6 +3,20 @@
 /* Tight enough that the top of the demo shows on the first screen. */
 .lp-hero-stage { position: relative; padding: 146px 0 44px; }
 .lp-hero .lp-display { font-size: clamp(3.4rem, 8.2vw, 7.3rem); }
+/* A faint dot grid behind the hero, strongest around the headline and gone
+   before the edges, so it reads as texture rather than a pattern. */
+.lp-hero { position: relative; }
+.lp-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, rgb(28 28 23 / 0.16) 1px, transparent 0);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 75% 62% at 50% 32%, #000 40%, transparent 100%);
+}
+/* the outline button is otherwise see-through to the dots */
+.lp-hero .lp-btn-ghost { background: var(--lp-cream); }
 /* Phones: room above the headline for the demo comment to open into. */
 @media (max-width: 640px) { .lp-hero-stage { padding-top: 176px; } }
 /* Once the two buttons would wrap, stack them at one full width rather than

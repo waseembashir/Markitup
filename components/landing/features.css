@@ -20,6 +20,7 @@
 
 /* ---- How it works + extras ---------------------------------------------- */
 .lp-how { position: relative; overflow: clip; padding: clamp(100px, 13vw, 170px) 0 clamp(90px, 11vw, 150px); }
+@media (max-width: 640px) { .lp-how { padding-top: 64px; } }
 .lp-how-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

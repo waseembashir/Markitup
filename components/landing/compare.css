@@ -294,7 +294,12 @@
   .lp-ba-folder-glow { bottom: calc(5% + 3em); }
   .lp-ba-merge { bottom: calc(5% + 9.6em); }
 
-  .lp-ba-new { inset: 13% 0 0; }
+  /* The panel sits just under the caption, and the section ends a little
+     below it rather than a full screen down: the track's negative margin is
+     the frame's height less the panel's bottom (the panel is ~27.5em of the
+     frame's type) and a 40px gap. */
+  .lp-ba-new { inset: calc(var(--ba-cap-top) + 96px) 0 auto; margin: 0 auto; }
+  .lp-ba-track { margin-bottom: min(0px, calc(max(84px, 10svh) + 136px + 27.5 * clamp(9px, 2.5vw, 14px) - 100svh)); }
   .lp-ba-new .lp-ba-site-img { height: 7em; }
   /* Just the page, as tall as its content. */
   .lp-ba-new {
