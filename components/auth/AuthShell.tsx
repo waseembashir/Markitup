@@ -1,24 +1,133 @@
 import Link from "next/link";
+import { Instrument_Serif } from "next/font/google";
+import "./auth-scene.css";
 
-function Pin({
-  n,
-  className,
-  tone = "brand",
-}: {
-  n: number;
-  className: string;
-  tone?: "brand" | "success";
-}) {
+// The same display serif as the landing page, so signing in feels like the
+// same place.
+const serif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+});
+
+// The MarkUp pin, in the theme's brand colour with an ink outline.
+function Mark({ className }: { className?: string }) {
   return (
-    <span
-      className={`absolute grid h-7 w-7 place-items-center rounded-full font-mono text-[0.8125rem] font-semibold shadow-md ring-2 ring-white/70 ${className}`}
-      style={{
-        background: tone === "success" ? "var(--color-success)" : "var(--color-brand)",
-        color: tone === "success" ? "#fff" : "var(--primary-foreground)",
-      }}
-    >
-      {n}
-    </span>
+    <svg viewBox="0 0 24 28" className={className} aria-hidden>
+      <path
+        d="M12 26.2c-.4 0-.8-.2-1-.5C8.4 22.4 3 16.6 3 11.2a9 9 0 0 1 18 0c0 5.4-5.4 11.2-8 14.5-.2.3-.6.5-1 .5Z"
+        fill="var(--color-brand)"
+        stroke="#1c1c17"
+        strokeWidth="1.8"
+      />
+      <circle cx="12" cy="11" r="3.2" fill="#1c1c17" />
+    </svg>
+  );
+}
+
+const Check = () => (
+  <svg viewBox="0 0 16 16" width="1em" height="1em" aria-hidden>
+    <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+function Avatar({ n }: { n: number }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={`/avatars/${n}.png`} alt="" width={40} height={40} decoding="async" />;
+}
+
+/**
+ * One review, start to finish, on loop: a share link is copied, the client
+ * pins the headline and drags a box over the photo, the designer replies,
+ * and both pins turn green. Pure CSS (auth-scene.css), so this stays a
+ * server component; with reduced motion it rests on the finished review.
+ */
+function ReviewScene() {
+  return (
+    <div className="as-stage" aria-hidden>
+      <div className="as-window">
+        <div className="as-chrome">
+          <i />
+          <i />
+          <i />
+          <span>Fernleaf · Homepage v1</span>
+        </div>
+        <div className="as-site">
+          <div className="as-site-nav">
+            <span className="as-site-logo">fernleaf</span>
+            <i />
+            <i />
+            <b>Shop</b>
+          </div>
+          <p className="as-site-h">
+            Slow mornings, <em>better coffee.</em>
+          </p>
+          <span className="as-line" />
+          <span className="as-line as-line-short" />
+          <div className="as-site-img">
+            <span className="as-sun" />
+            <span className="as-cup" />
+          </div>
+
+          <span className="as-box" />
+          <span className="as-pin as-pin-1">
+            <b>1</b>
+            <Check />
+          </span>
+          <span className="as-pin as-pin-2">
+            <b>2</b>
+            <Check />
+          </span>
+          <span className="as-cursor">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 2.5l15.5 9-6.8 1.6-3.4 6.4z" fill="#1c1c17" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <div className="as-chip as-share">
+        <svg viewBox="0 0 16 16" width="1em" height="1em" aria-hidden>
+          <path d="M6.5 9.5l3-3M5.2 7.3 4 8.5a2.5 2.5 0 0 0 3.5 3.5l1.2-1.2M10.8 8.7 12 7.5A2.5 2.5 0 0 0 8.5 4L7.3 5.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+        Link copied <span>· no account needed</span>
+      </div>
+
+      <div className="as-card as-card-client">
+        <p className="as-who">
+          <Avatar n={3} /> <b>Priya</b> <span>Client</span>
+        </p>
+        <p className="as-msg as-msg-1">
+          <span className="as-num">1</span> Can the headline be punchier?
+        </p>
+        <p className="as-msg as-msg-2">
+          <span className="as-num">2</span> And a warmer photo here?
+        </p>
+        <span className="as-done">
+          <Check /> Resolved
+        </span>
+      </div>
+
+      <div className="as-card as-card-team">
+        <p className="as-who">
+          <Avatar n={12} /> <b>Sam</b> <span>Designer</span>
+        </p>
+        <p className="as-msg">Both done in v2.</p>
+      </div>
+
+      <div className="as-chip as-progress">
+        <span className="as-progress-label">
+          <span className="as-open">2 open</span>
+          <span className="as-all">
+            <Check /> All resolved
+          </span>
+        </span>
+        <i>
+          <b />
+        </i>
+      </div>
+    </div>
   );
 }
 
@@ -37,37 +146,21 @@ export function AuthShell({
     <main className="flex min-h-screen">
       {/* brand panel */}
       <section
-        className="relative hidden w-1/2 flex-col justify-between overflow-hidden p-12 text-white lg:flex"
+        className={`as-panel relative hidden w-1/2 flex-col justify-between overflow-hidden p-12 text-white lg:flex ${serif.variable}`}
         style={{ background: "hsl(60 5% 11%)" }}
       >
-        <div className="flex items-center gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/15">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 2.5c-3.9 0-7 3-7 6.8 0 4.8 5.6 10.4 6.4 11.2.3.3.9.3 1.2 0 .8-.8 6.4-6.4 6.4-11.2 0-3.8-3.1-6.8-7-6.8Z" fill="#fff" opacity="0.3" />
-              <circle cx="12" cy="9.2" r="2.6" fill="#fff" />
-            </svg>
-          </span>
+        <div className="flex items-center gap-2.5">
+          <Mark className="h-8 w-7" />
           <span className="text-lg font-bold tracking-tight">MarkUp</span>
         </div>
 
         <div className="relative">
-          {/* faux mockup with pins, hinting the product */}
-          <div className="relative mb-10 w-[78%] rounded-lg bg-white/10 p-3 ring-1 ring-white/15 backdrop-blur-[1px]">
-            <div className="rounded-md bg-white/85 p-4">
-              <div className="mb-3 h-2.5 w-24 rounded-full bg-brand/25" />
-              <div className="mb-2 h-2 w-full rounded-full bg-ink/10" />
-              <div className="mb-2 h-2 w-4/5 rounded-full bg-ink/10" />
-              <div className="h-20 w-full rounded bg-brand/10" />
-            </div>
-            <Pin n={1} className="-left-3 top-8" />
-            <Pin n={2} className="right-6 top-24" />
-            <Pin n={3} className="bottom-4 left-16" tone="success" />
-          </div>
+          <ReviewScene />
 
-          <h2 className="max-w-md text-3xl leading-tight font-extrabold tracking-tight">
-            Feedback that lands exactly where it matters.
+          <h2 className="as-title">
+            Feedback that lands <em>exactly where it matters.</em>
           </h2>
-          <p className="mt-3 max-w-md text-base text-white/80">
+          <p className="mt-4 max-w-md text-base text-white/75">
             Upload a file, share a link, and let clients pin comments right on
             the design. No more guessing which button they meant.
           </p>
