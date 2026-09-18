@@ -153,9 +153,11 @@
    person is large and in the middle; the heading sits above his head, the
    ask and one centred button below his face, each over its own shade. */
 @media (max-width: 760px) {
-  .lp-cta-frame { height: 600px; border-radius: 28px; text-align: center; }
-  /* nudged so he, not the frame's centre line, is in the middle */
-  .lp-cta-photo { translate: -48.5% -50%; }
+  .lp-cta-frame { height: 500px; border-radius: 28px; text-align: center; }
+  /* Sized with room to spare, then raised so his head sits just under the
+     heading, and nudged so he, not the frame's centre line, is centred. */
+  .lp-cta-photo { width: calc((100cqh + 140px) * 1.7787); translate: -49% -58.5%; }
+  .lp-cta-foot .lp-lede { font-size: 15px; text-wrap: balance; }
   .lp-cta-shade {
     background:
       linear-gradient(180deg, rgb(12 11 8 / 0.72), rgb(12 11 8 / 0) 30%),
@@ -165,4 +167,9 @@
   .lp-cta-foot { right: 22px; bottom: 28px; left: 22px; width: auto; }
   .lp-cta-actions { justify-content: center; margin-top: 18px; }
   .lp-cta .lp-cta-actions .lp-btn-ghost { display: none; }
+}
+/* the ask stays on two lines on the narrowest phones too */
+@media (max-width: 380px) {
+  .lp-cta-foot { right: 14px; left: 14px; }
+  .lp-cta-foot .lp-lede { font-size: 14px; }
 }

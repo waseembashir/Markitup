@@ -16,17 +16,9 @@
 .lp-hws { position: absolute; inset: 0 max(16px, (100% - 1440px) / 2); z-index: 2; pointer-events: none; }
 .lp-hw-slot { position: absolute; pointer-events: auto; }
 .lp-hw-slot-resolve { left: 5%; top: 71%; }
-@media (min-width: 761px) and (max-width: 1239.98px) { .lp-hws { display: none; } }
-/* Phones: a compact reply card in the gap left of "Pin it." (name, pin and
-   the button; the role and the reply text don't fit). */
-@media (max-width: 760px) {
-  .lp-hws { inset: 0 6px; }
-  .lp-hw-slot-resolve { left: 0; top: 222px; }
-  .lp-hws .lp-hw { width: auto; padding: 8px 10px; border-radius: 14px; }
-  .lp-hw-resolve .lp-hw-who span:last-child,
-  .lp-hw-resolve .lp-hw-text { display: none; }
-  .lp-hw-resolve-btn { height: 28px; margin-top: 7px; padding: 0 10px; gap: 5px; font-size: 11.5px; }
-}
+/* Below this there is no margin for it; phones resolve the demo comment
+   instead (HeroComments.tsx). */
+@media (max-width: 1239.98px) { .lp-hws { display: none; } }
 
 .lp-hw-bob { animation: lp-hw-in 0.8s var(--lp-ease) 0.5s both, lp-bob 5.5s ease-in-out 1.4s infinite alternate; }
 .lp-hw-slot-resolve .lp-hw-bob { animation-delay: 0.65s, 1.8s; animation-duration: 0.8s, 6.2s; }
@@ -201,9 +193,31 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-hc-demo { display: none; }
 }
-/* Narrow screens: the comment opens above the headline, left of the pin. */
+/* the demo pin can turn into a tick */
+.lp-hc-demo-pin > span { grid-area: 1 / 1; display: grid; place-items: center; }
+.lp-hc-demo-check { opacity: 0; }
+.lp-hc-demo-resolve { display: none; }
+
+/* Narrow screens: the comment opens above the headline, left of the pin,
+   and the loop ends by resolving it with the button in its header. */
 .lp-hc-demo-anchor[data-narrow] .lp-hc-card { left: auto; right: 6px; top: auto; bottom: 0; width: 232px; padding: 9px 11px; font-size: 12.5px; }
 .lp-hc-demo-anchor[data-narrow] :is(.lp-hc-input, .lp-hc-post) { height: 30px; }
+.lp-hc-demo-anchor[data-narrow] .lp-hc-demo-when { display: none; }
+.lp-hc-demo-anchor[data-narrow] .lp-hc-demo-resolve {
+  display: inline-grid;
+  align-items: center;
+  height: 26px;
+  margin-left: auto;
+  padding: 0 10px;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px var(--lp-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.lp-hc-demo-resolve > span { grid-area: 1 / 1; display: inline-flex; align-items: center; gap: 4px; }
+.lp-hc-who .lp-hc-demo-resolve-off { color: var(--lp-ink); }
+.lp-hc-who .lp-hc-demo-resolve-on { color: #fff; opacity: 0; }
 .lp-hc-demo-cursor { position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -3px 0 0 -4px; opacity: 0; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25)); transform-origin: 15% 10%; }
 
 /* the label that follows the plus cursor */

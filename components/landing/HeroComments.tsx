@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap, MOTION_OK, useGSAP } from "./gsap";
 import { Avatar } from "./Avatar";
+import { burstFrom } from "./confetti";
 
 // Positions are percentages of the hero stage, so comments stay put when the
 // window is resized.
@@ -14,6 +15,14 @@ const DEMO_TEXT = "Could this line be a little bigger?";
 const DRAG_THRESHOLD = 6;
 // Anything that already does something on click keeps doing it.
 const IGNORE = "a, button, input, textarea, label, .lp-hw, .lp-hc-composer, .lp-hc-note";
+// --lp-resolved, as a value GSAP can tween to.
+const RESOLVED = "#2f9e62";
+
+const Check = () => (
+  <svg viewBox="0 0 16 16" width="1em" height="1em" aria-hidden>
+    <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 /**
  * Makes the whole hero commentable, the way a design is in the app: click to
@@ -171,11 +180,37 @@ export function HeroComments() {
             )
             .to(q(".lp-hc-demo-post"), { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, ">0.3")
             .to(q(".lp-hc-demo-composer"), { opacity: 0, y: 8, duration: 0.25 }, ">")
-            .to(q(".lp-hc-demo-posted"), { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, "<0.1")
-            .to(q(".lp-hc-demo-box, .lp-hc-demo-pin, .lp-hc-demo-posted"), { opacity: 0, duration: 0.5 }, ">2.4")
+            .to(q(".lp-hc-demo-posted"), { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, "<0.1");
+
+          if (!wide) {
+            // Narrow screens: the cursor comes back and resolves the comment,
+            // so the one card tells the whole story. Measured while the card
+            // still sits 8px low, before it rises into place.
+            const btn = q(".lp-hc-demo-resolve")[0] as HTMLElement;
+            const r = btn.getBoundingClientRect();
+            const at = { x: r.left - s.left + r.width * 0.4, y: r.top - s.top + r.height * 0.5 - 8 };
+            const pin = q(".lp-hc-demo-pin");
+            tl.set(cursor, { x: at.x + 36, y: at.y + 60, scale: 1 }, ">0.5")
+              .to(cursor, { opacity: 1, x: at.x, y: at.y, duration: 0.7 })
+              .to(cursor, { scale: 0.85, duration: 0.1 })
+              .to(btn, { backgroundColor: RESOLVED, boxShadow: `inset 0 0 0 1.5px ${RESOLVED}`, duration: 0.2 }, "<")
+              .to(q(".lp-hc-demo-resolve-off"), { opacity: 0, duration: 0.15 }, "<")
+              .to(q(".lp-hc-demo-resolve-on"), { opacity: 1, duration: 0.15 }, "<")
+              .to(pin, { backgroundColor: RESOLVED, color: "#fff", duration: 0.25 }, "<")
+              .to(q(".lp-hc-demo-num"), { opacity: 0, duration: 0.15 }, "<")
+              .to(q(".lp-hc-demo-check"), { opacity: 1, duration: 0.15 }, "<")
+              .call(() => burstFrom(pin[0], 30), [], "<")
+              .to(cursor, { scale: 1, duration: 0.1 })
+              .to(cursor, { x: `+=${40}`, y: `+=${46}`, opacity: 0, duration: 0.5 }, ">0.2");
+          }
+
+          tl.to(q(".lp-hc-demo-box, .lp-hc-demo-pin, .lp-hc-demo-posted"), { opacity: 0, duration: 0.5 }, wide ? ">2.4" : ">1.2")
             .set(q(".lp-hc-demo-box"), { scale: 0, opacity: 1 })
-            .set(q(".lp-hc-demo-pin"), { scale: 0, opacity: 1 })
-            .set(q(".lp-hc-demo-posted"), { y: 8 });
+            .set(q(".lp-hc-demo-pin"), { scale: 0, opacity: 1, clearProps: "backgroundColor,color" })
+            .set(q(".lp-hc-demo-posted"), { y: 8 })
+            .set(q(".lp-hc-demo-resolve"), { clearProps: "backgroundColor,boxShadow" })
+            .set(q(".lp-hc-demo-num, .lp-hc-demo-resolve-off"), { opacity: 1 })
+            .set(q(".lp-hc-demo-check, .lp-hc-demo-resolve-on"), { opacity: 0 });
         };
 
         // Measure once the display font is in, and again if the layout changes.
@@ -229,7 +264,12 @@ export function HeroComments() {
         <div className="lp-hc-demo" aria-hidden>
           <span className="lp-hc-box lp-hc-demo-box" />
           <div className="lp-hc-demo-anchor">
-            <span className="lp-pin lp-hc-pin lp-hc-demo-pin">1</span>
+            <span className="lp-pin lp-hc-pin lp-hc-demo-pin">
+              <span className="lp-hc-demo-num">1</span>
+              <span className="lp-hc-demo-check">
+                <Check />
+              </span>
+            </span>
             <div className="lp-hc-card lp-hc-demo-composer">
               <p className="lp-hc-who">
                 <Avatar n={3} /> <b>Emma</b> <span>Client</span>
@@ -244,7 +284,16 @@ export function HeroComments() {
             </div>
             <div className="lp-hc-card lp-hc-demo-posted">
               <p className="lp-hc-who">
-                <Avatar n={3} /> <b>Emma</b> <span>just now</span>
+                <Avatar n={3} /> <b>Emma</b> <span className="lp-hc-demo-when">just now</span>
+                {/* narrow screens only: the loop resolves the comment */}
+                <span className="lp-hc-demo-resolve">
+                  <span className="lp-hc-demo-resolve-off">
+                    <Check /> Resolve
+                  </span>
+                  <span className="lp-hc-demo-resolve-on">
+                    <Check /> Resolved
+                  </span>
+                </span>
               </p>
               <p className="lp-hc-text">{DEMO_TEXT}</p>
             </div>
