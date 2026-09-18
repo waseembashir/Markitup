@@ -4,6 +4,12 @@
 .lp-hero-stage { position: relative; padding: 146px 0 44px; }
 .lp-hero .lp-display { font-size: clamp(3.4rem, 8.2vw, 7.3rem); }
 @media (max-width: 640px) { .lp-hero-stage { padding-top: 132px; } }
+/* Once the two buttons would wrap, stack them at one full width rather than
+   two different widths on two lines. */
+@media (max-width: 520px) {
+  .lp-hero-ctas { flex-direction: column; align-items: stretch; max-width: 22rem; margin-inline: auto; }
+  .lp-hero-ctas .lp-btn { justify-content: center; }
+}
 
 /* ---- Live widgets (HeroWidgets.tsx) ------------------------------------ */
 .lp-hws { position: absolute; inset: 0 max(16px, (100% - 1440px) / 2); z-index: 2; pointer-events: none; }
@@ -552,7 +558,7 @@
    query (viewport 759px less the 48px page gutter), so the film rebuilds its
    timeline exactly when this layout switches. */
 @container film (max-width: 711.98px) {
-  .lp-film { aspect-ratio: 4 / 5.3; border-radius: 18px; font-size: 2.35cqi; }
+  .lp-film { aspect-ratio: 4 / 4.5; border-radius: 18px; font-size: 2.35cqi; }
   .lp-film-body { grid-template-columns: 1fr; }
   .lp-film-rail,
   .lp-film-url,
@@ -564,6 +570,16 @@
   .lp-site-hero { grid-template-columns: 1fr; gap: 2em; margin-top: 2.2em; }
   .lp-site-h { font-size: 2.7em; }
   .lp-pop-2 { left: -12%; top: calc(135% + 0.7em); }
+  /* On a phone the photo would fill the frame; keep it a band, and give the
+     overlays (the part the demo is about) the room instead. */
+  .lp-site-img { aspect-ratio: 1 / 0.56; }
+  .lp-film-chrome { height: 4.4em; }
+  .lp-film-people,
+  .lp-film-pin,
+  .lp-pop,
+  .lp-thread,
+  .lp-cursor,
+  .lp-visitor { font-size: 1.35em; }
 }
 
 @media (prefers-reduced-motion: reduce) {

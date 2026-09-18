@@ -86,6 +86,19 @@ export function Versions() {
           },
         );
       });
+      // Narrow screens don't pin the section, so the wipe runs while the card
+      // itself crosses the screen.
+      mm.add(`${MOTION_OK} and (max-width: 1023.98px)`, () => {
+        gsap.fromTo(
+          ".lp-ver-card",
+          { "--x": "100%" },
+          {
+            "--x": "0%",
+            ease: "none",
+            scrollTrigger: { trigger: ".lp-ver-card", start: "top 85%", end: "bottom 30%", scrub: 0.4 },
+          },
+        );
+      });
     },
     { scope: root },
   );

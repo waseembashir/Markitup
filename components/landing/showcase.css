@@ -115,7 +115,7 @@
 
 @media (max-width: 1023.98px) {
   .lp-ver-track { height: auto; }
-  .lp-ver-frame { position: static; height: auto; display: block; padding-block: 110px 40px; }
+  .lp-ver-frame { position: static; height: auto; display: block; padding-block: 72px 40px; }
   .lp-ver-grid { grid-template-columns: 1fr; padding-top: 0; }
 }
 
@@ -166,9 +166,9 @@
 .lp-quote[data-tone="white"] .lp-quote-chip { background: #e3f3ea; }
 .lp-quote figcaption > span:last-child { opacity: 0.6; }
 
-/* Narrow screens and reduced motion: a simple, gently tilted stack. */
+/* Reduced motion: a simple, gently tilted stack. */
 .lp-quotes-list { display: none; }
-@media (max-width: 1023.98px), (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
   .lp-quotes-stage { display: none; }
   .lp-quotes-list {
     display: flex;

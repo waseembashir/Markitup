@@ -149,13 +149,31 @@
 /* GSAP moves this button; a CSS transform transition would fight it. */
 .lp-magnet .lp-btn { transition-property: background-color, box-shadow, color; }
 
+/* Phones: the heading, then the photo as a band of its own, then the ask.
+   Laid over a portrait crop, the text covered the person's face. */
 @media (max-width: 760px) {
-  .lp-cta-frame { height: clamp(640px, 100svh, 780px); border-radius: 28px; }
-  .lp-cta-shade {
-    background:
-      linear-gradient(180deg, rgb(12 11 8 / 0.7), rgb(12 11 8 / 0) 38%),
-      linear-gradient(0deg, rgb(12 11 8 / 0.88), rgb(12 11 8 / 0) 42%);
+  .lp-cta-frame {
+    display: flex;
+    height: auto;
+    flex-direction: column;
+    padding: 36px 22px 30px;
+    border-radius: 28px;
+    container-type: normal;
   }
-  .lp-cta-head { top: 88px; left: 22px; right: 22px; width: auto; }
-  .lp-cta-foot { right: 22px; bottom: 30px; left: 22px; width: auto; }
+  .lp-cta-shade { display: none; }
+  .lp-cta-head,
+  .lp-cta-foot { position: static; width: auto; }
+  .lp-cta-head { order: 1; }
+  .lp-cta-parallax {
+    position: relative;
+    inset: auto;
+    order: 2;
+    overflow: hidden;
+    margin: 26px -22px;
+    aspect-ratio: 16 / 10.5;
+  }
+  .lp-cta-photo { inset: 0; width: auto; aspect-ratio: auto; translate: none; left: 0; top: 0; }
+  .lp-cta-img { object-position: 40% 50%; }
+  .lp-cta-foot { order: 3; }
+  .lp-cta-actions { margin-top: 22px; }
 }

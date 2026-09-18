@@ -359,9 +359,12 @@
 .lp-feat-stack { display: none; }
 @media (max-width: 1023.98px) {
   .lp-feat-track { display: none; }
-  .lp-feat-stack { display: flex; flex-direction: column; gap: 96px; padding-block: 40px 110px; }
+  /* the bottom padding is short because Versions brings its own */
+  .lp-feat-stack { display: flex; flex-direction: column; gap: 96px; padding-block: 40px 24px; }
   .lp-feat-stack .lp-feat-title { margin-top: 14px; }
   .lp-feat-stack .lp-feat-card { position: relative; width: min(100%, 460px); aspect-ratio: 5 / 5.8; margin-top: 30px; }
+  /* the chat bubbles touched on a narrow card */
+  .lp-thread-stack > * + * { margin-top: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

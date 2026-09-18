@@ -63,7 +63,7 @@ export function Hero() {
             lands exactly where it belongs.
           </p>
           <div
-            className="lp-fade-in mt-9 flex flex-wrap items-center justify-center gap-3"
+            className="lp-hero-ctas lp-fade-in mt-9 flex flex-wrap items-center justify-center gap-3"
             style={{ "--d": "640ms" } as React.CSSProperties}
           >
             <Link href="/signup" className="lp-btn lp-btn-primary">

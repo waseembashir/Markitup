@@ -20,6 +20,16 @@ const PATHS = [
   { from: { x: "10vw", y: "225vh", rotate: 4 }, to: { x: "14vw", y: "52vh", rotate: -5 } },
 ];
 
+// Phones: the same drift in one column. Cards are 80vw wide there, so they
+// only sway a little left and right, and the last three settle overlapping.
+const NARROW_PATHS = [
+  { from: { x: "4vw", y: "70vh", rotate: -7 }, to: { x: "2vw", y: "-80vh", rotate: -2 } },
+  { from: { x: "16vw", y: "110vh", rotate: 6 }, to: { x: "18vw", y: "-65vh", rotate: -3 } },
+  { from: { x: "7vw", y: "150vh", rotate: -4 }, to: { x: "9vw", y: "6vh", rotate: 4 } },
+  { from: { x: "16vw", y: "195vh", rotate: 7 }, to: { x: "14vw", y: "30vh", rotate: 2 } },
+  { from: { x: "4vw", y: "235vh", rotate: 3 }, to: { x: "6vw", y: "52vh", rotate: -4 } },
+];
+
 const Check = () => (
   <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>
     <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -62,13 +72,16 @@ export function Testimonials() {
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
-      mm.add(`${MOTION_OK} and (min-width: 1024px)`, () => {
+      mm.add({ motion: MOTION_OK, wide: "(min-width: 1024px)" }, (ctx) => {
+        const { motion, wide } = ctx.conditions as { motion: boolean; wide: boolean };
+        if (!motion) return;
+        const paths = wide ? PATHS : NARROW_PATHS;
         const cards = gsap.utils.toArray<HTMLElement>(".lp-quotes-view .lp-quote", root.current);
         const tl = gsap.timeline({
           defaults: { ease: "none" },
           scrollTrigger: { trigger: ".lp-quotes-stage", start: "top top", end: "bottom bottom", scrub: 0.6 },
         });
-        cards.forEach((card, i) => tl.fromTo(card, PATHS[i].from, PATHS[i].to, 0));
+        cards.forEach((card, i) => tl.fromTo(card, paths[i].from, paths[i].to, 0));
       });
     },
     { scope: root },
@@ -83,7 +96,7 @@ export function Testimonials() {
         </h2>
       </div>
 
-      {/* Wide screens: cards drift across a sticky view as you scroll. */}
+      {/* Cards drift across a sticky view as you scroll. */}
       <div className="lp-quotes-stage">
         <div className="lp-quotes-view">
           {QUOTES.map((q, i) => (
@@ -92,7 +105,7 @@ export function Testimonials() {
         </div>
       </div>
 
-      {/* Narrow screens and reduced motion: a simple stack. */}
+      {/* Reduced motion: a simple stack. */}
       <div className="lp-quotes-list">
         {QUOTES.map((q, i) => (
           <Card key={q.name} q={q} i={i} />

@@ -281,14 +281,30 @@
   .lp-clut-sheet { left: 38%; top: 66%; width: 22em; }
   .lp-clut-file { left: 5%; top: 80%; }
   .lp-clut-call { left: 26%; top: 90%; }
+  /* The folder sits near the middle of a tall screen rather than on its
+     bottom edge, which left the top half empty while the pile dropped in.
+     The pile and the panel are aimed at the mouth marker, so they follow. */
+  .lp-ba-folder-back,
+  .lp-ba-folder-front,
+  .lp-ba-folder-glow,
+  .lp-ba-merge { font-size: 1.4em; }
+  .lp-ba-folder-back,
+  .lp-ba-folder-front { bottom: 31%; }
+  .lp-ba-folder-glow { bottom: calc(31% + 3em); }
+  .lp-ba-merge { bottom: calc(31% + 9.6em); }
+
   .lp-ba-new { inset: 13% 0 0; }
   .lp-ba-new .lp-ba-site-img { height: 7em; }
+  /* Stacked, each half as tall as its content: a fixed height left a band of
+     empty white under the comments. */
   .lp-ba-new {
     --w: 92vw;
     grid-template-columns: 1fr;
-    grid-template-rows: 1.25fr 1fr;
-    height: min(76svh, calc(var(--w) * 1.75));
+    grid-template-rows: auto auto;
+    height: fit-content;
   }
+  .lp-ba-canvas { padding-bottom: 1.2em; }
+  .lp-ba-rail { font-size: 1.25em; }
 }
 
 /* ---- Reduced motion: no scene, the two halves stacked and finished ------ */
