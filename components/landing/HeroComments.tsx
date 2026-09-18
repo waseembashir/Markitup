@@ -111,7 +111,11 @@ export function HeroComments() {
       const line = stage.querySelector("h1 > span");
       const mm = gsap.matchMedia();
 
-      mm.add(`${MOTION_OK} and (min-width: 1024px)`, () => {
+      // Narrow screens have no margin beside the headline, so the comment opens
+      // above it, to the left of the pin (see [data-narrow] in hero.css).
+      mm.add({ motion: MOTION_OK, wide: "(min-width: 1024px)" }, (ctx) => {
+        const { motion, wide } = ctx.conditions as { motion: boolean; wide: boolean };
+        if (!motion) return;
         let tl: gsap.core.Timeline | null = null;
 
         const build = () => {
@@ -126,11 +130,19 @@ export function HeroComments() {
 
           const q = gsap.utils.selector(root);
           const typed = q(".lp-hc-demo-text")[0] as HTMLElement;
+          const anchor = q(".lp-hc-demo-anchor")[0] as HTMLElement;
+          anchor.toggleAttribute("data-narrow", !wide);
           gsap.set(q(".lp-hc-demo-box"), { ...box, scale: 0, opacity: 1, transformOrigin: "0 0" });
-          gsap.set(q(".lp-hc-demo-anchor"), { left: box.left + box.width, top: box.top + box.height });
+          gsap.set(
+            anchor,
+            wide
+              ? { left: box.left + box.width, top: box.top + box.height }
+              : // the pin stands on the box's top edge, clear of the screen's side
+                { left: box.left + box.width - 44, top: box.top },
+          );
           gsap.set(q(".lp-hc-demo-pin"), { scale: 0 });
           gsap.set(q(".lp-hc-demo-composer, .lp-hc-demo-posted"), { opacity: 0, y: 8 });
-          gsap.set(q(".lp-hc-demo-cursor"), { x: box.left - 70, y: box.top + box.height + 60, opacity: 0, scale: 1 });
+          gsap.set(q(".lp-hc-demo-cursor"), { x: wide ? box.left - 70 : box.left + 20, y: box.top + box.height + 60, opacity: 0, scale: 1 });
           typed.textContent = "";
 
           const cursor = q(".lp-hc-demo-cursor");
@@ -220,7 +232,7 @@ export function HeroComments() {
             <span className="lp-pin lp-hc-pin lp-hc-demo-pin">1</span>
             <div className="lp-hc-card lp-hc-demo-composer">
               <p className="lp-hc-who">
-                <Avatar n={3} /> <b>Priya</b> <span>Client</span>
+                <Avatar n={3} /> <b>Emma</b> <span>Client</span>
               </p>
               <div className="lp-hc-field">
                 <span className="lp-hc-input">
@@ -232,7 +244,7 @@ export function HeroComments() {
             </div>
             <div className="lp-hc-card lp-hc-demo-posted">
               <p className="lp-hc-who">
-                <Avatar n={3} /> <b>Priya</b> <span>just now</span>
+                <Avatar n={3} /> <b>Emma</b> <span>just now</span>
               </p>
               <p className="lp-hc-text">{DEMO_TEXT}</p>
             </div>

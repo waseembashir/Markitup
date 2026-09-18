@@ -149,31 +149,20 @@
 /* GSAP moves this button; a CSS transform transition would fight it. */
 .lp-magnet .lp-btn { transition-property: background-color, box-shadow, color; }
 
-/* Phones: the heading, then the photo as a band of its own, then the ask.
-   Laid over a portrait crop, the text covered the person's face. */
+/* Phones: the photo fills a shorter panel, sized off its height so the
+   person is large and in the middle; the heading sits above his head, the
+   ask and one centred button below his face, each over its own shade. */
 @media (max-width: 760px) {
-  .lp-cta-frame {
-    display: flex;
-    height: auto;
-    flex-direction: column;
-    padding: 36px 22px 30px;
-    border-radius: 28px;
-    container-type: normal;
+  .lp-cta-frame { height: 600px; border-radius: 28px; text-align: center; }
+  /* nudged so he, not the frame's centre line, is in the middle */
+  .lp-cta-photo { translate: -48.5% -50%; }
+  .lp-cta-shade {
+    background:
+      linear-gradient(180deg, rgb(12 11 8 / 0.72), rgb(12 11 8 / 0) 30%),
+      linear-gradient(0deg, rgb(12 11 8 / 0.9), rgb(12 11 8 / 0) 38%);
   }
-  .lp-cta-shade { display: none; }
-  .lp-cta-head,
-  .lp-cta-foot { position: static; width: auto; }
-  .lp-cta-head { order: 1; }
-  .lp-cta-parallax {
-    position: relative;
-    inset: auto;
-    order: 2;
-    overflow: hidden;
-    margin: 26px -22px;
-    aspect-ratio: 16 / 10.5;
-  }
-  .lp-cta-photo { inset: 0; width: auto; aspect-ratio: auto; translate: none; left: 0; top: 0; }
-  .lp-cta-img { object-position: 40% 50%; }
-  .lp-cta-foot { order: 3; }
-  .lp-cta-actions { margin-top: 22px; }
+  .lp-cta-head { top: 34px; left: 22px; right: 22px; width: auto; }
+  .lp-cta-foot { right: 22px; bottom: 28px; left: 22px; width: auto; }
+  .lp-cta-actions { justify-content: center; margin-top: 18px; }
+  .lp-cta .lp-cta-actions .lp-btn-ghost { display: none; }
 }

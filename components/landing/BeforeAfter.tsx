@@ -104,7 +104,11 @@ export function BeforeAfter() {
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
-      mm.add(MOTION_OK, () => {
+      // Rebuilt when the frame turns portrait: phones drop the pieces straight
+      // in, one at a time, with no pile on the way.
+      mm.add({ motion: MOTION_OK, portrait: "(max-aspect-ratio: 1 / 1)" }, (ctx) => {
+        const { motion, portrait } = ctx.conditions as { motion: boolean; portrait: boolean };
+        if (!motion) return;
         const frame = root.current!.querySelector<HTMLElement>(".lp-ba-frame")!;
         const merge = frame.querySelector<HTMLElement>(".lp-ba-merge")!;
         const panel = frame.querySelector<HTMLElement>(".lp-ba-new")!;
@@ -150,10 +154,36 @@ export function BeforeAfter() {
           0,
         )
           .fromTo(".lp-scribble-draw", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.2, stagger: 0.3 }, 0.3)
+          .fromTo(".lp-ba-cap-old", { opacity: 1, y: 0 }, { opacity: 0, y: -14, duration: 0.6 }, 4.4);
 
+        if (portrait) {
+          // 2. The folder rises in under the mess.
+          tl.fromTo(folder, { y: () => 120 * k(), opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out" }, 2.2);
+
+          // 3. Each piece falls from where it sits into the folder, one at a
+          //    time: it drifts across while gravity takes it down, so the path
+          //    curves, and the folder gives a little as it lands.
+          SWALLOW.forEach((i, j) => {
+            const t = 2.9 + j * 0.55;
+            tl.to(
+              inner[i],
+              {
+                x: () => toMerge(i, "x") + DROP[j].x * k(),
+                rotation: DROP[j].r,
+                scale: 0.4,
+                duration: 0.9,
+                ease: "power1.out",
+              },
+              t,
+            )
+              .to(inner[i], { y: () => toMerge(i, "y"), duration: 0.9, ease: "power2.in" }, t)
+              .to(folder, { scaleX: 1.02, scaleY: 0.95, duration: 0.05 }, t + 0.87)
+              .to(folder, { scaleX: 1, scaleY: 1, duration: 0.16, ease: "back.out(3)" }, t + 0.92);
+          });
+        } else {
           // 2. Everything gathers into one messy pile above the folder,
           //    which rises into place below it.
-          .to(
+          tl.to(
             inner,
             {
               x: (i: number) => toMerge(i, "x") + PILE[i].x * k(),
@@ -165,29 +195,29 @@ export function BeforeAfter() {
               stagger: { each: 0.08, from: "edges" },
             },
             2.8,
-          )
-          .fromTo(folder, { y: () => 120 * k(), opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out" }, 3.6)
-          .fromTo(".lp-ba-cap-old", { opacity: 1, y: 0 }, { opacity: 0, y: -14, duration: 0.6 }, 4.4);
+          ).fromTo(folder, { y: () => 120 * k(), opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out" }, 3.6);
 
-        // 3. One by one the pieces drop into the folder, and it gives a little
-        //    each time one lands. They stay tucked in, their tops peeking out.
-        SWALLOW.forEach((i, j) => {
-          const t = 5.3 + j * 0.22;
-          tl.to(
-            inner[i],
-            {
-              x: () => toMerge(i, "x") + DROP[j].x * k(),
-              y: () => toMerge(i, "y"),
-              rotation: DROP[j].r,
-              scale: 0.4,
-              duration: 0.5,
-              ease: "power2.in",
-            },
-            t,
-          )
-            .to(folder, { scaleX: 1.02, scaleY: 0.95, duration: 0.05 }, t + 0.47)
-            .to(folder, { scaleX: 1, scaleY: 1, duration: 0.16, ease: "back.out(3)" }, t + 0.52);
-        });
+          // 3. One by one the pieces drop into the folder, and it gives a
+          //    little each time one lands. They stay tucked in, their tops
+          //    peeking out.
+          SWALLOW.forEach((i, j) => {
+            const t = 5.3 + j * 0.22;
+            tl.to(
+              inner[i],
+              {
+                x: () => toMerge(i, "x") + DROP[j].x * k(),
+                y: () => toMerge(i, "y"),
+                rotation: DROP[j].r,
+                scale: 0.4,
+                duration: 0.5,
+                ease: "power2.in",
+              },
+              t,
+            )
+              .to(folder, { scaleX: 1.02, scaleY: 0.95, duration: 0.05 }, t + 0.47)
+              .to(folder, { scaleX: 1, scaleY: 1, duration: 0.16, ease: "back.out(3)" }, t + 0.52);
+          });
+        }
 
         // 4. The folder opens, and the app comes up out of it in colour.
         const rise = () => merge.offsetTop - (panel.offsetTop + panel.offsetHeight / 2);
@@ -221,6 +251,12 @@ export function BeforeAfter() {
           .fromTo(".lp-ba-rail-count", { opacity: 1 }, { opacity: 0.35, duration: 0.3 }, 12.8)
           // a beat to take it in before the section scrolls on
           .to({}, { duration: 1.4 });
+
+        // On phones the thread is a card beside the pin; it opens with the
+        // first comment rather than waiting empty.
+        if (portrait) {
+          tl.fromTo(".lp-ba-rail", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 11);
+        }
 
         // Fonts change the pieces' sizes; re-measure once they are in.
         document.fonts.ready.then(() => ScrollTrigger.refresh());
@@ -278,7 +314,7 @@ export function BeforeAfter() {
 
             <Piece className="lp-clut-mail">
               <p className="lp-mail-subject">Re: Re: Fwd: homepage v3 (final)</p>
-              <p className="lp-mail-meta">Priya to you, Sam, Jess +3</p>
+              <p className="lp-mail-meta">Emma to you, Sam, Jess +3</p>
               <p className="lp-mail-body">
                 Hi all, the logo at the top left, next to the menu? Could it be a bit
                 bigger. I’ve circled it in the screenshot. Also see my email from
@@ -290,7 +326,7 @@ export function BeforeAfter() {
             </Piece>
 
             <Piece className="lp-clut-note">
-              <span className="lp-serif">call Priya re: logo??</span>
+              <span className="lp-serif">call Emma re: logo??</span>
             </Piece>
 
             <Piece className="lp-clut-sheet">
@@ -321,7 +357,7 @@ export function BeforeAfter() {
             </Piece>
 
             <Piece className="lp-clut-call">
-              <Phone /> Missed call from Priya (2)
+              <Phone /> Missed call from Emma (2)
             </Piece>
           </div>
 
@@ -380,7 +416,7 @@ export function BeforeAfter() {
                 <div className="lp-ba-msg lp-ba-msg-1">
                   <p className="lp-ba-who">
                     <span className="lp-pin">1</span>
-                    <Avatar n={3} /> Priya <span>Client</span>
+                    <Avatar n={3} /> Emma <span>Client</span>
                   </p>
                   <p>A bit bigger?</p>
                 </div>

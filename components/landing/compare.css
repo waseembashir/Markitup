@@ -277,34 +277,40 @@
   .lp-clut-shot { left: 3%; top: max(17%, calc(var(--ba-clear) + 1.6em)); width: 22em; }
   .lp-clut-chat { left: 54%; top: max(15%, var(--ba-clear)); width: 15em; }
   .lp-clut-note { left: 64%; top: 33%; width: 10em; }
-  .lp-clut-mail { left: 6%; top: 46%; width: 26em; }
-  .lp-clut-sheet { left: 38%; top: 66%; width: 22em; }
-  .lp-clut-file { left: 5%; top: 80%; }
-  .lp-clut-call { left: 26%; top: 90%; }
-  /* The folder sits near the middle of a tall screen rather than on its
-     bottom edge, which left the top half empty while the pile dropped in.
-     The pile and the panel are aimed at the mouth marker, so they follow. */
+  /* all above the folder, which sits at the bottom, so each piece falls in */
+  .lp-clut-mail { left: 6%; top: 40%; width: 26em; }
+  .lp-clut-sheet { left: 38%; top: 52%; width: 22em; }
+  .lp-clut-file { left: 5%; top: 58%; }
+  .lp-clut-call { left: 20%; top: 63%; }
+  /* A larger folder low on the screen, with the pieces above it to fall in
+     (BeforeAfter.tsx). The pieces and the panel aim at the mouth marker, so
+     they follow it. */
   .lp-ba-folder-back,
   .lp-ba-folder-front,
   .lp-ba-folder-glow,
   .lp-ba-merge { font-size: 1.4em; }
   .lp-ba-folder-back,
-  .lp-ba-folder-front { bottom: 31%; }
-  .lp-ba-folder-glow { bottom: calc(31% + 3em); }
-  .lp-ba-merge { bottom: calc(31% + 9.6em); }
+  .lp-ba-folder-front { bottom: 5%; }
+  .lp-ba-folder-glow { bottom: calc(5% + 3em); }
+  .lp-ba-merge { bottom: calc(5% + 9.6em); }
 
   .lp-ba-new { inset: 13% 0 0; }
   .lp-ba-new .lp-ba-site-img { height: 7em; }
-  /* Stacked, each half as tall as its content: a fixed height left a band of
-     empty white under the comments. */
+  /* Just the page, as tall as its content. */
   .lp-ba-new {
     --w: 92vw;
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto;
     height: fit-content;
   }
   .lp-ba-canvas { padding-bottom: 1.2em; }
-  .lp-ba-rail { font-size: 1.25em; }
+  /* The thread opens beside pin 1, as it does in the app, instead of in a
+     comments panel of its own; the panel's heading and history go. */
+  .lp-ba-rail { position: absolute; z-index: 4; left: 17%; top: 5.2em; width: 64%; padding: 0.85em 0.95em; font-size: 1.15em; }
+  .lp-ba-rail-head,
+  .lp-ba-earlier-head,
+  .lp-ba-earlier { display: none; }
+  .lp-ba-thread { padding: 0; border: 0; }
 }
 
 /* ---- Reduced motion: no scene, the two halves stacked and finished ------ */

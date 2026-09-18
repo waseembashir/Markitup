@@ -166,17 +166,19 @@
 .lp-quote[data-tone="white"] .lp-quote-chip { background: #e3f3ea; }
 .lp-quote figcaption > span:last-child { opacity: 0.6; }
 
-/* Reduced motion: a simple, gently tilted stack. */
+/* Narrow screens and reduced motion: a gently tilted column. Each card
+   tucks 10px under the next, which lands in its bottom padding, so no text
+   is covered. Phones animate this in (Testimonials.tsx). */
 .lp-quotes-list { display: none; }
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 1023.98px), (prefers-reduced-motion: reduce) {
   .lp-quotes-stage { display: none; }
   .lp-quotes-list {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 28px;
-    padding: 64px 16px 110px;
+    padding: 32px 16px 80px;
   }
   .lp-quotes-list .lp-quote { position: relative; rotate: -2deg; }
+  .lp-quotes-list .lp-quote + .lp-quote { margin-top: -10px; }
   .lp-quotes-list .lp-quote:nth-child(even) { rotate: 2deg; translate: 18px 0; }
 }

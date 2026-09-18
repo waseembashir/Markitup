@@ -3,11 +3,12 @@
 /* Tight enough that the top of the demo shows on the first screen. */
 .lp-hero-stage { position: relative; padding: 146px 0 44px; }
 .lp-hero .lp-display { font-size: clamp(3.4rem, 8.2vw, 7.3rem); }
-@media (max-width: 640px) { .lp-hero-stage { padding-top: 132px; } }
+/* Phones: room above the headline for the demo comment to open into. */
+@media (max-width: 640px) { .lp-hero-stage { padding-top: 176px; } }
 /* Once the two buttons would wrap, stack them at one full width rather than
    two different widths on two lines. */
 @media (max-width: 520px) {
-  .lp-hero-ctas { flex-direction: column; align-items: stretch; max-width: 22rem; margin-inline: auto; }
+  .lp-hero-ctas { flex-direction: column; align-items: stretch; max-width: 16.5rem; margin-inline: auto; }
   .lp-hero-ctas .lp-btn { justify-content: center; }
 }
 
@@ -15,7 +16,17 @@
 .lp-hws { position: absolute; inset: 0 max(16px, (100% - 1440px) / 2); z-index: 2; pointer-events: none; }
 .lp-hw-slot { position: absolute; pointer-events: auto; }
 .lp-hw-slot-resolve { left: 5%; top: 71%; }
-@media (max-width: 1239.98px) { .lp-hws { display: none; } }
+@media (min-width: 761px) and (max-width: 1239.98px) { .lp-hws { display: none; } }
+/* Phones: a compact reply card in the gap left of "Pin it." (name, pin and
+   the button; the role and the reply text don't fit). */
+@media (max-width: 760px) {
+  .lp-hws { inset: 0 6px; }
+  .lp-hw-slot-resolve { left: 0; top: 222px; }
+  .lp-hws .lp-hw { width: auto; padding: 8px 10px; border-radius: 14px; }
+  .lp-hw-resolve .lp-hw-who span:last-child,
+  .lp-hw-resolve .lp-hw-text { display: none; }
+  .lp-hw-resolve-btn { height: 28px; margin-top: 7px; padding: 0 10px; gap: 5px; font-size: 11.5px; }
+}
 
 .lp-hw-bob { animation: lp-hw-in 0.8s var(--lp-ease) 0.5s both, lp-bob 5.5s ease-in-out 1.4s infinite alternate; }
 .lp-hw-slot-resolve .lp-hw-bob { animation-delay: 0.65s, 1.8s; animation-duration: 0.8s, 6.2s; }
@@ -187,9 +198,12 @@
 .lp-hc-demo .lp-hc-pin { animation: none; transform: scale(0); }
 .lp-hc-demo-composer,
 .lp-hc-demo-posted { opacity: 0; }
-@media (max-width: 1023.98px), (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
   .lp-hc-demo { display: none; }
 }
+/* Narrow screens: the comment opens above the headline, left of the pin. */
+.lp-hc-demo-anchor[data-narrow] .lp-hc-card { left: auto; right: 6px; top: auto; bottom: 0; width: 232px; padding: 9px 11px; font-size: 12.5px; }
+.lp-hc-demo-anchor[data-narrow] :is(.lp-hc-input, .lp-hc-post) { height: 30px; }
 .lp-hc-demo-cursor { position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -3px 0 0 -4px; opacity: 0; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25)); transform-origin: 15% 10%; }
 
 /* the label that follows the plus cursor */
@@ -558,7 +572,7 @@
    query (viewport 759px less the 48px page gutter), so the film rebuilds its
    timeline exactly when this layout switches. */
 @container film (max-width: 711.98px) {
-  .lp-film { aspect-ratio: 4 / 4.5; border-radius: 18px; font-size: 2.35cqi; }
+  .lp-film { aspect-ratio: 4 / 3.7; border-radius: 18px; font-size: 2.35cqi; }
   .lp-film-body { grid-template-columns: 1fr; }
   .lp-film-rail,
   .lp-film-url,
@@ -572,7 +586,7 @@
   .lp-pop-2 { left: -12%; top: calc(135% + 0.7em); }
   /* On a phone the photo would fill the frame; keep it a band, and give the
      overlays (the part the demo is about) the room instead. */
-  .lp-site-img { aspect-ratio: 1 / 0.56; }
+  .lp-site-img { aspect-ratio: 1 / 0.3; }
   .lp-film-chrome { height: 4.4em; }
   .lp-film-people,
   .lp-film-pin,

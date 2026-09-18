@@ -103,7 +103,7 @@ export type Quote = {
 export const QUOTES: Quote[] = [
   {
     quote: "We used to lose a day working out what the client meant. Now they just point at it.",
-    name: "Priya Shah",
+    name: "Emma Clarke",
     role: "Creative Director",
     avatar: 3,
     tone: "lime",
@@ -131,7 +131,7 @@ export const QUOTES: Quote[] = [
   },
   {
     quote: "Everything that needs doing is a numbered pin. Nothing slips through any more.",
-    name: "Aisha Karim",
+    name: "Chloe Martin",
     role: "Project Manager",
     avatar: 22,
     tone: "white",

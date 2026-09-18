@@ -285,7 +285,7 @@ export function HeroFilm() {
                   <div className="lp-pop lp-pop-1">
                     <div className="lp-pop-head">
                       <Avatar n={3} />
-                      <b>Priya</b>
+                      <b>Emma</b>
                       <span>Client</span>
                     </div>
                     <p className="lp-pop-body">
@@ -299,7 +299,7 @@ export function HeroFilm() {
                   <div className="lp-thread">
                     <div className="lp-pop-head">
                       <Avatar n={3} />
-                      <b>Priya</b>
+                      <b>Emma</b>
                       <span>Client</span>
                     </div>
                     <p className="lp-thread-text">{FIRST}</p>
@@ -351,7 +351,7 @@ export function HeroFilm() {
                     <div className="lp-pop lp-pop-2">
                       <div className="lp-pop-head">
                         <Avatar n={3} />
-                        <b>Priya</b>
+                        <b>Emma</b>
                         <span>Client</span>
                       </div>
                       <p className="lp-pop-body">
@@ -414,7 +414,7 @@ export function HeroFilm() {
               <div className="lp-rail-top">
                 <span className="lp-pin">1</span>
                 <Avatar n={3} />
-                <b>Priya</b>
+                <b>Emma</b>
                 <span className="lp-tnum">now</span>
               </div>
               <p>{FIRST}</p>
@@ -431,7 +431,7 @@ export function HeroFilm() {
               <div className="lp-rail-top">
                 <span className="lp-pin">2</span>
                 <Avatar n={3} />
-                <b>Priya</b>
+                <b>Emma</b>
                 <span className="lp-tnum">now</span>
               </div>
               <p>{SECOND}</p>

@@ -23,7 +23,7 @@ const TINTS = ["#f1efe2", "#ece7f8", "#fbe6d8", "#ecf5cf"];
 
 // People floating around the card, like participants in a review.
 const TILES = [
-  { key: "a", avatar: 3, name: "Priya", tone: "terracotta" },
+  { key: "a", avatar: 3, name: "Emma", tone: "terracotta" },
   { key: "b", avatar: 12, name: "Sam", tone: "green" },
   { key: "c", avatar: 22, name: "Jess", tone: "purple" },
 ] as const;

@@ -70,7 +70,7 @@ function PointScene() {
           2
         </span>
       </MiniPage>
-      <Bubble who="Priya" role="Client" tone="terracotta" avatar={3} i={4}>
+      <Bubble who="Emma" role="Client" tone="terracotta" avatar={3} i={4}>
         This headline could be punchier. And can the photo feel warmer?
       </Bubble>
     </>
@@ -83,11 +83,11 @@ function TalkScene() {
       <p className="lp-scene-in lp-live" style={n(0)}>
         <i /> Live · 3 people viewing
       </p>
-      <Bubble who="Priya" role="Client" tone="terracotta" avatar={3} i={1}>
+      <Bubble who="Emma" role="Client" tone="terracotta" avatar={3} i={1}>
         Could we see the hero with the lighter photo?
       </Bubble>
       <Bubble who="Sam" role="Designer" tone="green" avatar={12} i={2}>
-        <b className="lp-mention">@Priya</b> uploaded it, have a look.
+        <b className="lp-mention">@Emma</b> uploaded it, have a look.
         <span className="lp-attach">
           <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>
             <path d="M4 1.5h5l3.5 3.5v9.5h-8.5z M9 1.5v3.5h3.5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
@@ -104,7 +104,7 @@ function TalkScene() {
           <i />
           <i />
         </span>
-        Priya is typing
+        Emma is typing
       </p>
     </div>
   );

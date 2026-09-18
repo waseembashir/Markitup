@@ -96,7 +96,7 @@ function ReviewScene() {
 
       <div className="as-card as-card-client">
         <p className="as-who">
-          <Avatar n={3} /> <b>Priya</b> <span>Client</span>
+          <Avatar n={3} /> <b>Emma</b> <span>Client</span>
         </p>
         <p className="as-msg as-msg-1">
           <span className="as-num">1</span> Can the headline be punchier?
