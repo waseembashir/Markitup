@@ -130,7 +130,7 @@ export default async function SettingsPage() {
       icon: PaletteIcon,
       content: (
         <>
-          <SectionHead title="Appearance" desc="Choose how MarkUp looks for you — light or dark, and an accent color." />
+          <SectionHead title="Appearance" desc="Choose whether the app is light or dark." />
           <ThemeSettings />
         </>
       ),

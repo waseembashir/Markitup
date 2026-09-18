@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // The inline script below sets data-theme and the dark class on this very
+    // The inline script below sets the dark class on this very
     // element before React hydrates, so the saved theme is applied on the first
     // paint instead of flashing the default. React then finds attributes its own
     // render did not produce and reports a hydration mismatch — and may strip
@@ -44,7 +44,9 @@ export default function RootLayout({
       <body className="min-h-full">
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var a=localStorage.getItem('ui-accent');var m=localStorage.getItem('ui-mode');var e=document.documentElement;if(a&&a!=='neutral')e.setAttribute('data-theme',a);if(m==='dark')e.classList.add('dark');}catch(_){}`,
+            // Accent colours were removed; a saved `ui-accent` is deliberately
+            // ignored so nobody stays stuck on a colour they can no longer change.
+            __html: `try{if(localStorage.getItem('ui-mode')==='dark')document.documentElement.classList.add('dark');}catch(_){}`,
           }}
         />
         <TopProgress />
