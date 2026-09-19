@@ -114,12 +114,18 @@ export function HeroFilm() {
         gsap.set(q(".lp-cursor-track"), { x: 0, y: 0, xPercent: 78, yPercent: 108 });
         clearTyping();
 
+        // The ring around the play button, counted in 1000ths so GSAP's
+        // pixel rounding can't flatten it (see Ribbon.tsx).
+        const ring = q(".lp-film-ring-fill")[0] as unknown as SVGCircleElement | undefined;
         const tl = gsap.timeline({
           repeat: -1,
           repeatDelay: 0.6,
           paused: true,
           defaults: { ease: "power2.inOut" },
           onRepeat: clearTyping,
+          onUpdate: () => {
+            if (ring) ring.style.strokeDashoffset = String(1000 * (1 - tl.progress()));
+          },
         });
         const cursor = q(".lp-cursor-track");
         const arrow = q(".lp-cursor");
@@ -665,6 +671,11 @@ export function HeroFilm() {
           aria-label={paused ? "Play the demo" : "Pause the demo"}
           onClick={paused ? resume : pause}
         >
+          {/* how far through the loop it is */}
+          <svg className="lp-film-ring" viewBox="0 0 40 40" aria-hidden>
+            <circle className="lp-film-ring-track" cx="20" cy="20" r="18" />
+            <circle className="lp-film-ring-fill" cx="20" cy="20" r="18" pathLength={1000} />
+          </svg>
           {paused ? (
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
               <path d="M5 3.5v9l7.5-4.5z" fill="currentColor" />

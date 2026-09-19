@@ -35,8 +35,13 @@ export function Landing({ fontClass }: { fontClass: string }) {
         <Hero />
         <FormatBand />
         <BeforeAfter />
-        {/* One ribbon, drawn as you scroll: it comes in from the left at How
-            it works and runs behind everything down to the testimonials. */}
+        <HowItWorks />
+        <Features />
+        {/* One ribbon, drawn as you scroll: it comes in from the left below
+            the walkthrough and runs behind the rest, ending above the
+            reviews. It starts here rather than higher up because the
+            walkthrough's screen is pinned, and a ribbon sliding behind a
+            screen that is standing still reads as a glitch. */}
         <div className="lp-flow">
           <Ribbon
             className="lp-ribbon-flow"
@@ -46,8 +51,6 @@ export function Landing({ fontClass }: { fontClass: string }) {
             end="bottom 80%"
             d="M -200 140 C 340 300, 560 620, 900 900 C 1240 1180, 1520 1520, 1180 1900 C 840 2280, 300 2300, 260 2700 C 220 3100, 900 3240, 1120 3640 C 1340 4040, 1180 4400, 820 4740 C 460 5080, 180 5340, 320 5740 C 460 6140, 1080 6340, 1560 6580"
           />
-          <HowItWorks />
-          <Features />
           <Versions />
           <Details />
           <Extras />

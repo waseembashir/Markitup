@@ -47,7 +47,7 @@ export function Ribbon({
         // drawn.
         const path = svg.querySelector("path")!;
         gsap.set(path, { strokeDashoffset: DASH });
-        const draw = gsap.quickTo(path, "strokeDashoffset", { duration: 0.45, ease: "power2.out" });
+        const draw = gsap.quickTo(path, "strokeDashoffset", { duration: 0.7, ease: "power3.out" });
         ScrollTrigger.create({
           trigger,
           start: "top 85%",

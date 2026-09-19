@@ -23,7 +23,9 @@
    being squashed with the path. */
 .lp-flow { position: relative; }
 .lp-ribbon-flow path { vector-effect: non-scaling-stroke; stroke-width: 150px; }
-@media (max-width: 760px) { .lp-ribbon-flow path { stroke-width: 96px; } }
+/* Phones and tablets: a path drawn for a wide screen, squeezed into a narrow
+   one, lands as a band across the text. No ribbon there. */
+@media (max-width: 1023.98px) { .lp-ribbon-flow { display: none; } }
 
 /* ---- How it works + extras ---------------------------------------------- */
 .lp-how { position: relative; overflow: clip; padding: clamp(80px, 9vw, 120px) 0 clamp(90px, 11vw, 150px); }
