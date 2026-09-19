@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { FAQ } from "./content";
 
 // Native <details> sharing one name, so opening a question closes the last.
@@ -17,9 +16,6 @@ export function Faq() {
             Still wondering about something? The quickest way to find out is to
             try it on one of your own designs.
           </p>
-          <Link href="/signup" className="lp-btn lp-btn-ghost mt-8">
-            Start free
-          </Link>
         </div>
         <div className="lp-faq-list">
           {FAQ.map((f, i) => (

@@ -25,7 +25,7 @@ export function Pricing() {
       const mm = gsap.matchMedia();
       mm.add(MOTION_OK, () => {
         gsap.from(gsap.utils.toArray<HTMLElement>(".lp-price-card", root.current), {
-          y: 60,
+          y: 34,
           opacity: 0,
           duration: 0.8,
           ease: "power3.out",

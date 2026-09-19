@@ -17,33 +17,28 @@ const Cursor = ({ className }: { className?: string }) => (
 );
 
 /**
- * Steps a card through its states on its own while it is on screen, and
- * hands control to the pointer while someone is on it. Reduced motion gets
- * the first state and no loop.
+ * Steps a card through its states on its own while it is on screen. Pointing
+ * at a control jumps to that state and the card carries on from there — it
+ * does not pause, because the pointer often rests on this side of the page
+ * while scrolling, and a card frozen under the cursor reads as broken.
+ * Reduced motion gets the first state and no loop.
  */
 function useCycle(steps: number, every: number, ref: React.RefObject<HTMLElement | null>) {
   const [step, setStep] = useState(0);
-  const hovering = useRef(false);
   const onScreen = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el || !window.matchMedia(MOTION_OK).matches) return;
 
-    const io = new IntersectionObserver(([e]) => (onScreen.current = e.isIntersecting), { threshold: 0.4 });
+    const io = new IntersectionObserver(([e]) => (onScreen.current = e.isIntersecting), { threshold: 0.25 });
     io.observe(el);
-    const enter = () => (hovering.current = true);
-    const leave = () => (hovering.current = false);
-    el.addEventListener("pointerenter", enter);
-    el.addEventListener("pointerleave", leave);
     const id = window.setInterval(() => {
-      if (onScreen.current && !hovering.current) setStep((n) => (n + 1) % steps);
+      if (onScreen.current) setStep((n) => (n + 1) % steps);
     }, every);
 
     return () => {
       io.disconnect();
-      el.removeEventListener("pointerenter", enter);
-      el.removeEventListener("pointerleave", leave);
       window.clearInterval(id);
     };
   }, [steps, every, ref]);
@@ -167,7 +162,6 @@ function FormatsArt() {
             <span className="lp-dv-img" />
             <span className="lp-dv-hover" />
             <Cursor className="lp-dv-cursor" />
-            <span className="lp-dv-frame-label lp-tnum">Hero / Desktop</span>
             <span className="lp-pin lp-dv-pin lp-dv-pin-live">3</span>
           </div>
         </div>
