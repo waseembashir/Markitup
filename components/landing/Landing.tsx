@@ -4,6 +4,7 @@ import "./sections.css";
 import "./compare.css";
 import "./features.css";
 import "./showcase.css";
+import "./details.css";
 import "./footer.css";
 import { SmoothScroll } from "./SmoothScroll";
 import { Ribbon } from "./Ribbon";
@@ -14,6 +15,7 @@ import { BeforeAfter } from "./BeforeAfter";
 import { HowItWorks } from "./HowItWorks";
 import { Features } from "./Features";
 import { Versions } from "./Versions";
+import { Details } from "./Details";
 import { Extras } from "./Extras";
 import { Testimonials } from "./Testimonials";
 import { Faq } from "./Faq";
@@ -46,6 +48,7 @@ export function Landing({ fontClass }: { fontClass: string }) {
           <Features />
           <Versions />
         </div>
+        <Details />
         <Extras />
         <Testimonials />
         <Faq />

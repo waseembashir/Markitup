@@ -25,7 +25,7 @@
 @media (max-width: 760px) { .lp-ribbon-flow path { stroke-width: 96px; } }
 
 /* ---- How it works + extras ---------------------------------------------- */
-.lp-how { position: relative; overflow: clip; padding: clamp(100px, 13vw, 170px) 0 clamp(90px, 11vw, 150px); }
+.lp-how { position: relative; overflow: clip; padding: clamp(80px, 9vw, 120px) 0 clamp(90px, 11vw, 150px); }
 @media (max-width: 640px) { .lp-how { padding-top: 64px; } }
 .lp-how-grid {
   display: grid;

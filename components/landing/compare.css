@@ -9,7 +9,15 @@
 .lp-ba { padding: clamp(110px, 14vw, 180px) 0 0; }
 .lp-ba-head { text-align: center; }
 
-.lp-ba-track { position: relative; height: 440svh; }
+/* The panel is centred in the last sticky screen, so the section would
+   otherwise end a few hundred pixels of blank below it: pull the next
+   section up by that blank, less a 40px gap. (Panel height is half its
+   width, and its box starts 12% down the frame.) */
+.lp-ba-track {
+  position: relative;
+  height: 440svh;
+  margin-bottom: min(0px, calc(0.25 * min(76vw, 128svh) + 40px - 44svh));
+}
 .lp-ba-frame {
   position: sticky;
   top: 0;

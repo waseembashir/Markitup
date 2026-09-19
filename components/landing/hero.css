@@ -264,7 +264,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  aspect-ratio: 16 / 9.2;
+  aspect-ratio: 16 / 8.3;
   overflow: hidden;
   border-radius: 26px;
   background: #fff;

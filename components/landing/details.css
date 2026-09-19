@@ -1,0 +1,147 @@
+/* Three half-and-half rows (Details.tsx): the choices that make a review easy
+   for the client. Each row is copy on one side and a small piece of product
+   art on the other, alternating sides. */
+
+.lp-dv { padding: clamp(90px, 11vw, 150px) 0 clamp(20px, 3vw, 40px); }
+.lp-dv-head { text-align: center; }
+.lp-dv-rows { display: flex; flex-direction: column; gap: clamp(72px, 9vw, 130px); margin-top: clamp(56px, 7vw, 96px); }
+
+.lp-dv-row-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(32px, 6vw, 88px);
+}
+.lp-dv-row-item:nth-child(even) .lp-dv-copy { order: 2; }
+.lp-dv-copy p { max-width: 30rem; margin-top: 14px; color: var(--lp-muted); line-height: 1.6; }
+
+/* ---- Shared bits of the art ------------------------------------------- */
+.lp-dv-art {
+  position: relative;
+  padding: clamp(18px, 2.4vw, 28px);
+  border-radius: 26px;
+  background: var(--lp-sage);
+}
+.lp-dv-window {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(28 28 23 / 0.08), 0 18px 34px -22px rgb(28 28 23 / 0.5);
+}
+.lp-dv-chrome { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-bottom: 1px solid var(--lp-line); }
+.lp-dv-chrome i { width: 6px; height: 6px; border-radius: 50%; background: #e2e0d2; }
+.lp-dv-chrome em { margin-left: 8px; font-size: 10px; font-style: normal; color: var(--lp-faint); }
+.lp-dv-page { position: relative; padding: 14px 16px 18px; background: #f6efe4; color: #2b4336; }
+.lp-dv-logo { display: block; font-size: 15px; font-style: italic; line-height: 1; }
+.lp-dv-h { display: block; margin-top: 10px; font-size: 20px; line-height: 1.05; }
+.lp-dv-line { display: block; height: 5px; margin-top: 9px; border-radius: 5px; background: rgb(43 67 54 / 0.14); }
+.lp-dv-line-short { width: 62%; }
+.lp-dv-img { display: block; height: 68px; margin-top: 12px; border-radius: 8px; background: #c8643b; }
+.lp-dv-pin { position: absolute; font-size: 11px; }
+
+/* ---- Desktop or mobile -------------------------------------------------- */
+.lp-dv-switch {
+  display: inline-flex;
+  gap: 3px;
+  margin-bottom: 16px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--lp-line);
+  font-size: 12px;
+  font-weight: 600;
+}
+.lp-dv-switch b { padding: 5px 12px; border-radius: 7px; color: var(--lp-muted); }
+.lp-dv-switch b[data-on] { background: var(--lp-lime); color: var(--lp-lime-ink); box-shadow: inset 0 0 0 1px var(--lp-ink); }
+.lp-dv-frames { display: flex; align-items: flex-end; gap: 14px; }
+.lp-dv-devices .lp-dv-window { flex: 1; min-width: 0; }
+.lp-dv-devices .lp-dv-pin { right: 22px; top: 44px; }
+.lp-dv-phone {
+  flex: none;
+  width: 104px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(28 28 23 / 0.08), 0 18px 34px -22px rgb(28 28 23 / 0.5);
+}
+.lp-dv-notch { display: block; width: 34px; height: 4px; margin: 7px auto; border-radius: 4px; background: #e2e0d2; }
+.lp-dv-phone .lp-dv-page { padding: 10px 10px 14px; }
+.lp-dv-img-tall { height: 86px; margin-top: 8px; }
+.lp-dv-pin-phone { left: 14px; top: 36px; }
+
+/* ---- No login ----------------------------------------------------------- */
+.lp-dv-share { display: flex; flex-direction: column; gap: 12px; }
+.lp-dv-share-title { font-size: 15px; font-weight: 600; }
+.lp-dv-share .lp-share-link { background: #fff; }
+.lp-dv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 13px;
+}
+.lp-dv-guests { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.lp-dv-guests .lp-avatar { width: 26px; height: 26px; margin-right: -14px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--lp-sage); }
+.lp-dv-guests .lp-avatar:last-of-type { margin-right: 0; }
+.lp-dv-guests b { margin-left: 8px; font-weight: 500; color: var(--lp-muted); }
+.lp-dv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 5px 11px;
+  border-radius: 99px;
+  background: #e3f3ea;
+  color: var(--lp-resolved);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---- Interactive formats ------------------------------------------------ */
+.lp-dv-chips { display: flex; gap: 6px; margin-bottom: 16px; font-size: 12px; font-weight: 600; }
+.lp-dv-chips b { padding: 5px 11px; border-radius: 99px; background: #fff; color: var(--lp-muted); box-shadow: inset 0 0 0 1px var(--lp-line); }
+.lp-dv-chips b[data-on] { background: var(--lp-lime); color: var(--lp-lime-ink); box-shadow: inset 0 0 0 1.5px var(--lp-ink); }
+.lp-dv-nav-pill {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: #2b4336;
+  color: #f6efe4;
+  font-size: 10px;
+  font-weight: 600;
+}
+.lp-dv-cta {
+  display: inline-flex;
+  margin-top: 14px;
+  padding: 7px 14px;
+  border-radius: 99px;
+  background: #2b4336;
+  color: #f6efe4;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* the live page reacting under the pointer */
+.lp-dv-hover {
+  position: absolute;
+  left: 12px;
+  bottom: 14px;
+  width: 104px;
+  height: 34px;
+  border: 2px solid var(--lp-lime-hover);
+  border-radius: 99px;
+  background: rgb(197 240 74 / 0.18);
+}
+.lp-dv-cursor { position: absolute; left: 96px; bottom: 16px; width: 20px; height: 20px; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25)); }
+.lp-dv-pin-live { right: 20px; top: 40px; }
+
+@media (max-width: 860px) {
+  .lp-dv-row-item { grid-template-columns: 1fr; gap: 28px; }
+  .lp-dv-row-item:nth-child(even) .lp-dv-copy { order: 0; }
+  .lp-dv-copy p { max-width: none; }
+  .lp-dv-rows { gap: 64px; }
+}
