@@ -93,14 +93,20 @@
 /* clear of the cards while they rise into place */
 .lp-price-foot { margin-top: clamp(32px, 4vw, 52px); font-size: 14px; color: var(--lp-faint); text-align: center; }
 
-/* ---- Phones: a stack of cards, one open ---------------------------------- */
+/* ---- Phones: a deck of cards, one open ----------------------------------
+   Each card tucks under the next, price on the left and its button on the
+   right, and only the open one shows its list. */
 @media (max-width: 860px) {
   .lp-price-grid { display: flex; flex-direction: column; gap: 0; }
   .lp-price-card {
-    gap: 14px;
-    margin-top: -22px;
-    padding: 22px 22px 24px;
-    border-radius: 26px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: 14px;
+    row-gap: 16px;
+    margin-top: -30px;
+    padding: 20px 20px 22px;
+    border-radius: 28px;
     cursor: pointer;
   }
   .lp-price-card:first-child { margin-top: 0; }
@@ -109,16 +115,30 @@
   .lp-price-card:nth-child(2) { z-index: 2; }
   .lp-price-card:nth-child(3) { z-index: 3; }
   .lp-price-card:hover { transform: none; }
-  .lp-price-flag { top: 14px; right: 22px; }
+  /* the lime card says "most popular" well enough at this size */
+  .lp-price-flag { display: none; }
 
-  .lp-price-top { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; cursor: pointer; }
-  .lp-price-name { grid-column: 1; }
-  .lp-price-amount { grid-column: 1; margin-top: 2px; font-size: 2.4rem; }
-  .lp-price-note { grid-column: 1; }
+  .lp-price-top { grid-column: 1; grid-row: 1; cursor: pointer; }
+  .lp-price-name { font-size: 12px; }
+  .lp-price-amount { margin-top: 2px; font-size: 2.3rem; }
+  .lp-price-note { margin-top: 4px; font-size: 13px; }
 
-  /* closed cards keep their head and button only */
+  .lp-price-cta {
+    grid-column: 2;
+    grid-row: 1;
+    height: 46px;
+    margin-top: 0;
+    padding-inline: 22px;
+    border-radius: 99px;
+    font-size: 15px;
+  }
+  .lp-price-card[data-tone="lime"] .lp-price-cta { background: #fff; color: var(--lp-ink); }
+
+  /* closed cards keep that row only */
   .lp-price-body {
     display: grid;
+    grid-column: 1 / -1;
+    grid-row: 2;
     grid-template-rows: 0fr;
     overflow: hidden;
     opacity: 0;
@@ -126,4 +146,8 @@
   }
   .lp-price-body > * { min-height: 0; }
   .lp-price-card[data-open] .lp-price-body { grid-template-rows: 1fr; opacity: 1; }
+  /* room under the list for the card that tucks over it */
+  .lp-price-card[data-open] { padding-bottom: 52px; }
+  .lp-price-card[data-open]:last-child { padding-bottom: 22px; }
+  .lp-price-foot { margin-top: 28px; }
 }
