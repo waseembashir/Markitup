@@ -157,7 +157,8 @@ html.lenis, html.lenis body { height: auto; }
   transition: box-shadow 0.3s var(--lp-ease), border-color 0.3s var(--lp-ease);
 }
 .lp-nav[data-scrolled="true"] { box-shadow: var(--lp-shadow); border-color: transparent; }
-.lp-nav-links { display: flex; gap: 1.75rem; margin-inline: auto; font-size: 0.95rem; color: var(--lp-muted); }
+/* the links sit with the buttons on the right, not centred in the bar */
+.lp-nav-links { display: flex; gap: 1.75rem; margin-left: auto; font-size: 0.95rem; color: var(--lp-muted); }
 .lp-nav-links a { transition: color 0.2s; }
 .lp-nav-links a:hover { color: var(--lp-ink); }
 .lp-nav-login { font-size: 0.95rem; font-weight: 500; padding-inline: 0.75rem; }

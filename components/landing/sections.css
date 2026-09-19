@@ -32,7 +32,7 @@
 
 /* ---- FAQ ------------------------------------------------------------------ */
 /* the closing panel brings its own top padding, hence the short bottom */
-.lp-faq { padding: clamp(110px, 13vw, 170px) 0 clamp(24px, 3vw, 40px); }
+.lp-faq { padding: clamp(80px, 9vw, 120px) 0 clamp(24px, 3vw, 40px); }
 .lp-faq-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(40px, 6vw, 110px); align-items: start; }
 .lp-faq-head { position: sticky; top: 120px; }
 .lp-faq-list { border-bottom: 1px solid var(--lp-line); interpolate-size: allow-keywords; }

@@ -726,7 +726,8 @@
 .lp-film-ring { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); rotate: -90deg; overflow: visible; }
 .lp-film-ring circle { fill: none; stroke-width: 2.5; }
 .lp-film-ring-track { stroke: rgb(28 28 23 / 0.16); }
-.lp-film-ring-fill { stroke: var(--lp-lime); stroke-linecap: round; stroke-dasharray: 1000; stroke-dashoffset: 1000; }
+/* ink, not lime: lime all but disappears against the page behind it */
+.lp-film-ring-fill { stroke: var(--lp-ink); stroke-linecap: round; stroke-dasharray: 1000; stroke-dashoffset: 1000; }
 
 /* ---- The visitor's own pin --------------------------------------------- */
 .lp-visitor { position: absolute; z-index: 7; }

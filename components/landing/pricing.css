@@ -2,7 +2,8 @@
    on a phone they stack like cards in a hand, each tucked under the next,
    and the open one shows its list. */
 
-.lp-price { padding: clamp(96px, 12vw, 150px) 0 clamp(60px, 8vw, 110px); }
+/* the FAQ brings its own top padding, so this bottom one stays short */
+.lp-price { padding: clamp(96px, 12vw, 150px) 0 clamp(20px, 2.5vw, 36px); }
 .lp-price-head { max-width: 62rem; margin-inline: auto; text-align: center; }
 .lp-price-head .lp-lede { color: var(--lp-muted); }
 /* Wide enough for both to read as single lines; they wrap again below this. */
