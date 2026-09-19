@@ -14,7 +14,8 @@
   stroke: var(--lp-ribbon);
   stroke-width: 150;
   stroke-linecap: round;
-  stroke-dasharray: 1;
+  /* counted in 1000ths of the path — see DASH in Ribbon.tsx */
+  stroke-dasharray: 1000;
   stroke-dashoffset: 0;
 }
 /* The ribbon that runs behind How it works, Features and Versions. It is
@@ -102,25 +103,6 @@
   display: flex;
   align-items: center;
 }
-/* one background shape per step (see SHAPES in Features.tsx) */
-.lp-feat-shapes { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
-.lp-feat-shape {
-  fill: none;
-  stroke: var(--lp-ribbon);
-  stroke-width: 120;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 1 1;
-  stroke-dashoffset: 1;
-}
-.lp-feat-shape[data-i="1"] { stroke: #ece7f8; }
-.lp-feat-shape[data-i="2"] { stroke: #fbe6d8; }
-.lp-feat-shape[data-i="3"] { stroke: #ecf5cf; }
-/* The resting state (and the reduced-motion one): the current step's shape. */
-.lp-feat-frame[data-step="0"] .lp-feat-shape[data-i="0"],
-.lp-feat-frame[data-step="1"] .lp-feat-shape[data-i="1"],
-.lp-feat-frame[data-step="2"] .lp-feat-shape[data-i="2"],
-.lp-feat-frame[data-step="3"] .lp-feat-shape[data-i="3"] { stroke-dashoffset: 0; }
 .lp-feat-grid {
   position: relative;
   z-index: 1;

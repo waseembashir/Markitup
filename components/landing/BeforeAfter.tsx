@@ -153,7 +153,9 @@ export function BeforeAfter() {
           },
           0,
         )
-          .fromTo(".lp-scribble-draw", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.2, stagger: 0.3 }, 0.3)
+          // autoRound off: pathLength is 1, so a rounded offset would only
+          // ever be 0 or 1 and the scribble would appear in one go.
+          .fromTo(".lp-scribble-draw", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.2, stagger: 0.3, autoRound: false }, 0.3)
           .fromTo(".lp-ba-cap-old", { opacity: 1, y: 0 }, { opacity: 0, y: -14, duration: 0.6 }, 4.4);
 
         if (portrait) {

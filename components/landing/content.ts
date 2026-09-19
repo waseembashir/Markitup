@@ -5,6 +5,7 @@
 export const NAV_LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#features", label: "Features" },
+  { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ] as const;
 
@@ -135,6 +136,66 @@ export const QUOTES: Quote[] = [
     role: "Project Manager",
     avatar: 22,
     tone: "white",
+  },
+];
+
+export type Plan = {
+  key: string;
+  name: string;
+  price: string;
+  per?: string;
+  note: string;
+  line: string;
+  features: string[];
+  cta: { label: string; href: string };
+  tone: "plain" | "lime" | "ink";
+  popular?: boolean;
+};
+
+export const PLANS: Plan[] = [
+  {
+    key: "free",
+    name: "Free",
+    price: "$0",
+    note: "Lifetime access",
+    line: "Enough for a first project or the odd client review.",
+    features: [
+      "Up to 10 projects",
+      "PNG and JPG designs (PDFs as comment attachments)",
+      "Unlimited comments from clients",
+      "Share links with no client login",
+    ],
+    cta: { label: "Start free", href: "/signup" },
+    tone: "plain",
+  },
+  {
+    key: "pro",
+    name: "Pro",
+    price: "$40",
+    per: "/month",
+    note: "Everything MarkItUp does",
+    line: "For agencies running client reviews every week.",
+    features: [
+      "Unlimited projects",
+      "Live HTML pages and Figma frames",
+      "Versions, with comments carried across",
+      "Desktop and mobile views you choose",
+      "Slack posts and email reminders",
+      "Roles, guests and access requests",
+    ],
+    cta: { label: "Choose Pro", href: "/signup" },
+    tone: "lime",
+    popular: true,
+  },
+  {
+    key: "max",
+    name: "Max",
+    price: "Let’s talk",
+    note: "Shaped around your team",
+    line: "For larger teams with their own way of working.",
+    features: ["Everything in Pro", "Onboarding for your team", "Priority support", "Invoicing and terms to suit"],
+    cta: { label: "Talk to us", href: "mailto:info@apexure.com" },
+    tone: "ink",
   },
 ];
 

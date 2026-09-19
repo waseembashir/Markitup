@@ -1,25 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap, MOTION_OK, ScrollTrigger, useGSAP } from "./gsap";
+import { ScrollTrigger, useGSAP } from "./gsap";
 import { STEPS } from "./content";
 import { SCENES } from "./FeatureScenes";
 import { Avatar } from "./Avatar";
 import { scrollToY } from "./SmoothScroll";
 import { burstFrom } from "./confetti";
-
-// One background shape per step, drawn in the 1440×900 frame around the card,
-// each its own form: a giant cursor pointing in at the card, a wide speech
-// bubble, a flight path that loops and shoots off like a sent link, and a
-// big tick. On scroll one ribbon morphs from each shape into the next, and its
-// tint changes with it.
-const SHAPES = [
-  "M 610 290 L 610 800 L 490 680 L 400 890 L 310 860 L 400 650 L 250 650 Z",
-  "M 700 720 H 1140 Q 1240 720 1240 620 V 250 Q 1240 150 1140 150 H 500 Q 400 150 400 250 V 620 Q 400 720 500 720 H 560 L 440 860 Z",
-  "M 60 830 C 300 870, 540 740, 540 560 C 540 400, 350 400, 370 540 C 390 700, 720 700, 920 480 C 1030 360, 1150 240, 1330 150 L 1195 168 L 1330 150 L 1305 285",
-  "M 250 450 C 380 560, 520 700, 610 790 C 780 560, 1010 300, 1300 100",
-];
-const TINTS = ["#f1efe2", "#ece7f8", "#fbe6d8", "#ecf5cf"];
 
 // People floating around the card, like participants in a review.
 const TILES = [
@@ -55,25 +42,6 @@ export function Features() {
         end: "bottom bottom",
         onUpdate: (self) => setStep(Math.min(STEPS.length - 1, Math.floor(self.progress * STEPS.length))),
       });
-
-      // The first shape draws itself in, then one ribbon morphs into each
-      // step's shape as that step arrives: one timeline unit per step, the
-      // morph straddling the moment the step changes. Without motion, CSS
-      // simply shows the current step's shape.
-      const mm = gsap.matchMedia();
-      mm.add(MOTION_OK, () => {
-        const [ribbon, ...rest] = gsap.utils.toArray<SVGPathElement>(".lp-feat-shape", root.current);
-        gsap.set(rest, { autoAlpha: 0 });
-        const tl = gsap.timeline({
-          defaults: { ease: "none" },
-          scrollTrigger: { trigger: ".lp-feat-track", start: "top top", end: "bottom bottom", scrub: 0.9 },
-        });
-        tl.fromTo(ribbon, { strokeDashoffset: 1, stroke: TINTS[0] }, { strokeDashoffset: 0, duration: 0.5 }, 0);
-        for (let i = 1; i < SHAPES.length; i++) {
-          tl.to(ribbon, { morphSVG: SHAPES[i], stroke: TINTS[i], duration: 0.55, ease: "power2.inOut" }, i - 0.3);
-        }
-        tl.to({}, { duration: 0.01 }, STEPS.length - 0.01);
-      });
     },
     { scope: root },
   );
@@ -105,11 +73,6 @@ export function Features() {
       {/* Wide: sticky walkthrough */}
       <div className="lp-feat-track">
         <div className="lp-feat-frame" data-step={step}>
-          <svg className="lp-feat-shapes" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden>
-            {SHAPES.map((d, i) => (
-              <path key={i} className="lp-feat-shape" data-i={i} d={d} pathLength={1} />
-            ))}
-          </svg>
           <div className="lp-feat-grid">
             <ol className="lp-feat-index" aria-label="Steps">
               {STEPS.map((s, i) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap, MOTION_OK, useGSAP } from "./gsap";
 import { Avatar } from "./Avatar";
 
@@ -16,15 +16,58 @@ const Cursor = ({ className }: { className?: string }) => (
   </svg>
 );
 
+/**
+ * Steps a card through its states on its own while it is on screen, and
+ * hands control to the pointer while someone is on it. Reduced motion gets
+ * the first state and no loop.
+ */
+function useCycle(steps: number, every: number, ref: React.RefObject<HTMLElement | null>) {
+  const [step, setStep] = useState(0);
+  const hovering = useRef(false);
+  const onScreen = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.matchMedia(MOTION_OK).matches) return;
+
+    const io = new IntersectionObserver(([e]) => (onScreen.current = e.isIntersecting), { threshold: 0.4 });
+    io.observe(el);
+    const enter = () => (hovering.current = true);
+    const leave = () => (hovering.current = false);
+    el.addEventListener("pointerenter", enter);
+    el.addEventListener("pointerleave", leave);
+    const id = window.setInterval(() => {
+      if (onScreen.current && !hovering.current) setStep((n) => (n + 1) % steps);
+    }, every);
+
+    return () => {
+      io.disconnect();
+      el.removeEventListener("pointerenter", enter);
+      el.removeEventListener("pointerleave", leave);
+      window.clearInterval(id);
+    };
+  }, [steps, every, ref]);
+
+  return [step, setStep] as const;
+}
+
 /** The same page, offered as a desktop layout or a phone one. */
 function DeviceArt() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useCycle(2, 3600, ref);
+  const mobile = step === 1;
+
   return (
-    <div className="lp-dv-art lp-dv-devices" aria-hidden>
-      <div className="lp-dv-switch">
-        <b data-on>Desktop</b>
-        <b>Mobile</b>
+    <div ref={ref} className="lp-dv-art lp-dv-devices" data-view={mobile ? "mobile" : "desktop"}>
+      <div className="lp-dv-switch" role="group" aria-label="View">
+        {["Desktop", "Mobile"].map((label, i) => (
+          <button key={label} type="button" data-on={step === i || undefined} onPointerEnter={() => setStep(i)} onFocus={() => setStep(i)} onClick={() => setStep(i)}>
+            {label}
+          </button>
+        ))}
       </div>
-      <div className="lp-dv-frames">
+
+      <div className="lp-dv-stage" aria-hidden>
         <div className="lp-dv-window">
           <span className="lp-dv-chrome">
             <i />
@@ -37,76 +80,100 @@ function DeviceArt() {
             <span className="lp-dv-line" />
             <span className="lp-dv-line lp-dv-line-short" />
             <span className="lp-dv-img" />
-            <span className="lp-pin lp-dv-pin">1</span>
+            <span className="lp-dv-row-blocks">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className="lp-pin lp-dv-pin lp-dv-pin-a">1</span>
+            <span className="lp-pin lp-dv-pin lp-dv-pin-b">2</span>
           </div>
         </div>
-        <div className="lp-dv-phone">
-          <span className="lp-dv-notch" />
-          <div className="lp-dv-page">
-            <span className="lp-dv-logo lp-serif">fernleaf</span>
-            <span className="lp-dv-img lp-dv-img-tall" />
-            <span className="lp-dv-line" />
-            <span className="lp-pin lp-dv-pin lp-dv-pin-phone">2</span>
-          </div>
-        </div>
+        <span className="lp-dv-caption">{mobile ? "Clients on a phone see this" : "Clients on a laptop see this"}</span>
       </div>
     </div>
   );
 }
 
-/** The share panel a client never has to sign in past. */
+/** Copy the link, and people are in — no account anywhere. */
 function ShareArt() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useCycle(3, 2600, ref);
+
   return (
-    <div className="lp-dv-art lp-dv-share" aria-hidden>
+    <div ref={ref} className="lp-dv-art lp-dv-share" data-step={step}>
       <p className="lp-dv-share-title">Share “Fernleaf home”</p>
+
       <span className="lp-share-link">
         <span className="lp-tnum">markitup.apexure.com/s/fernleaf</span>
-        <span className="lp-share-copy">
-          <Check /> Copied
-        </span>
+        <button type="button" className="lp-share-copy" onPointerEnter={() => setStep(1)} onFocus={() => setStep(1)} onClick={() => setStep(1)}>
+          <span className="lp-dv-copy-idle">Copy</span>
+          <span className="lp-dv-copy-done">
+            <Check /> Copied
+          </span>
+        </button>
       </span>
+
       <span className="lp-dv-row">
         Anyone with the link can comment
         <span className="lp-toggle" data-on />
       </span>
-      <span className="lp-dv-guests">
+
+      <span className="lp-dv-joined" aria-hidden>
         <Avatar n={3} />
         <Avatar n={22} />
         <Avatar n={7} />
-        <b>+4 commenting</b>
-        <span className="lp-dv-chip">
-          <Check /> No account needed
-        </span>
+        <b>3 commenting as guests</b>
+      </span>
+
+      <span className="lp-dv-note" aria-hidden>
+        <Check /> No account, no password, nothing to install
       </span>
     </div>
   );
 }
 
+const FORMATS = ["PNG", "Live HTML", "Figma"] as const;
+
 /** What you can put in: flat images, live pages, Figma frames. */
 function FormatsArt() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useCycle(3, 3200, ref);
+
   return (
-    <div className="lp-dv-art lp-dv-formats" aria-hidden>
-      <span className="lp-dv-chips">
-        <b>PNG</b>
-        <b data-on>Live HTML</b>
-        <b>Figma</b>
+    <div ref={ref} className="lp-dv-art lp-dv-formats" data-step={step}>
+      <span className="lp-dv-chips" role="group" aria-label="Format">
+        {FORMATS.map((f, i) => (
+          <button key={f} type="button" data-on={step === i || undefined} onPointerEnter={() => setStep(i)} onFocus={() => setStep(i)} onClick={() => setStep(i)}>
+            {f}
+          </button>
+        ))}
       </span>
-      <div className="lp-dv-window">
-        <span className="lp-dv-chrome">
-          <i />
-          <i />
-          <i />
-          <em className="lp-tnum">fernleaf.co</em>
-        </span>
-        <div className="lp-dv-page">
-          <span className="lp-dv-logo lp-serif">fernleaf</span>
-          <span className="lp-dv-nav-pill">Shop</span>
-          <span className="lp-dv-h lp-serif">Slow mornings</span>
-          <span className="lp-dv-cta">Learn more</span>
-          <span className="lp-dv-hover" />
-          <Cursor className="lp-dv-cursor" />
-          <span className="lp-pin lp-dv-pin lp-dv-pin-live">3</span>
+
+      <div className="lp-dv-stage" aria-hidden>
+        <div className="lp-dv-window">
+          <span className="lp-dv-chrome">
+            <i />
+            <i />
+            <i />
+            <em className="lp-tnum">{step === 2 ? "Figma · Home / Hero" : step === 1 ? "fernleaf.co" : "hero-v3.png"}</em>
+          </span>
+          <div className="lp-dv-page">
+            <span className="lp-dv-logo lp-serif">fernleaf</span>
+            <span className="lp-dv-nav-pill">Shop</span>
+            <span className="lp-dv-h lp-serif">Slow mornings</span>
+            <span className="lp-dv-line" />
+            <span className="lp-dv-cta">Learn more</span>
+            <span className="lp-dv-img" />
+            <span className="lp-dv-hover" />
+            <Cursor className="lp-dv-cursor" />
+            <span className="lp-dv-frame-label lp-tnum">Hero / Desktop</span>
+            <span className="lp-pin lp-dv-pin lp-dv-pin-live">3</span>
+          </div>
         </div>
+        <span className="lp-dv-caption">
+          {step === 2 ? "Frames come straight from Figma" : step === 1 ? "Clients scroll and click the real page" : "Flat designs, pinned the same way"}
+        </span>
       </div>
     </div>
   );
@@ -135,8 +202,8 @@ const ROWS = [
 
 /**
  * Three half-and-half rows under the versions section: the choices that make
- * a review easy for the client. Each row rises in as it scrolls up, the art
- * from the side it sits on.
+ * a review easy for the client. Each row rises in as it scrolls up, and its
+ * square of product art plays by itself until you take it over.
  */
 export function Details() {
   const root = useRef<HTMLElement>(null);

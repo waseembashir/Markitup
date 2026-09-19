@@ -1,0 +1,121 @@
+/* Three plans (Pricing.tsx). Side by side on a wide screen with Pro raised;
+   on a phone they stack like cards in a hand, each tucked under the next,
+   and the open one shows its list. */
+
+.lp-price { padding: clamp(96px, 12vw, 150px) 0 clamp(60px, 8vw, 110px); }
+.lp-price-head { max-width: 42rem; margin-inline: auto; text-align: center; }
+.lp-price-head .lp-lede { color: var(--lp-muted); }
+
+.lp-price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: start;
+  gap: clamp(16px, 2vw, 28px);
+  margin-top: clamp(48px, 6vw, 80px);
+}
+
+.lp-price-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: clamp(24px, 2.6vw, 34px);
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(28 28 23 / 0.07), 0 18px 40px -30px rgb(28 28 23 / 0.5);
+  transition: transform 0.35s var(--lp-ease), box-shadow 0.35s var(--lp-ease);
+}
+.lp-price-card:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px rgb(28 28 23 / 0.1), 0 30px 60px -34px rgb(28 28 23 / 0.6); }
+.lp-price-card[data-tone="lime"] { background: var(--lp-lime); box-shadow: inset 0 0 0 1.5px var(--lp-ink), 0 24px 50px -30px rgb(28 28 23 / 0.6); }
+.lp-price-card[data-tone="ink"] { background: var(--lp-charcoal); color: var(--lp-on-dark); }
+
+.lp-price-flag {
+  position: absolute;
+  right: clamp(20px, 2.4vw, 30px);
+  top: -14px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  background: var(--lp-ink);
+  color: var(--lp-lime);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lp-price-top { display: block; text-align: left; cursor: default; }
+.lp-price-name { display: block; font-size: 14px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+.lp-price-amount { display: block; margin-top: 10px; font-size: clamp(2.6rem, 3.4vw, 3.4rem); line-height: 1; letter-spacing: -0.02em; }
+.lp-price-amount em { margin-left: 6px; font-family: var(--font-inter), sans-serif; font-size: 1rem; font-style: normal; font-weight: 500; opacity: 0.65; }
+.lp-price-note { display: block; margin-top: 8px; font-size: 14px; opacity: 0.72; }
+
+.lp-price-body > div { display: flex; flex-direction: column; gap: 16px; }
+.lp-price-line { font-size: 15px; line-height: 1.5; opacity: 0.78; }
+.lp-price-list { display: flex; flex-direction: column; gap: 11px; font-size: 15px; line-height: 1.45; }
+.lp-price-list li { display: flex; gap: 10px; }
+.lp-price-tick {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: #e3f3ea;
+  color: var(--lp-resolved);
+  font-size: 11px;
+}
+.lp-price-card[data-tone="lime"] .lp-price-tick { background: rgb(255 255 255 / 0.8); }
+.lp-price-card[data-tone="ink"] .lp-price-tick { background: rgb(255 255 255 / 0.12); color: var(--lp-lime); }
+
+.lp-price-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 3rem;
+  margin-top: auto;
+  padding-inline: 1.4rem;
+  border-radius: 14px;
+  background: var(--lp-ink);
+  color: #fff;
+  font-weight: 600;
+  transition: transform 0.15s var(--lp-ease), background-color 0.25s;
+}
+.lp-price-cta:active { transform: translateY(2px); }
+.lp-price-card[data-tone="lime"] .lp-price-cta { background: var(--lp-ink); color: var(--lp-lime); }
+.lp-price-card[data-tone="ink"] .lp-price-cta { background: var(--lp-lime); color: var(--lp-lime-ink); }
+
+.lp-price-foot { margin-top: 26px; font-size: 14px; color: var(--lp-faint); text-align: center; }
+
+/* ---- Phones: a stack of cards, one open ---------------------------------- */
+@media (max-width: 860px) {
+  .lp-price-grid { display: flex; flex-direction: column; gap: 0; }
+  .lp-price-card {
+    gap: 14px;
+    margin-top: -22px;
+    padding: 22px 22px 24px;
+    border-radius: 26px;
+    cursor: pointer;
+  }
+  .lp-price-card:first-child { margin-top: 0; }
+  /* later cards sit over the one above */
+  .lp-price-card:nth-child(1) { z-index: 1; }
+  .lp-price-card:nth-child(2) { z-index: 2; }
+  .lp-price-card:nth-child(3) { z-index: 3; }
+  .lp-price-card:hover { transform: none; }
+  .lp-price-flag { top: 14px; right: 22px; }
+
+  .lp-price-top { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; cursor: pointer; }
+  .lp-price-name { grid-column: 1; }
+  .lp-price-amount { grid-column: 1; margin-top: 2px; font-size: 2.4rem; }
+  .lp-price-note { grid-column: 1; }
+
+  /* closed cards keep their head and button only */
+  .lp-price-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    opacity: 0;
+    transition: grid-template-rows 0.45s var(--lp-ease), opacity 0.35s;
+  }
+  .lp-price-body > * { min-height: 0; }
+  .lp-price-card[data-open] .lp-price-body { grid-template-rows: 1fr; opacity: 1; }
+}

@@ -27,7 +27,9 @@ export function useDrawIcons(scope: React.RefObject<HTMLElement | null>, itemSel
             .fromTo(
               item.querySelectorAll(".lp-draw"),
               { strokeDasharray: 1, strokeDashoffset: 1 },
-              { strokeDashoffset: 0, duration: 1.1, ease: "power2.inOut", stagger: 0.08 },
+              // autoRound off: these paths are one unit long (pathLength="1"),
+              // and GSAP would round the offset to 0 or 1 and pop them in.
+              { strokeDashoffset: 0, duration: 1.1, ease: "power2.inOut", stagger: 0.08, autoRound: false },
               "<0.1",
             )
             .from(
