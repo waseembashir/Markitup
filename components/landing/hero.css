@@ -318,6 +318,136 @@
   font-size: 0.9em;
   font-weight: 600;
 }
+.lp-film-ver {
+  margin-left: 0.6em;
+  padding: 0.1em 0.5em;
+  border-radius: 0.5em;
+  background: var(--lp-lime);
+  color: var(--lp-lime-ink);
+  font-size: 0.85em;
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0;
+}
+/* which view clients are offered, switched mid-loop */
+.lp-film-views { display: flex; flex: none; gap: 0.2em; padding: 0.22em; border-radius: 0.65em; background: var(--lp-ribbon); font-size: 0.8em; font-weight: 600; }
+.lp-film-views b { padding: 0.35em 0.7em; border-radius: 0.45em; color: var(--lp-muted); }
+.lp-film-views b[data-on] { background: #fff; color: var(--lp-ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+/* ---- The share panel ---------------------------------------------------- */
+.lp-share-pop {
+  position: absolute;
+  z-index: 9;
+  right: 1.2em;
+  top: 3.4em;
+  display: flex;
+  width: 24em;
+  max-width: calc(100% - 2.4em);
+  flex-direction: column;
+  gap: 0.7em;
+  padding: 1.1em 1.2em 1.2em;
+  border-radius: 1em;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(28 28 23 / 0.08), var(--lp-shadow-lg);
+  font-size: 1em;
+  line-height: 1.4;
+  visibility: hidden;
+  opacity: 0;
+}
+.lp-share-pop-title { font-size: 1em; font-weight: 600; }
+.lp-share-pop-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0.45em 0.45em 0.45em 0.8em;
+  border-radius: 0.7em;
+  background: var(--lp-cream);
+  box-shadow: inset 0 0 0 1px var(--lp-line);
+  font-size: 0.85em;
+  color: var(--lp-muted);
+}
+.lp-share-pop-copy {
+  display: grid;
+  flex: none;
+  padding: 0.45em 0.9em;
+  border-radius: 0.55em;
+  background: var(--lp-lime);
+  box-shadow: inset 0 0 0 1px var(--lp-ink);
+  color: var(--lp-lime-ink);
+  font-weight: 600;
+}
+.lp-share-pop-copy > span { grid-area: 1 / 1; display: inline-flex; align-items: center; gap: 0.3em; }
+.lp-copy-done { opacity: 0; }
+.lp-share-pop-row { display: flex; align-items: center; justify-content: space-between; gap: 0.8em; font-size: 0.88em; }
+.lp-toggle-mini { position: relative; flex: none; width: 2.4em; height: 1.4em; border-radius: 99px; background: #d9d7c9; }
+.lp-toggle-mini::after { content: ""; position: absolute; top: 0.2em; left: 0.2em; width: 1em; height: 1em; border-radius: 50%; background: #fff; }
+.lp-toggle-mini[data-on] { background: var(--lp-ink); }
+.lp-toggle-mini[data-on]::after { translate: 1em 0; background: var(--lp-lime); }
+.lp-seg { display: flex; gap: 0.15em; padding: 0.2em; border-radius: 0.55em; background: var(--lp-ribbon); font-size: 0.85em; font-weight: 600; }
+.lp-seg b { padding: 0.3em 0.55em; border-radius: 0.4em; color: var(--lp-muted); }
+.lp-seg b[data-on] { background: #fff; color: var(--lp-ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.lp-share-pop-foot { font-size: 0.82em; color: var(--lp-faint); }
+
+/* ---- v2 lands, and the two versions side by side ------------------------ */
+.lp-film-toast {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 1.4em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.55em 1em;
+  border-radius: 99px;
+  background: var(--lp-ink);
+  color: #fff;
+  box-shadow: var(--lp-shadow-lg);
+  font-size: 0.88em;
+  font-weight: 600;
+  white-space: nowrap;
+  translate: -50% 0;
+  visibility: hidden;
+  opacity: 0;
+}
+.lp-toast-dot { width: 0.55em; height: 0.55em; border-radius: 50%; background: var(--lp-lime); }
+/* the quieter ones sit out of the way, bottom left */
+.lp-toast-slack,
+.lp-toast-remind { left: 1.4em; top: auto; bottom: 1.4em; translate: none; font-weight: 500; }
+.lp-toast-remind .lp-toast-dot { background: #f2b880; }
+
+/* a guest arriving on the link */
+.lp-film-guest { display: inline-flex; opacity: 0; }
+.lp-guest-chip {
+  position: absolute;
+  z-index: 8;
+  right: 1.2em;
+  top: 3.4em;
+  padding: 0.45em 0.9em;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(28 28 23 / 0.06), var(--lp-shadow);
+  font-size: 0.82em;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+}
+.lp-film-split { position: absolute; inset: 0; z-index: 6; --x: 100%; pointer-events: none; visibility: hidden; }
+.lp-film-split::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--x); background: rgb(28 28 23 / 0.06); }
+.lp-split-line { position: absolute; top: 0; bottom: 0; left: var(--x); width: 2px; margin-left: -1px; background: var(--lp-ink); }
+.lp-film-split b {
+  position: absolute;
+  bottom: 1.2em;
+  padding: 0.35em 0.8em;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: var(--lp-shadow);
+  font-size: 0.8em;
+  font-weight: 600;
+}
+.lp-split-v1 { left: calc(var(--x) - 3.4em); }
+.lp-split-v2 { left: calc(var(--x) + 1.2em); color: var(--lp-resolved); }
+
 .lp-film-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 24%; }
 .lp-film-canvas { position: relative; min-height: 0; overflow: hidden; background: var(--lp-sage); cursor: crosshair; }
 
@@ -522,12 +652,46 @@
   font-weight: 600;
 }
 .lp-rail-empty span { display: block; height: 4.6em; margin-bottom: 0.8em; border: 1px dashed var(--lp-line); border-radius: 0.8em; }
+/* the designer ticks the second comment off from the rail */
+.lp-rail-resolve {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.3em 0.7em;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px var(--lp-ink);
+  font-size: 0.8em;
+  font-weight: 600;
+}
+.lp-rail-all {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.35em 0.8em;
+  border-radius: 99px;
+  background: #e3f3ea;
+  color: var(--lp-resolved);
+  font-size: 0.8em;
+  font-weight: 600;
+  opacity: 0;
+}
+/* the button label the client asked to change */
+.lp-cta-label { display: grid; }
+.lp-cta-label > span { grid-area: 1 / 1; }
+.lp-cta-v2 { opacity: 0; }
+/* the page as a client on a phone sees it */
+.lp-site { transition: inset 0.55s var(--lp-ease); }
+.lp-site[data-view="mobile"] { inset: 2em 27% -1em; }
+.lp-site[data-view="mobile"] .lp-site-hero { grid-template-columns: 1fr; gap: 1.6em; }
+.lp-site[data-view="mobile"] .lp-site-links { display: none; }
 
 /* ---- Cursor and controls ------------------------------------------------ */
 .lp-cursor-track {
   position: absolute;
   inset: 0;
-  z-index: 6;
+  z-index: 10;
   pointer-events: none;
   transform: translate(78%, 108%);
 }
