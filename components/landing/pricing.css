@@ -149,5 +149,6 @@
   /* room under the list for the card that tucks over it */
   .lp-price-card[data-open] { padding-bottom: 52px; }
   .lp-price-card[data-open]:last-child { padding-bottom: 22px; }
-  .lp-price-foot { margin-top: 28px; }
+  /* clear of the last card, which tucks up over the one above it */
+  .lp-price-foot { margin-top: 56px; }
 }
