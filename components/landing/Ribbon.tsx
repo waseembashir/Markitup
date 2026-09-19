@@ -9,7 +9,22 @@ import { gsap, MOTION_OK, useGSAP } from "./gsap";
  * <section>, so inside a sticky frame it follows the whole tall section.
  * With reduced motion it is simply shown fully drawn.
  */
-export function Ribbon({ d, viewBox = "0 0 1440 900", className = "" }: { d: string; viewBox?: string; className?: string }) {
+export function Ribbon({
+  d,
+  viewBox = "0 0 1440 900",
+  className = "",
+  fit = "xMidYMid slice",
+  drift = 5,
+  end = "bottom 70%",
+}: {
+  d: string;
+  viewBox?: string;
+  className?: string;
+  fit?: string;
+  /** How far it slides against the page, in percent. 0 for a ribbon that spans several sections. */
+  drift?: number;
+  end?: string;
+}) {
   const ref = useRef<SVGSVGElement>(null);
 
   useGSAP(
@@ -17,21 +32,24 @@ export function Ribbon({ d, viewBox = "0 0 1440 900", className = "" }: { d: str
       const mm = gsap.matchMedia();
       mm.add(MOTION_OK, () => {
         const svg = ref.current!;
-        const trigger = svg.closest("section") ?? svg.parentElement!;
+        // A ribbon that runs across several sections is triggered by the run,
+        // not by whichever section it happens to sit in.
+        const trigger = svg.closest(".lp-flow") ?? svg.closest("section") ?? svg.parentElement!;
         gsap.fromTo(
           svg.querySelector("path"),
           { strokeDashoffset: 1 },
           {
             strokeDashoffset: 0,
             ease: "none",
-            scrollTrigger: { trigger, start: "top 80%", end: "bottom 70%", scrub: 0.8 },
+            scrollTrigger: { trigger, start: "top 85%", end, scrub: 0.8 },
           },
         );
+        if (!drift) return;
         gsap.fromTo(
           svg,
-          { yPercent: 5 },
+          { yPercent: drift },
           {
-            yPercent: -5,
+            yPercent: -drift,
             ease: "none",
             scrollTrigger: { trigger, start: "top bottom", end: "bottom top", scrub: true },
           },
@@ -42,7 +60,7 @@ export function Ribbon({ d, viewBox = "0 0 1440 900", className = "" }: { d: str
   );
 
   return (
-    <svg ref={ref} className={`lp-ribbon ${className}`} viewBox={viewBox} preserveAspectRatio="xMidYMid slice" aria-hidden>
+    <svg ref={ref} className={`lp-ribbon ${className}`} viewBox={viewBox} preserveAspectRatio={fit} aria-hidden>
       <path d={d} pathLength={1} />
     </svg>
   );

@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { gsap, MOTION_OK, useGSAP } from "./gsap";
 import { HOW } from "./content";
 import { HOW_ICONS } from "./icons";
-import { Ribbon } from "./Ribbon";
 
 /**
  * Draws the line work of every hand-drawn icon inside `scope` when it scrolls
@@ -49,7 +48,6 @@ export function HowItWorks() {
 
   return (
     <section ref={root} id="how" className="lp-how" aria-labelledby="lp-how-title">
-      <Ribbon d="M -120 700 C 220 520, 420 820, 720 640 C 1020 460, 1180 180, 1560 240" />
       <div className="lp-container relative">
         <div className="text-center">
           <p className="lp-eyebrow">How it works</p>

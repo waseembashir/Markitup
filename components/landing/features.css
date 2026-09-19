@@ -17,6 +17,12 @@
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
 }
+/* The ribbon that runs behind How it works, Features and Versions. It is
+   stretched over the whole run, so the stroke keeps its own width instead of
+   being squashed with the path. */
+.lp-flow { position: relative; }
+.lp-ribbon-flow path { vector-effect: non-scaling-stroke; stroke-width: 150px; }
+@media (max-width: 760px) { .lp-ribbon-flow path { stroke-width: 96px; } }
 
 /* ---- How it works + extras ---------------------------------------------- */
 .lp-how { position: relative; overflow: clip; padding: clamp(100px, 13vw, 170px) 0 clamp(90px, 11vw, 150px); }
@@ -292,6 +298,8 @@
   color: var(--lp-muted);
 }
 .lp-thread-stack .lp-bubble:nth-of-type(odd) { margin-left: auto; }
+/* the pill, the bubbles and the typing row otherwise sit flush together */
+.lp-thread-stack > * + * { margin-top: 12px; }
 .lp-live {
   display: inline-flex;
   align-self: flex-start;
@@ -364,8 +372,6 @@
   .lp-feat-stack { display: flex; flex-direction: column; gap: 96px; padding-block: 40px 24px; }
   .lp-feat-stack .lp-feat-title { margin-top: 14px; }
   .lp-feat-stack .lp-feat-card { position: relative; width: min(100%, 460px); aspect-ratio: 5 / 5.8; margin-top: 30px; }
-  /* the chat bubbles touched on a narrow card */
-  .lp-thread-stack > * + * { margin-top: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
