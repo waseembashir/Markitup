@@ -21,7 +21,11 @@
 /* The ribbon that runs behind How it works, Features and Versions. It is
    stretched over the whole run, so the stroke keeps its own width instead of
    being squashed with the path. */
-.lp-flow { position: relative; }
+/* `isolation` plus a negative z-index keeps the ribbon behind every section
+   in the run — without it the ribbon, being positioned, paints over headings,
+   which are not. */
+.lp-flow { position: relative; isolation: isolate; }
+.lp-ribbon-flow { z-index: -1; }
 .lp-ribbon-flow path { vector-effect: non-scaling-stroke; stroke-width: 150px; }
 /* Phones and tablets: a path drawn for a wide screen, squeezed into a narrow
    one, lands as a band across the text. No ribbon there. */
