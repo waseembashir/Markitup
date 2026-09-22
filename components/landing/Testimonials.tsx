@@ -13,11 +13,11 @@ import { Avatar } from "./Avatar";
 // inside the view (top, middle, lower), so the view is never empty: when the
 // section stops sticking they simply scroll away with it.
 const PATHS = [
-  { from: { x: "7vw", y: "58vh", rotate: -9 }, to: { x: "3vw", y: "-75vh", rotate: -2 } },
-  { from: { x: "56vw", y: "92vh", rotate: 7 }, to: { x: "61vw", y: "-60vh", rotate: -4 } },
-  { from: { x: "30vw", y: "140vh", rotate: -5 }, to: { x: "33vw", y: "2vh", rotate: 5 } },
-  { from: { x: "64vw", y: "185vh", rotate: 9 }, to: { x: "60vw", y: "30vh", rotate: 2 } },
-  { from: { x: "10vw", y: "225vh", rotate: 4 }, to: { x: "14vw", y: "52vh", rotate: -5 } },
+  { from: { x: "5vw", y: "52vh", rotate: -9 }, to: { x: "2vw", y: "-72vh", rotate: -2 } },
+  { from: { x: "52vw", y: "78vh", rotate: 7 }, to: { x: "56vw", y: "-54vh", rotate: -4 } },
+  { from: { x: "6vw", y: "108vh", rotate: -5 }, to: { x: "8vw", y: "6vh", rotate: 5 } },
+  { from: { x: "54vw", y: "134vh", rotate: 9 }, to: { x: "50vw", y: "24vh", rotate: 2 } },
+  { from: { x: "16vw", y: "166vh", rotate: 4 }, to: { x: "18vw", y: "52vh", rotate: -5 } },
 ];
 
 const Check = () => (
