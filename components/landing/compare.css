@@ -256,7 +256,7 @@
 .lp-ba-thread { display: flex; flex-direction: column; gap: 0.7em; padding: 0.85em; border: 1px solid var(--lp-line); border-radius: 0.8em; }
 .lp-ba-who { display: flex; align-items: center; gap: 0.4em; font-size: 0.85em; font-weight: 600; }
 .lp-ba-who span:not(.lp-pin) { font-weight: 400; color: var(--lp-faint); }
-.lp-ba-who .lp-pin { font-size: 0.8em; }
+.lp-ba-who .lp-pin { order: 9; margin-left: auto; font-size: 0.8em; }
 .lp-ba-who .lp-avatar { width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--lp-sage); }
 .lp-ba-msg > p:last-child { margin-top: 0.25em; }
 .lp-ba-msg + .lp-ba-msg { padding-top: 0.7em; border-top: 1px solid var(--lp-line); }
@@ -275,7 +275,7 @@
 
 .lp-ba-earlier-head { margin-top: auto; font-size: 0.75em; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); }
 .lp-ba-earlier { display: flex; align-items: center; gap: 0.5em; font-size: 0.85em; color: var(--lp-muted); }
-.lp-ba-earlier .lp-pin { font-size: 0.8em; }
+.lp-ba-earlier .lp-pin { order: 9; margin-left: auto; font-size: 0.8em; }
 
 /* ---- Portrait screens: the mess rearranged, the panel stacked ----------- */
 @media (max-aspect-ratio: 1 / 1) {

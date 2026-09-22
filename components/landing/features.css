@@ -348,7 +348,7 @@
 .lp-resolve-bar i { display: block; height: 100%; background: var(--lp-resolved); transform: scaleX(0); transform-origin: left; transition: transform 1.1s var(--lp-ease) 0.5s; }
 .lp-scene[data-active="true"] .lp-resolve-bar i { transform: scaleX(1); }
 .lp-resolve-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: #fff; box-shadow: var(--lp-shadow); font-size: 15px; }
-.lp-resolve-item .lp-pin { font-size: 13px; }
+.lp-resolve-item .lp-pin { order: 9; margin-left: 10px; font-size: 13px; }
 .lp-resolve-item .lp-avatar { width: 26px; height: 26px; margin-left: auto; border-radius: 50%; background: var(--lp-sage); }
 .lp-resolve-note { margin-top: 8px; text-align: center; font-family: var(--font-serif), serif; font-size: 24px; font-style: italic; }
 

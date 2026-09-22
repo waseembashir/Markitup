@@ -57,7 +57,8 @@
 .lp-hw-who .lp-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--lp-sage); }
 .lp-hw-who b { font-weight: 600; }
 .lp-hw-who span:last-child { color: var(--lp-faint); }
-.lp-hw-who .lp-pin { font-size: 11px; }
+/* the comment's number belongs at the end of the row, not in front of the name */
+.lp-hw-who .lp-pin { order: 9; margin-left: auto; font-size: 11px; }
 
 /* someone commenting (and then the visitor) */
 .lp-hw-field { display: flex; gap: 6px; margin-top: 10px; }
@@ -633,7 +634,7 @@
   opacity: 0;
 }
 .lp-rail-top { display: flex; align-items: center; gap: 0.45em; }
-.lp-rail-top .lp-pin { font-size: 0.72em; }
+.lp-rail-top .lp-pin { order: 9; margin-left: 0.5em; font-size: 0.72em; }
 .lp-rail-top .lp-avatar { width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--lp-sage); }
 .lp-rail-top b { font-weight: 600; }
 .lp-rail-top .lp-tnum { margin-left: auto; font-size: 0.8em; color: var(--lp-faint); }
