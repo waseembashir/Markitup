@@ -149,12 +149,14 @@ export function AuthShell({
         className={`as-panel relative hidden w-[58%] flex-col justify-between overflow-hidden p-12 text-white lg:flex ${serif.variable}`}
         style={{ background: "hsl(60 5% 11%)" }}
       >
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex w-fit items-center gap-2.5" aria-label="MarkItUp home">
           <Mark className="h-8 w-7" />
           <span className="text-lg font-bold tracking-tight">MarkItUp</span>
-        </div>
+        </Link>
 
-        <div className="relative">
+        {/* centred in the panel: left-aligned, it left a wide empty strip
+            between the scene and the form */}
+        <div className="relative mx-auto w-fit">
           <ReviewScene />
 
           <h2 className="as-title">
@@ -172,10 +174,10 @@ export function AuthShell({
       {/* form */}
       <section className="flex w-full flex-col justify-center px-6 py-12 lg:w-[42%]">
         <div className="mx-auto w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+          <Link href="/" className="mb-8 flex w-fit items-center gap-2.5 lg:hidden" aria-label="MarkItUp home">
             <Mark className="h-8 w-7" />
             <span className="text-lg font-bold tracking-tight text-ink">MarkItUp</span>
-          </div>
+          </Link>
 
           <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
           <p className="mt-2 text-sm text-muted">{subtitle}</p>

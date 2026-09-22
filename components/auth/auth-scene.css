@@ -19,7 +19,7 @@
   height: 26em;
   /* fits the panel's width (58vw less its padding), and on short screens
      leaves room for the copy */
-  font-size: clamp(9px, min((58vw - 96px) / 40, (100svh - 420px) / 26), 20px);
+  font-size: clamp(9px, min((58vw - 96px) / 40, (100svh - 420px) / 26), 24px);
   line-height: 1.35;
   color: var(--as-ink);
 }
