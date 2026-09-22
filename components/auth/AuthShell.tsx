@@ -146,10 +146,10 @@ export function AuthShell({
     <main className="flex min-h-screen">
       {/* brand panel */}
       <section
-        className={`as-panel relative hidden w-[58%] flex-col justify-between overflow-hidden p-12 text-white lg:flex ${serif.variable}`}
+        className={`as-panel relative hidden w-[58%] flex-col justify-center overflow-hidden p-12 text-white lg:flex ${serif.variable}`}
         style={{ background: "hsl(60 5% 11%)" }}
       >
-        <Link href="/" className="flex w-fit items-center gap-2.5" aria-label="MarkItUp home">
+        <Link href="/" className="absolute top-12 left-12 flex w-fit items-center gap-2.5" aria-label="MarkItUp home">
           <Mark className="h-8 w-7" />
           <span className="text-lg font-bold tracking-tight">MarkItUp</span>
         </Link>
@@ -167,8 +167,6 @@ export function AuthShell({
             the design. No more guessing which button they meant.
           </p>
         </div>
-
-        <p className="text-sm text-white/60">Apexure · Visual review, done right.</p>
       </section>
 
       {/* form */}
