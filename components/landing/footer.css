@@ -86,6 +86,15 @@
 .lp-wm-letter { display: inline-block; transition: transform 0.5s var(--lp-ease); }
 .lp-wm-letter:hover { transform: translateY(-0.06em) rotate(-3deg); }
 .lp-wm-rise { display: inline-block; }
+/* The wordmark's pins are part of the brand lockup, so they keep the brand
+   colour even though the pins inside the product graphics are ink. */
+.lp-wm-pin,
+.lp-wm-dropped .lp-pin {
+  background: var(--lp-lime);
+  color: var(--lp-lime-ink);
+  box-shadow: inset 0 0 0 1.5px var(--lp-ink), 0 6px 14px -6px rgb(28 28 23 / 0.45);
+}
+.lp-wm-pin[data-resolved="true"] { background: var(--lp-resolved); color: #fff; }
 .lp-wm-pin { position: absolute; z-index: 1; font-size: clamp(14px, 1.7vw, 24px); translate: 0 -100%; }
 .lp-wm-dropped { position: absolute; z-index: 2; display: flex; align-items: flex-end; gap: 6px; translate: 0 -100%; pointer-events: none; }
 .lp-wm-dropped .lp-pin { font-size: clamp(13px, 1.4vw, 19px); transform-origin: 0 100%; animation: lp-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
