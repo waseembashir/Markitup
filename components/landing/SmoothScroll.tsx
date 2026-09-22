@@ -12,6 +12,13 @@ export function scrollToY(y: number) {
   else window.scrollTo({ top: y, behavior: "smooth" });
 }
 
+/** Holds the page still while something covers it, such as the mobile menu. */
+export function holdScroll(hold: boolean) {
+  if (hold) instance?.stop();
+  else instance?.start();
+  document.documentElement.classList.toggle("lp-hold-scroll", hold);
+}
+
 // Weighted, smoothed scrolling for the landing page only. Lenis is driven from
 // GSAP's ticker so ScrollTrigger reads the same scroll position Lenis paints,
 // which keeps scrubbed animations from jittering against the page.
