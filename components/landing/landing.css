@@ -181,15 +181,17 @@ a:hover > .lp-mark .lp-mark-pin { animation: lp-mark-hop 0.6s cubic-bezier(0.34,
 @media (prefers-reduced-motion: reduce) { .lp-mark-pin { animation: none !important; } }
 
 /* ---- Pins (shared by the film, features, versions and quotes) --------- */
+/* Ink, not lime: the brand colour is kept for the page's own calls to
+   action, so the product UI inside the graphics reads in black. */
 .lp-pin {
   display: grid;
   place-items: center;
   width: 2em;
   height: 2em;
   border-radius: 999px 999px 999px 4px;
-  background: var(--lp-lime);
-  color: var(--lp-lime-ink);
-  box-shadow: inset 0 0 0 1.5px var(--lp-ink), 0 6px 14px -6px rgb(28 28 23 / 0.45);
+  background: var(--lp-ink);
+  color: #fff;
+  box-shadow: 0 6px 14px -6px rgb(28 28 23 / 0.45);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   line-height: 1;

@@ -260,9 +260,9 @@
   top: 60%;
   width: 44%;
   height: 32%;
-  border: 2px solid var(--lp-lime);
+  border: 2px solid var(--lp-ink);
   border-radius: 10px;
-  background: rgb(197 240 74 / 0.22);
+  background: rgb(28 28 23 / 0.08);
 }
 
 .lp-bubble { max-width: 94%; padding: 12px 14px; border-radius: 16px; background: #fff; box-shadow: var(--lp-shadow); }
@@ -270,7 +270,7 @@
 .lp-bubble-name span { color: var(--lp-faint); font-weight: 400; }
 .lp-bubble-name .lp-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--lp-sage); }
 .lp-bubble-body { font-size: 15px; line-height: 1.45; }
-.lp-mention { padding: 0 4px; border-radius: 4px; background: rgb(197 240 74 / 0.55); font-weight: 600; }
+.lp-mention { padding: 0 4px; border-radius: 4px; background: rgb(28 28 23 / 0.1); font-weight: 600; }
 .lp-attach {
   display: flex;
   align-items: center;
@@ -327,9 +327,8 @@
   gap: 4px;
   padding: 6px 10px;
   border-radius: 9px;
-  background: var(--lp-lime);
-  box-shadow: inset 0 0 0 1px var(--lp-ink);
-  color: var(--lp-lime-ink);
+  background: var(--lp-ink);
+  color: #fff;
   font-size: 12px;
   font-weight: 600;
 }
@@ -337,7 +336,7 @@
 .lp-toggle { position: relative; flex: none; width: 36px; height: 21px; border-radius: 99px; background: #d9d7c9; }
 .lp-toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 50%; background: #fff; }
 .lp-toggle[data-on] { background: var(--lp-ink); }
-.lp-toggle[data-on]::after { translate: 15px 0; background: var(--lp-lime); }
+.lp-toggle[data-on]::after { translate: 15px 0; background: #fff; }
 .lp-share-chips { display: flex; gap: 4px; }
 .lp-share-chips b { padding: 4px 9px; border-radius: 99px; background: var(--lp-sage); font-size: 12px; font-weight: 600; }
 
