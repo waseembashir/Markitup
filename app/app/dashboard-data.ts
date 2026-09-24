@@ -174,6 +174,60 @@ export async function getActivityData(supabase: SupabaseClient<any>, projectIds:
   return { viewersByProject, recent };
 }
 
+export type FeedbackRow = {
+  projectId: string;
+  files: number;
+  threads: number;
+  openThreads: number;
+  comments: number;
+  sharedAt: string | null;
+  clientViewers: number;
+  lastClientView: string | null;
+  lastClientComment: string | null;
+  recipientEmail: string | null;
+  recipientName: string | null;
+  remindersSent: number;
+  lastReminderAt: string | null;
+  latestMockupId: string | null;
+};
+
+// One row per project for the dashboard's table: the counts, who outside the
+// team has looked, and the last reminder that went out. See
+// 0042_project_feedback_rows.sql.
+export async function getFeedbackRows(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any>,
+  projectIds: string[],
+) {
+  const map = new Map<string, FeedbackRow>();
+  if (!projectIds.length) return map;
+
+  const { data, error } = await supabase.rpc("project_feedback_rows", { p: projectIds });
+  // The table is an addition to a working dashboard: if the function isn't
+  // there yet, the page still renders with the counts it already had.
+  if (error) return map;
+
+  for (const r of (data ?? []) as Record<string, unknown>[]) {
+    map.set(r.project_id as string, {
+      projectId: r.project_id as string,
+      files: (r.files as number) ?? 0,
+      threads: (r.threads as number) ?? 0,
+      openThreads: (r.open_threads as number) ?? 0,
+      comments: (r.comments as number) ?? 0,
+      sharedAt: (r.shared_at as string) ?? null,
+      clientViewers: (r.client_viewers as number) ?? 0,
+      lastClientView: (r.last_client_view as string) ?? null,
+      lastClientComment: (r.last_client_comment as string) ?? null,
+      recipientEmail: (r.recipient_email as string) ?? null,
+      recipientName: (r.recipient_name as string) ?? null,
+      remindersSent: (r.reminders_sent as number) ?? 0,
+      lastReminderAt: (r.last_reminder_at as string) ?? null,
+      latestMockupId: (r.latest_mockup_id as string) ?? null,
+    });
+  }
+  return map;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getWorkspaceStats(supabase: SupabaseClient<any>, projectIds: string[]) {
   const map = new Map<string, ProjectStats>();

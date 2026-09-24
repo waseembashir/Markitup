@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "./actions";
-import { getProjectItems } from "./dashboard-data";
+import { getProjectItems, getFeedbackRows } from "./dashboard-data";
 import { plural, emailLocalPart } from "@/lib/format";
 import { ProjectGrid } from "@/components/app/ProjectGrid";
+import { ProjectTable, type TableRow } from "@/components/app/ProjectTable";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
 
@@ -30,6 +31,13 @@ export default async function DashboardPage() {
   const openComments = Math.max(0, totalThreads - totalResolved);
 
   const recentProjects = items.slice(0, 6);
+  const feedback = await getFeedbackRows(supabase, recentProjects.map((p) => p.id));
+  const tableRows: TableRow[] = recentProjects
+    .map((p) => {
+      const row = feedback.get(p.id);
+      return row ? { ...row, name: p.name } : null;
+    })
+    .filter((r): r is TableRow => r !== null);
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-8">
@@ -58,6 +66,16 @@ export default async function DashboardPage() {
             <StatTile label="Open comments" value={openComments} accent={openComments > 0 ? "var(--color-brand)" : undefined} />
             <StatTile label="Resolved" value={totalResolved} accent={totalResolved > 0 ? "var(--color-success)" : undefined} />
           </div>
+
+          {tableRows.length > 0 && (
+            <div className="mb-10">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-bold text-ink">Where each project stands</h2>
+                <p className="text-xs text-muted">Client activity, open threads and reminders</p>
+              </div>
+              <ProjectTable rows={tableRows} />
+            </div>
+          )}
 
           <div>
             <div className="mb-4 flex items-center justify-between">
