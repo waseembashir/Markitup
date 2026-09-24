@@ -39,11 +39,12 @@ type Target = {
   token: string | null;
 };
 
-// The file a reminder should point at: the newest one in the project that has
-// been shared, else simply the newest.
+// The file a reminder should point at: the one asked for by id, else the
+// newest in the project that has been shared, else simply the newest.
 async function targetFor(
   supabase: Awaited<ReturnType<typeof createServerSupabase>>,
   projectId: string,
+  mockupId?: string | null,
 ): Promise<Target | null> {
   const { data: proj } = await supabase
     .from("projects")
@@ -64,7 +65,10 @@ async function targetFor(
   const ids = mockups.map((m) => m.id as string);
   const { data: links } = await supabase.from("share_links").select("mockup_id, token").in("mockup_id", ids);
   const tokenOf = new Map((links ?? []).map((l) => [l.mockup_id as string, l.token as string]));
-  const shared = mockups.find((m) => tokenOf.has(m.id as string)) ?? mockups[0];
+  // An id that isn't in this project is ignored rather than trusted — the
+  // caller is a browser, and a reminder must point inside the project it names.
+  const asked = mockupId ? mockups.find((m) => m.id === mockupId) : null;
+  const shared = asked ?? mockups.find((m) => tokenOf.has(m.id as string)) ?? mockups[0];
 
   return {
     workspaceId: proj.workspace_id as string,
@@ -84,7 +88,7 @@ async function settingsFor(
 }
 
 /** What this project's reminder would say, and who it would go to. */
-export async function getNudgePreview(projectId: string): Promise<NudgePreview> {
+export async function getNudgePreview(projectId: string, mockupId?: string | null): Promise<NudgePreview> {
   const supabase = await createServerSupabase();
   const { data: userData } = await supabase.auth.getUser();
   const sender =
@@ -105,7 +109,7 @@ export async function getNudgePreview(projectId: string): Promise<NudgePreview> 
     autoOff: true,
   };
 
-  const target = await targetFor(supabase, projectId);
+  const target = await targetFor(supabase, projectId, mockupId);
   if (!target) return { ...empty, blocked: "This project has no files yet, so there is nothing to remind anyone about." };
 
   const settings = await settingsFor(supabase, target.workspaceId);
@@ -140,7 +144,7 @@ export async function getNudgePreview(projectId: string): Promise<NudgePreview> 
  * is made public first, because a reminder that lands on a locked file is
  * worse than no reminder at all.
  */
-export async function sendNudge(projectId: string, email: string, name?: string) {
+export async function sendNudge(projectId: string, email: string, name?: string, mockupId?: string | null) {
   const clean = email.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) return { error: "Enter a valid email address" };
 
@@ -149,7 +153,7 @@ export async function sendNudge(projectId: string, email: string, name?: string)
   const userId = userData.user?.id;
   if (!userId) return { error: "Sign in again to send this" };
 
-  const target = await targetFor(supabase, projectId);
+  const target = await targetFor(supabase, projectId, mockupId);
   if (!target) return { error: "This project has no files to point at" };
 
   const ws = await getCurrentWorkspace();

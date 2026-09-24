@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "./actions";
-import { getProjectItems, getFeedbackRows } from "./dashboard-data";
+import { getProjectItems, getFeedbackRows, getFileRows, mergeViewers } from "./dashboard-data";
 import { plural, emailLocalPart } from "@/lib/format";
 import { ProjectGrid } from "@/components/app/ProjectGrid";
 import { ProjectTable, type TableRow } from "@/components/app/ProjectTable";
@@ -31,11 +31,18 @@ export default async function DashboardPage() {
   const openComments = Math.max(0, totalThreads - totalResolved);
 
   const recentProjects = items.slice(0, 6);
-  const feedback = await getFeedbackRows(supabase, recentProjects.map((p) => p.id));
-  const tableRows: TableRow[] = recentProjects
+  const tableProjects = items.slice(0, 8);
+  const tableIds = tableProjects.map((p) => p.id);
+  const [feedback, filesByProject] = await Promise.all([
+    getFeedbackRows(supabase, tableIds),
+    getFileRows(supabase, tableIds),
+  ]);
+  const tableRows: TableRow[] = tableProjects
     .map((p) => {
       const row = feedback.get(p.id);
-      return row ? { ...row, name: p.name } : null;
+      if (!row) return null;
+      const fileRows = filesByProject.get(p.id) ?? [];
+      return { ...row, name: p.name, fileRows, viewers: mergeViewers(fileRows) };
     })
     .filter((r): r is TableRow => r !== null);
 
@@ -71,7 +78,6 @@ export default async function DashboardPage() {
             <div className="mb-10">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-bold text-ink">Where each project stands</h2>
-                <p className="text-xs text-muted">Client activity, open threads and reminders</p>
               </div>
               <ProjectTable rows={tableRows} />
             </div>

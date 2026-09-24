@@ -228,6 +228,89 @@ export async function getFeedbackRows(
   return map;
 }
 
+/** Someone outside the team who opened a file — enough to draw a face. */
+export type ViewerFace = { name: string; email: string };
+
+export type FileRow = {
+  mockupId: string;
+  projectId: string;
+  name: string;
+  createdAt: string | null;
+  threads: number;
+  openThreads: number;
+  comments: number;
+  sharedAt: string | null;
+  clientViewers: number;
+  lastClientView: string | null;
+  lastClientComment: string | null;
+  recipientEmail: string | null;
+  recipientName: string | null;
+  remindersSent: number;
+  lastReminderAt: string | null;
+  viewers: ViewerFace[];
+};
+
+// The same row, one level down: a project's files, newest first, so the table
+// can open a project that holds more than one. See 0043_file_feedback_rows.sql.
+export async function getFileRows(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any>,
+  projectIds: string[],
+) {
+  const map = new Map<string, FileRow[]>();
+  if (!projectIds.length) return map;
+
+  const { data, error } = await supabase.rpc("mockup_feedback_rows", { p: projectIds });
+  // Same bargain as getFeedbackRows: without the function the table still
+  // renders, one row per project, with no files underneath.
+  if (error) return map;
+
+  for (const r of (data ?? []) as Record<string, unknown>[]) {
+    const raw = Array.isArray(r.viewers) ? (r.viewers as { name?: string; email?: string }[]) : [];
+    const row: FileRow = {
+      mockupId: r.mockup_id as string,
+      projectId: r.project_id as string,
+      name: (r.name as string) ?? "Untitled",
+      createdAt: (r.created_at as string) ?? null,
+      threads: (r.threads as number) ?? 0,
+      openThreads: (r.open_threads as number) ?? 0,
+      comments: (r.comments as number) ?? 0,
+      sharedAt: (r.shared_at as string) ?? null,
+      clientViewers: (r.client_viewers as number) ?? 0,
+      lastClientView: (r.last_client_view as string) ?? null,
+      lastClientComment: (r.last_client_comment as string) ?? null,
+      recipientEmail: (r.recipient_email as string) ?? null,
+      recipientName: (r.recipient_name as string) ?? null,
+      remindersSent: (r.reminders_sent as number) ?? 0,
+      lastReminderAt: (r.last_reminder_at as string) ?? null,
+      viewers: raw.map((v) => ({ name: v?.name ?? "", email: v?.email ?? "" })),
+    };
+    const list = map.get(row.projectId);
+    if (list) list.push(row);
+    else map.set(row.projectId, [row]);
+  }
+  return map;
+}
+
+/** The faces from a project's files, most recent visit first, each person once. */
+export function mergeViewers(files: FileRow[], limit = 5): ViewerFace[] {
+  const seen = new Set<string>();
+  const out: ViewerFace[] = [];
+  const ordered = [...files].sort(
+    (a, b) => new Date(b.lastClientView ?? 0).getTime() - new Date(a.lastClientView ?? 0).getTime(),
+  );
+  for (const f of ordered) {
+    for (const v of f.viewers) {
+      const key = (v.email || v.name).toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(v);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getWorkspaceStats(supabase: SupabaseClient<any>, projectIds: string[]) {
   const map = new Map<string, ProjectStats>();

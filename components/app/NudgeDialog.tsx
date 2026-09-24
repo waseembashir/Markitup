@@ -11,7 +11,16 @@ import { timeAgo } from "@/lib/format";
  * "Remind" on a dashboard row: opens the exact email that will go out, with
  * the address it will go to, so nobody sends a nudge blind.
  */
-export function NudgeDialog({ projectId, projectName }: { projectId: string; projectName: string }) {
+export function NudgeDialog({
+  projectId,
+  projectName,
+  mockupId,
+}: {
+  projectId: string;
+  projectName: string;
+  /** Remind about this file rather than the project's newest shared one. */
+  mockupId?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<NudgePreview | null>(null);
   const [email, setEmail] = useState("");
@@ -23,7 +32,7 @@ export function NudgeDialog({ projectId, projectName }: { projectId: string; pro
   useEffect(() => {
     if (!open) return;
     let alive = true;
-    getNudgePreview(projectId)
+    getNudgePreview(projectId, mockupId)
       .then((p) => {
         if (!alive) return;
         setPreview(p);
@@ -33,13 +42,13 @@ export function NudgeDialog({ projectId, projectName }: { projectId: string; pro
     return () => {
       alive = false;
     };
-  }, [open, projectId]);
+  }, [open, projectId, mockupId]);
 
   function send(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !preview) return;
     start(async () => {
-      const res = await sendNudge(projectId, email, preview.recipientName);
+      const res = await sendNudge(projectId, email, preview.recipientName, mockupId);
       if (res?.error) {
         toast.error(res.error);
         return;
