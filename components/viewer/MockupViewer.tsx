@@ -15,6 +15,8 @@ import { timeAgo, htmlToText } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
 import { Avatar } from "@/components/app/AppSidebar";
 import { ClientViewsMenu } from "./ClientViewsMenu";
+import { ViewerMenu, MenuGroup } from "./ViewerMenu";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 export type ViewerComment = {
   id: string;
@@ -245,6 +247,12 @@ export function MockupViewer({
   // Someone else commenting on this file updates it here, without a reload.
   useLivePins(mockupId, setPins);
   const [railOpen, setRailOpen] = useState(true);
+  // On a phone the screen belongs to the design: the comments come up as a
+  // sheet over it, and everything but the two tab groups lives behind a menu.
+  const compact = useMediaQuery("(max-width: 767px)");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const railShown = compact ? sheetOpen : railOpen;
+  const closeRail = () => (compact ? setSheetOpen(false) : setRailOpen(false));
   const toast = useToast();
   const [htmlHeight, setHtmlHeight] = useState(0);
   const [htmlScrollY, setHtmlScrollY] = useState(0);
@@ -296,12 +304,17 @@ export function MockupViewer({
   // whole viewer on every mousemove, which is what made resizing feel heavy.
   // Re-runs when the rail is reopened, since it remounts at the default width.
   useEffect(() => {
-    if (!railOpen || !railRef.current) return;
+    if (!railShown || !railRef.current) return;
+    // As a sheet it fills the width; a pixel width would fight that.
+    if (compact) {
+      railRef.current.style.width = "";
+      return;
+    }
     const saved = Number(localStorage.getItem("markitup-rail-width"));
     const w = saved >= RAIL_MIN && saved <= RAIL_MAX ? saved : RAIL_DEFAULT;
     railWidthRef.current = w;
     railRef.current.style.width = `${w}px`;
-  }, [railOpen]);
+  }, [railShown, compact]);
 
   function startRailResize(e: React.MouseEvent) {
     e.preventDefault();
@@ -893,12 +906,120 @@ export function MockupViewer({
     </>
   );
 
+  // The two switches worth a permanent place on a phone: what your finger does
+  // to the page, and which layout you are looking at.
+  const tabStyle = (on: boolean) =>
+    on ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" };
+  const browseTabs = (
+    <div className="flex shrink-0 overflow-hidden rounded-md border">
+      <button
+        type="button"
+        onClick={() => setHtmlMode("browse")}
+        aria-pressed={htmlMode === "browse"}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
+        style={tabStyle(htmlMode === "browse")}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.7" /></svg>
+        Browse
+      </button>
+      <button
+        type="button"
+        onClick={() => setHtmlMode("comment")}
+        aria-pressed={htmlMode === "comment"}
+        className="flex items-center gap-1.5 border-l px-3 py-1.5 text-xs font-semibold transition-colors"
+        style={tabStyle(htmlMode === "comment")}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 5h16v10H9l-5 4V5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+        Comment
+      </button>
+    </div>
+  );
+  const deviceTabs = (
+    <div className="flex shrink-0 overflow-hidden rounded-md border">
+      <button
+        onClick={() => switchDevice("desktop")}
+        aria-label="Desktop view"
+        aria-pressed={device === "desktop"}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
+        style={tabStyle(device === "desktop")}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <rect x="3" y="4" width="18" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M9 20h6M12 16v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+        Desktop
+      </button>
+      <button
+        onClick={() => switchDevice("mobile")}
+        aria-label="Mobile view"
+        aria-pressed={device === "mobile"}
+        className="flex items-center gap-1.5 border-l px-3 py-1.5 text-xs font-semibold transition-colors"
+        style={tabStyle(device === "mobile")}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M11 18h2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+        Mobile
+      </button>
+    </div>
+  );
+
   return (
     <div className="flex h-full flex-col">
       {/* single top bar: title | pagination | zoom + actions */}
       <header className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {!railOpen && (
+          {compact && (
+          <ViewerMenu>
+            {(close) => (
+              <>
+                {actionsSlot && <div className="flex flex-wrap items-center gap-2">{actionsSlot}</div>}
+                {canManage && (
+                  <MenuGroup label="Clients see">
+                    <ClientViewsMenu mockupId={mockupId} devices={clientDevices} onChange={setClientDevices} />
+                  </MenuGroup>
+                )}
+                <MenuGroup label="Zoom">
+                  {ZOOM_OPTIONS.map((o) => {
+                    const on = o.value.mode === zoom.mode && (o.value.mode !== "percent" || o.value.pct === zoom.pct);
+                    return (
+                      <button
+                        key={o.label}
+                        onClick={() => { setZoom(o.value); close(); }}
+                        className={on ? "btn-primary btn-sm" : "btn-secondary btn-sm"}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                  <button className="btn-secondary btn-sm" onClick={() => { toggleFullscreen(); close(); }}>
+                    Fullscreen
+                  </button>
+                </MenuGroup>
+                {siblings.length > 1 && (
+                  <MenuGroup label={"File " + (idx >= 0 ? idx + 1 : 1) + " of " + siblings.length}>
+                    {prev ? (
+                      <Link href={"/app/mockups/" + prev.id} className="btn-secondary btn-sm flex-1 justify-center">
+                        Previous
+                      </Link>
+                    ) : (
+                      <span className="btn-secondary btn-sm pointer-events-none flex-1 justify-center opacity-40">Previous</span>
+                    )}
+                    {next ? (
+                      <Link href={"/app/mockups/" + next.id} className="btn-secondary btn-sm flex-1 justify-center">
+                        Next
+                      </Link>
+                    ) : (
+                      <span className="btn-secondary btn-sm pointer-events-none flex-1 justify-center opacity-40">Next</span>
+                    )}
+                  </MenuGroup>
+                )}
+              </>
+            )}
+          </ViewerMenu>
+          )}
+          {!compact && !railOpen && (
             <button
               type="button"
               onClick={() => setRailOpen(true)}
@@ -913,31 +1034,11 @@ export function MockupViewer({
             </button>
           )}
           <div className="flex min-w-0 items-center gap-2">{titleSlot}</div>
-          {isHtml && (
-            <div className="ml-1 hidden shrink-0 overflow-hidden rounded-md border sm:flex">
-              <button
-                type="button"
-                onClick={() => setHtmlMode("browse")}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold transition-colors"
-                style={htmlMode === "browse" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.7" /></svg>
-                Browse
-              </button>
-              <button
-                type="button"
-                onClick={() => setHtmlMode("comment")}
-                className="flex items-center gap-1.5 border-l px-2.5 py-1 text-xs font-semibold transition-colors"
-                style={htmlMode === "comment" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 5h16v10H9l-5 4V5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
-                Comment
-              </button>
-            </div>
-          )}
+          {isHtml && !compact && <div className="ml-1">{browseTabs}</div>}
         </div>
 
         {/* pagination (center) */}
+        {!compact && (
         <div className="flex shrink-0 items-center gap-1">
           {prev ? (
             <Link href={`/app/mockups/${prev.id}`} className="btn-secondary btn-sm gap-1">
@@ -964,7 +1065,10 @@ export function MockupViewer({
           )}
         </div>
 
+        )}
+
         {/* zoom + actions + page-supplied actions (right) */}
+        {!compact && (
         <div className="flex flex-1 items-center justify-end gap-1">
           {/* device preview toggle */}
           {canManage && (
@@ -973,34 +1077,7 @@ export function MockupViewer({
             </div>
           )}
           {/* A single view has nothing to toggle between, so no toggle. */}
-          {availableDevices.length > 1 && (
-          <div className="mr-1 hidden overflow-hidden rounded-md border md:flex">
-            <button
-              onClick={() => switchDevice("desktop")}
-              title="Desktop view"
-              aria-label="Desktop view"
-              className="grid h-7 w-7 place-items-center transition-colors"
-              style={device === "desktop" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <rect x="3" y="4" width="18" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
-                <path d="M9 20h6M12 16v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-              </svg>
-            </button>
-            <button
-              onClick={() => switchDevice("mobile")}
-              title="Mobile view"
-              aria-label="Mobile view"
-              className="grid h-7 w-7 place-items-center border-l transition-colors"
-              style={device === "mobile" ? { background: "var(--primary)", color: "var(--primary-foreground)" } : { color: "var(--muted-foreground)" }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" strokeWidth="1.7" />
-                <path d="M11 18h2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-          )}
+          {availableDevices.length > 1 && !compact && <div className="mr-1">{deviceTabs}</div>}
           <span className="mr-1 hidden font-mono text-xs text-faint lg:inline">{shownPct ? `${shownPct}%` : ""}</span>
           <div className="relative">
             <button onClick={() => setZoomOpen((o) => !o)} className="btn-secondary btn-sm gap-2">
@@ -1032,14 +1109,40 @@ export function MockupViewer({
           {actionsSlot && <div className="mx-1 h-5 w-px shrink-0 bg-border" />}
           {actionsSlot}
         </div>
+        )}
+        {/* phone: the comments live behind this, as a sheet */}
+        {compact && (
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className="btn-secondary btn-sm shrink-0 gap-1.5"
+          aria-label="Show comments"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M4 5h16v10H9l-5 4V5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+          </svg>
+          {pins.length}
+        </button>
+        )}
       </header>
+
+      {compact && (isHtml || availableDevices.length > 1) && (
+        <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b bg-surface px-3">
+          {isHtml ? browseTabs : <span />}
+          {availableDevices.length > 1 && deviceTabs}
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1">
       {/* comment rail (resizable, collapsible) */}
-      {railOpen && (
+      {railShown && (
       <aside
         ref={railRef}
-        className="relative flex w-[280px] shrink-0 flex-col border-r bg-surface"
+        className={
+          compact
+            ? "fixed inset-x-0 bottom-0 z-[200] flex max-h-[82vh] flex-col rounded-t-2xl border-t bg-surface shadow-lg"
+            : "relative flex w-[280px] shrink-0 flex-col border-r bg-surface"
+        }
       >
         {(
           <>
@@ -1084,7 +1187,7 @@ export function MockupViewer({
                     </svg>
                   </ToolbarButton>
                   {/* hide the comments panel */}
-                  <ToolbarButton label="Hide comments" onClick={() => setRailOpen(false)}>
+                  <ToolbarButton label="Hide comments" onClick={closeRail}>
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
                       <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
                       <path d="M9 4v16" stroke="currentColor" strokeWidth="1.7" />

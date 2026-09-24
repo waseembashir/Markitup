@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./test/setup.ts"],
     exclude: ["**/node_modules/**", "**/e2e/**"],
     // The default 5s timeout is kept on purpose. Email tests intermittently
     // timed out, and the timeout was briefly raised to 20s on the theory that a
