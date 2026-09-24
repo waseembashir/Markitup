@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { commentNotification } from "@/lib/email/templates";
-import { workspaceSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
+import { workspaceSlackWebhook, mockupSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
 import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
 import { loadViewerPins } from "./pins-data";
 import { reportError } from "@/lib/observability";
@@ -131,7 +131,13 @@ export async function addComment(
       // the burst; the rest are counted and announced once it goes quiet, so a
       // client working through a page doesn't produce a dozen notifications.
       if (workspaceId && projectId) {
-        const webhook = await workspaceSlackWebhook(supabase, workspaceId);
+        // Ask as whoever is commenting. A client is not a workspace member,
+        // so the plain table read finds nothing for them; the fallback keeps
+        // teammates' comments working on a deployment whose database has not
+        // got 0044 yet.
+        const webhook =
+          (await mockupSlackWebhook(supabase, mockupId)) ??
+          (await workspaceSlackWebhook(supabase, workspaceId));
         if (webhook) {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

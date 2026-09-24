@@ -25,6 +25,32 @@ export async function workspaceSlackWebhook(
   }
 }
 
+/**
+ * The same webhook, asked for as whoever is commenting.
+ *
+ * workspaceSlackWebhook() reads the table directly, which only a workspace
+ * MEMBER may do. Clients comment through share links and are not members, so
+ * for them that read came back empty and their comments — the ones the channel
+ * exists for — were never announced. This goes through a security-definer
+ * function authorised by can_see_pin(), the same predicate that let them
+ * comment at all. See 0044_slack_webhook_for_commenters.sql.
+ */
+export async function mockupSlackWebhook(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any>,
+  mockupId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc("slack_webhook_for_mockup", { p_mockup: mockupId });
+  if (error) return null;
+  const row = (Array.isArray(data) ? data[0] : data) as { cipher?: string; iv?: string } | null | undefined;
+  if (!row?.cipher || !row?.iv) return null;
+  try {
+    return decryptSecret(row.cipher, row.iv);
+  } catch {
+    return null;
+  }
+}
+
 export async function postToSlack(webhook: string, payload: object): Promise<boolean> {
   try {
     const r = await fetch(webhook, {
