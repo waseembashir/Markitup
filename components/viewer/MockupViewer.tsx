@@ -470,11 +470,14 @@ export function MockupViewer({
     if (box.w <= 0) return 1;
     if (zoom.mode === "percent") return zoom.pct / 100;
     if (device === "mobile" && zoom.mode === "fit-window") {
+      // On a phone there is no room for a phone inside a phone, and no reason
+      // to draw one: fill the width and let the page scroll as it would.
+      if (compact) return box.w / HTML_MOBILE_W;
       // never enlarge a phone past 1×, and keep it inside both dimensions
       return Math.min(1, (box.h - 32) / HTML_MOBILE_H, box.w / HTML_MOBILE_W);
     }
     return box.w / htmlDesignW;
-  }, [box, zoom, device, htmlDesignW]);
+  }, [box, zoom, device, htmlDesignW, compact]);
   const htmlViewH = htmlScale > 0 ? box.h / htmlScale : box.h; // iframe design height (fills canvas height)
   const htmlVisualW = htmlDesignW * htmlScale;
 
@@ -504,13 +507,13 @@ export function MockupViewer({
   // displayed width of the image for the current zoom mode
   const displayW = useMemo(() => {
     if (!nat.w || !box.w) return 0;
-    const pad = 48; // matches p-6 on both sides
+    const pad = compact ? 0 : 48; // matches p-6 on both sides
     const availW = Math.max(0, box.w - pad);
     const availH = Math.max(0, box.h - pad);
     // Mobile preview frames the design at a phone width, and zoom scales that
     // frame — so 100% is the phone's 375px, matching the HTML view's semantics.
     if (device === "mobile") {
-      const phoneW = Math.min(HTML_MOBILE_W, availW);
+      const phoneW = compact ? availW : Math.min(HTML_MOBILE_W, availW);
       return zoom.mode === "percent" ? HTML_MOBILE_W * (zoom.pct / 100) : phoneW;
     }
     if (zoom.mode === "fit-width") return availW;
@@ -519,7 +522,7 @@ export function MockupViewer({
       return nat.w * scale;
     }
     return nat.w * (zoom.pct / 100);
-  }, [nat, box, zoom, device]);
+  }, [nat, box, zoom, device, compact]);
 
   const shownPct = nat.w && displayW ? Math.round((displayW / nat.w) * 100) : null;
   const zoomLabel =
@@ -1257,7 +1260,7 @@ export function MockupViewer({
                 title={imageName}
                 sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-pointer-lock"
                 referrerPolicy="no-referrer"
-                className={`absolute top-0 origin-top-left border-0 bg-white ${device === "mobile" ? "rounded-[28px] shadow-2xl ring-1 ring-black/10" : ""}`}
+                className={`absolute top-0 origin-top-left border-0 bg-white ${device === "mobile" && !compact ? "rounded-[28px] shadow-2xl ring-1 ring-black/10" : ""}`}
                 style={{ left: htmlOffsetX, width: htmlDesignW, height: htmlViewH, transform: `scale(${htmlScale})` }}
               />
             )}
@@ -1274,7 +1277,7 @@ export function MockupViewer({
           </div>
         ) : (
           <div ref={scrollRef} className="relative h-full overflow-auto">
-            <div className="flex min-h-full min-w-full items-center justify-center p-6">
+            <div className={`flex min-h-full min-w-full items-center justify-center ${compact ? "p-0" : "p-6"}`}>
               <div ref={surfaceRef} className="relative shrink-0" style={{ width: displayW || "100%" }}>
                 {isFigma ? (
                   <>
@@ -1318,7 +1321,7 @@ export function MockupViewer({
                       onLoad={(e) => { setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgLoaded(true); }}
                       onPointerDown={(e) => beginDraft(e, surfaceMapper)}
                       draggable={false}
-                      className="block w-full cursor-crosshair rounded-lg shadow-lg ring-1 ring-border select-none"
+                      className={`block w-full cursor-crosshair select-none ${compact ? "" : "rounded-lg shadow-lg ring-1 ring-border"}`}
                       style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s var(--ease-out-quart)" }}
                     />
                     {pinsOverlay}
