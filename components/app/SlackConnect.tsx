@@ -41,7 +41,7 @@ export function SlackConnect({ connected }: { connected: boolean }) {
           </span>
           <div>
             <h3 className="font-semibold text-ink">Slack</h3>
-            <p className="text-sm text-muted">Get a message in your channel whenever someone comments.</p>
+            <p className="text-sm text-muted">Get a message in your channel whenever a client comments.</p>
           </div>
         </div>
         {connected && (

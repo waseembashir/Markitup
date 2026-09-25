@@ -78,7 +78,7 @@ export async function sendTestSlack() {
   const ok = await postToSlack(url, {
     text: "MarkItUp is connected 🎉",
     blocks: [
-      { type: "section", text: { type: "mrkdwn", text: ":white_check_mark: *MarkItUp is connected to this channel.* You'll get a message here whenever someone comments on a file." } },
+      { type: "section", text: { type: "mrkdwn", text: ":white_check_mark: *MarkItUp is connected to this channel.* You'll get a message here whenever a client comments on a file. Your own team's comments stay quiet." } },
     ],
   });
   return ok ? {} : { error: "Slack rejected the message — double-check the webhook URL." };

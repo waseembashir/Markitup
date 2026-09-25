@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { commentSlackMessage, commentRollupSlackMessage, mockupSlackWebhook, SLACK_BATCH_WINDOW_MINUTES } from "./slack";
+import { commentSlackMessage, commentRollupSlackMessage, mockupSlackWebhook, commentIsFromClient, SLACK_BATCH_WINDOW_MINUTES } from "./slack";
 import { encryptSecret } from "./crypto";
 
 // Slack renders `text` in notifications and previews, so that string is what
@@ -107,5 +107,30 @@ describe("finding the webhook as whoever is commenting", () => {
   it("returns null rather than throwing when the function is missing", async () => {
     const supabase = fakeSupabase(() => ({ data: null, error: { message: "function does not exist" } }));
     expect(await mockupSlackWebhook(supabase, "mk-1")).toBeNull();
+  });
+});
+
+// The channel is for the people who are not in the room. A teammate's comment
+// is a conversation the team is already having.
+describe("whose comments the channel is for", () => {
+  const team = ["u-vinay", "u-israfil"];
+
+  it("announces someone who is not on the team", () => {
+    expect(commentIsFromClient("u-client", team)).toBe(true);
+  });
+
+  it("stays quiet for a team member", () => {
+    expect(commentIsFromClient("u-israfil", team)).toBe(false);
+  });
+
+  it("announces a guest, whose empty roster is the answer and not an error", () => {
+    // RLS shows a non-member no rows at all, which is how a guest reads.
+    expect(commentIsFromClient("guest-anon", [])).toBe(true);
+  });
+
+  it("treats a project-only collaborator as a client", () => {
+    // They can see the file but are not in the workspace, which is the same
+    // line the dashboard draws for "Seen by" and client replies.
+    expect(commentIsFromClient("u-collaborator", team)).toBe(true);
   });
 });

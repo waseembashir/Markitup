@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { commentNotification } from "@/lib/email/templates";
-import { workspaceSlackWebhook, mockupSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
+import { workspaceSlackWebhook, mockupSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, commentIsFromClient, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
 import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
 import { loadViewerPins } from "./pins-data";
 import { reportError } from "@/lib/observability";
@@ -93,6 +93,16 @@ export async function addComment(
         supabase.from("workspace_members").select("profiles(id, name, email)").eq("workspace_id", workspaceId ?? ""),
         supabase.from("project_members").select("profiles(id, name, email)").eq("project_id", projectId ?? ""),
       ]);
+      // Who is on the team, straight from the roster read above: a member sees
+      // every row of it, a client sees none. Used to decide notification
+      // recipients below, and whether Slack should hear about this comment.
+      const teamIds: string[] = [];
+      for (const row of wm ?? []) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const id = (row as any).profiles?.id as string | undefined;
+        if (id) teamIds.push(id);
+      }
+
       const recipients = new Map<string, { id: string; name: string; email: string }>();
       for (const row of [...(wm ?? []), ...(pm ?? [])]) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -143,33 +153,40 @@ export async function addComment(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const projectName = ((mk as any).projects?.name as string) || "a project";
 
-          const { data: opensBurst } = await supabase.rpc("slack_batch_record", {
-            p_workspace: workspaceId,
-            p_project: projectId,
-            p_author: author.id,
-            p_mockup: mockupId,
-            p_project_name: projectName,
-            p_author_name: commenterName,
-            p_window_minutes: SLACK_BATCH_WINDOW_MINUTES,
-          });
+          // The team's own comments are not announced: everyone in the channel
+          // was already part of that conversation. They are not recorded as a
+          // burst either, so they can never turn up inside a roll-up.
+          if (commentIsFromClient(author.id, teamIds)) {
+            const { data: opensBurst } = await supabase.rpc("slack_batch_record", {
+              p_workspace: workspaceId,
+              p_project: projectId,
+              p_author: author.id,
+              p_mockup: mockupId,
+              p_project_name: projectName,
+              p_author_name: commenterName,
+              p_window_minutes: SLACK_BATCH_WINDOW_MINUTES,
+            });
 
-          if (opensBurst) {
-            await postToSlack(
-              webhook,
-              commentSlackMessage({
-                commenter: commenterName,
-                projectName,
-                mockupName: mk.name as string,
-                body: plain,
-                href: `${appUrl}/app/mockups/${mockupId}`,
-              }),
-            );
+            if (opensBurst) {
+              await postToSlack(
+                webhook,
+                commentSlackMessage({
+                  commenter: commenterName,
+                  projectName,
+                  mockupName: mk.name as string,
+                  body: plain,
+                  href: `${appUrl}/app/mockups/${mockupId}`,
+                }),
+              );
+            }
           }
 
           // Any burst in this workspace that has since gone quiet gets its
           // roll-up now. Vercel's plan allows only a daily cron, so activity is
           // the main trigger; the nightly job is the backstop for a last burst
-          // nobody follows.
+          // nobody follows. This runs for a teammate's comment too — they post
+          // nothing of their own, but they still get a client's waiting roll-up
+          // out of the door, which is the only other thing that moves it.
           const { data: due } = await supabase.rpc("slack_batches_due", {
             p_workspace: workspaceId,
             p_window_minutes: SLACK_BATCH_WINDOW_MINUTES,

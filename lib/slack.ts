@@ -51,6 +51,23 @@ export async function mockupSlackWebhook(
   }
 }
 
+/**
+ * Whose comments the channel is for.
+ *
+ * A teammate commenting is a conversation the team is already having — they
+ * were there. The channel exists to hear from the people who are not in the
+ * room: clients, collaborators on a share link, guests who never made an
+ * account. Membership of the workspace is the line, the same one the dashboard
+ * draws when it counts client views and client replies.
+ *
+ * The roster arrives from a query only a member can see rows in, so an empty
+ * roster IS the answer for a client. The cost of being wrong is one extra
+ * message, never a missing one.
+ */
+export function commentIsFromClient(authorId: string, workspaceMemberIds: readonly string[]): boolean {
+  return !workspaceMemberIds.includes(authorId);
+}
+
 export async function postToSlack(webhook: string, payload: object): Promise<boolean> {
   try {
     const r = await fetch(webhook, {
