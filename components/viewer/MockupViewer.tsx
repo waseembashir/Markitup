@@ -271,7 +271,7 @@ export function MockupViewer({
     htmlUrlRef.current = htmlUrl;
   }, [htmlUrl]);
   const [activePinId, setActivePinId] = useState<string | null>(initialPinId ?? null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("active");
   const [sort, setSort] = useState<SortKey>("pins");
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -1214,14 +1214,20 @@ export function MockupViewer({
               {visiblePins.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <p className="text-sm font-medium text-ink">
-                    {counts.all === 0 ? "No comments yet" : "Nothing here"}
+                    {counts.all === 0
+                      ? "No comments yet"
+                      : !q && filter === "active" && counts.resolved > 0
+                        ? "All caught up"
+                        : "Nothing here"}
                   </p>
                   <p className="mt-1 text-xs text-faint">
                     {counts.all === 0
                       ? "Click anywhere on the design to drop your first pin."
                       : q
                         ? "No comments match your search."
-                        : "Try a different filter."}
+                        : filter === "active" && counts.resolved > 0
+                          ? `Every comment here has been resolved. Open ${counts.resolved === 1 ? "it" : "them"} from the Resolved tab.`
+                          : "Try a different filter."}
                   </p>
                 </div>
               ) : (

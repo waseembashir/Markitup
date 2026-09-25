@@ -192,6 +192,10 @@ export function CommentThread({
     onChange({ ...pin, status: next });
     if (next === "resolved") {
       celebrate(rect ? rect.left + rect.width / 2 : undefined, rect ? rect.top : undefined);
+      // Done with this one: the popup would otherwise sit there offering a reply
+      // box for a thread that is closed, over the design you just freed up.
+      // Reopening keeps it open — you reopened it to say something.
+      onClose?.();
     }
   }
 
