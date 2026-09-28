@@ -311,3 +311,58 @@ describe("MockupViewer", () => {
     expect(container.innerHTML).not.toContain("<img src=x");
   });
 });
+
+// Feedback belongs to the version it was left on. A v1 pin is a coordinate on
+// a layout that is no longer on screen — it was already kept off the canvas for
+// that reason, and listing it in the rail left a client scrolling comments they
+// could not point at.
+describe("feedback stays with its own version", () => {
+  const v1Pin = {
+    id: "p-old", mockupId: "m0", version: 1, isCurrentVersion: false, createdBy: null,
+    x: 0.2, y: 0.2, w: 0, h: 0, number: 1, status: "active" as const, device: "desktop" as const,
+    comments: [{ id: "c1", body: "Remove spotify", authorName: "Matthew", authorId: null, editedAt: null, parentCommentId: null, createdAt: "2026-09-20T10:00:00Z", attachments: [] }],
+  };
+  const v2Pin = {
+    id: "p-new", mockupId: "m1", version: 2, isCurrentVersion: true, createdBy: null,
+    x: 0.6, y: 0.6, w: 0, h: 0, number: 1, status: "active" as const, device: "desktop" as const,
+    comments: [{ id: "c2", body: "Header looks right now", authorName: "Matthew", authorId: null, editedAt: null, parentCommentId: null, createdAt: "2026-09-24T10:00:00Z", attachments: [] }],
+  };
+
+  function renderAt(pins: typeof v1Pin[]) {
+    render(
+      <MockupViewer
+        mockupId="m1"
+        projectId="proj1"
+        imageUrl="http://x/y.png"
+        imageName="y.png"
+        initialPins={pins}
+        siblings={[{ id: "m1" }]}
+        members={[]}
+        currentUserName="Tester"
+      />,
+    );
+  }
+
+  it("lists this version's comments and not an earlier version's", () => {
+    renderAt([v1Pin, v2Pin]);
+    expect(screen.getByText("Header looks right now")).toBeInTheDocument();
+    expect(screen.queryByText("Remove spotify")).not.toBeInTheDocument();
+  });
+
+  it("counts only this version in the filter tabs", () => {
+    renderAt([v1Pin, v2Pin]);
+    // "All 1", not "All 2": the earlier version is somewhere else entirely.
+    expect(screen.getByRole("button", { name: /^All/ })).toHaveTextContent("1");
+  });
+
+  it("says where the earlier feedback went, so it cannot read as lost", () => {
+    renderAt([v1Pin, v2Pin]);
+    expect(screen.getByText(/1 comment on version 1/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open v1" })).toHaveAttribute("href", "/app/mockups/m0");
+  });
+
+  it("says nothing about earlier versions when there are none", () => {
+    renderAt([v2Pin]);
+    expect(screen.queryByText(/on version/)).not.toBeInTheDocument();
+  });
+});

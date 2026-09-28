@@ -11,7 +11,7 @@ import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment, movePin } from "@/app/app/mockups/[mockupId]/actions";
 import { useLivePins } from "./useLivePins";
-import { timeAgo, htmlToText } from "@/lib/format";
+import { timeAgo, htmlToText, plural } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
 import { Avatar } from "@/components/app/AppSidebar";
 import { ClientViewsMenu } from "./ClientViewsMenu";
@@ -760,7 +760,22 @@ export function MockupViewer({
   // Desktop and mobile are separate review surfaces — a pin left on the 1440px
   // layout points at nothing on a 375px one — so the rail, the counts and the
   // canvas all show only the pins belonging to the viewport being viewed.
-  const devicePins = pins.filter((p) => p.device === device);
+  // ...and only the version on screen. A pin is a coordinate on one
+  // particular layout, which is why an older version's pins were already kept
+  // off this canvas; listing them in the rail anyway left a client scrolling
+  // comments they could not point at, about a design they were no longer
+  // looking at. Each version now shows its own feedback, and the line under the
+  // tabs says where the rest of it lives.
+  const devicePins = pins.filter((p) => p.device === device && p.isCurrentVersion);
+
+  // What an earlier version is still holding, counted across both devices: its
+  // job is to say "your feedback is still there", and a count that changed with
+  // the Desktop/Mobile tab would undercut that.
+  const earlier = pins.filter((p) => !p.isCurrentVersion);
+  const earlierComments = earlier.reduce((n, p) => n + p.comments.length, 0);
+  // Nearest previous version first — the one they most likely want.
+  const earlierVersions = [...new Set(earlier.map((p) => p.version))].sort((a, b) => b - a);
+  const nearestEarlier = earlier.find((p) => p.version === earlierVersions[0]) ?? null;
   const counts = {
     all: devicePins.length,
     active: devicePins.filter((p) => p.status === "active").length,
@@ -776,18 +791,15 @@ export function MockupViewer({
           p.comments.some((c) => htmlToText(c.body).toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q)),
     )
     .sort((a, b) => {
-      // Newest version first, so the feedback on what is on screen leads and
-      // older versions read as history below it.
-      if (a.version !== b.version) return b.version - a.version;
       if (sort === "pins") return a.number - b.number;
       if (sort === "newest") return latestAt(b).localeCompare(latestAt(a));
       return latestAt(a).localeCompare(latestAt(b));
     });
 
-  // Only this version's pins go on the canvas. An older version's pin is a
-  // coordinate on a layout that is no longer on screen; drawing it here would
-  // point at whatever happens to occupy that spot now.
-  const canvasPins = visiblePins.filter((p) => p.isCurrentVersion);
+  // Every pin in the rail belongs to this version now, so the canvas draws
+  // the same set. A pin reached by a ?pin= link from an older version is still
+  // selectable — it opens with the banner offering to go to its own version.
+  const canvasPins = visiblePins;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
 
   const idx = siblings.findIndex((s) => s.id === mockupId);
@@ -1209,6 +1221,18 @@ export function MockupViewer({
                 />
               )}
               <CommentFilter value={filter} onChange={setFilter} counts={counts} />
+              {earlierComments > 0 && nearestEarlier && (
+                <p className="mt-2 text-xs text-faint">
+                  {plural(earlierComments, "comment")} on{" "}
+                  {earlierVersions.length === 1 ? `version ${earlierVersions[0]}` : "earlier versions"} ·{" "}
+                  <Link
+                    href={`/app/mockups/${nearestEarlier.mockupId}`}
+                    className="font-semibold text-brand-ink hover:text-brand-hover"
+                  >
+                    Open v{nearestEarlier.version}
+                  </Link>
+                </p>
+              )}
             </div>
             <div className="flex-1 divide-y overflow-y-auto">
               {visiblePins.length === 0 ? (
