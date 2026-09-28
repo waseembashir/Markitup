@@ -11,7 +11,7 @@ import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment, movePin } from "@/app/app/mockups/[mockupId]/actions";
 import { useLivePins } from "./useLivePins";
-import { timeAgo, htmlToText, plural } from "@/lib/format";
+import { timeAgo, htmlToText } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
 import { Avatar } from "@/components/app/AppSidebar";
 import { ClientViewsMenu } from "./ClientViewsMenu";
@@ -764,18 +764,10 @@ export function MockupViewer({
   // particular layout, which is why an older version's pins were already kept
   // off this canvas; listing them in the rail anyway left a client scrolling
   // comments they could not point at, about a design they were no longer
-  // looking at. Each version now shows its own feedback, and the line under the
-  // tabs says where the rest of it lives.
+  // looking at. Each version shows its own feedback and says nothing about the
+  // others; the version switcher in the header carries their comment counts.
   const devicePins = pins.filter((p) => p.device === device && p.isCurrentVersion);
 
-  // What an earlier version is still holding, counted across both devices: its
-  // job is to say "your feedback is still there", and a count that changed with
-  // the Desktop/Mobile tab would undercut that.
-  const earlier = pins.filter((p) => !p.isCurrentVersion);
-  const earlierComments = earlier.reduce((n, p) => n + p.comments.length, 0);
-  // Nearest previous version first — the one they most likely want.
-  const earlierVersions = [...new Set(earlier.map((p) => p.version))].sort((a, b) => b - a);
-  const nearestEarlier = earlier.find((p) => p.version === earlierVersions[0]) ?? null;
   const counts = {
     all: devicePins.length,
     active: devicePins.filter((p) => p.status === "active").length,
@@ -1221,18 +1213,6 @@ export function MockupViewer({
                 />
               )}
               <CommentFilter value={filter} onChange={setFilter} counts={counts} />
-              {earlierComments > 0 && nearestEarlier && (
-                <p className="mt-2 text-xs text-faint">
-                  {plural(earlierComments, "comment")} on{" "}
-                  {earlierVersions.length === 1 ? `version ${earlierVersions[0]}` : "earlier versions"} ·{" "}
-                  <Link
-                    href={`/app/mockups/${nearestEarlier.mockupId}`}
-                    className="font-semibold text-brand-ink hover:text-brand-hover"
-                  >
-                    Open v{nearestEarlier.version}
-                  </Link>
-                </p>
-              )}
             </div>
             <div className="flex-1 divide-y overflow-y-auto">
               {visiblePins.length === 0 ? (

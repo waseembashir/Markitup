@@ -355,14 +355,11 @@ describe("feedback stays with its own version", () => {
     expect(screen.getByRole("button", { name: /^All/ })).toHaveTextContent("1");
   });
 
-  it("says where the earlier feedback went, so it cannot read as lost", () => {
+  it("says nothing about the other versions at all", () => {
+    // The version switcher in the header carries each version's comment count;
+    // the rail is about the design on screen and mentions nothing else.
     renderAt([v1Pin, v2Pin]);
-    expect(screen.getByText(/1 comment on version 1/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open v1" })).toHaveAttribute("href", "/app/mockups/m0");
-  });
-
-  it("says nothing about earlier versions when there are none", () => {
-    renderAt([v2Pin]);
     expect(screen.queryByText(/on version/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open v/ })).not.toBeInTheDocument();
   });
 });
