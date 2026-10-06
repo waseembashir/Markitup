@@ -2,16 +2,28 @@ import { describe, it, expect } from "vitest";
 import { injectHeightReporter, stripHeightReporter, createReporterStripper, HTML_HEIGHT_MESSAGE } from "./html-embed";
 
 describe("html-embed reporter", () => {
-  it("injects the reporter before </body>", () => {
-    const out = injectHeightReporter("<html><body><h1>Hi</h1></body></html>");
+  // The reporter runs before the page does. A bundle writes its real content
+  // into a nested frame as soon as its own script runs, and the reporter can
+  // only follow the client in there by hooking that beforehand.
+  it("injects the reporter at the top of <head>, ahead of the page's scripts", () => {
+    const out = injectHeightReporter(
+      "<!doctype html><html><head><script>first()</script></head><body><h1>Hi</h1></body></html>",
+    );
     expect(out).toContain(HTML_HEIGHT_MESSAGE);
-    expect(out.indexOf(HTML_HEIGHT_MESSAGE)).toBeLessThan(out.indexOf("</body>"));
+    expect(out.indexOf(HTML_HEIGHT_MESSAGE)).toBeGreaterThan(out.indexOf("<head>"));
+    expect(out.indexOf(HTML_HEIGHT_MESSAGE)).toBeLessThan(out.indexOf("first()"));
   });
 
-  it("appends the reporter when there is no </body>", () => {
+  it("goes after the doctype when a page has no head, never in front of it", () => {
+    const out = injectHeightReporter("<!doctype html><body><h1>Hi</h1></body>");
+    expect(out.startsWith("<!doctype html>")).toBe(true);
+    expect(out.indexOf(HTML_HEIGHT_MESSAGE)).toBeLessThan(out.indexOf("<h1>"));
+  });
+
+  it("still injects into a fragment with neither", () => {
     const out = injectHeightReporter("<h1>Hi</h1>");
-    expect(out.startsWith("<h1>Hi</h1>")).toBe(true);
     expect(out).toContain(HTML_HEIGHT_MESSAGE);
+    expect(out).toContain("<h1>Hi</h1>");
   });
 
   it("strips only the reporter, preserving other scripts and the markup between them", () => {

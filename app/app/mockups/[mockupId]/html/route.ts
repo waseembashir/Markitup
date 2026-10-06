@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { createReporterStripper, HEIGHT_REPORTER_SCRIPT } from "@/lib/html-embed";
+import { createReporterStripper, reporterInsertionPoint, HEIGHT_REPORTER_SCRIPT } from "@/lib/html-embed";
 import { reportError } from "@/lib/observability";
 
 export const dynamic = "force-dynamic";
@@ -73,22 +73,40 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ mock
       return page(502, "This design couldn’t be loaded. Please refresh the page.");
     }
 
-    // Drop the reporter the uploader injected and append the current one, so a
-    // file uploaded months ago still speaks today's protocol — that is what
-    // keeps comment mode working on older designs.
+    // Drop the reporter the uploader injected and splice in the current one,
+    // so a file uploaded months ago still speaks today's protocol — that is
+    // what keeps comment mode working on older designs.
+    //
+    // It goes at the top of <head>, not the end, because it has to be running
+    // before the page does: a bundle writes its real content into a nested
+    // frame, and the reporter can only follow it in there by hooking that
+    // before it happens. So the opening of the document is held back until
+    // <head> is in hand — a few hundred bytes — and the rest streams.
     const stripper = createReporterStripper();
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
+    let head = "";
+    let placed = bare;
+    const HEAD_LIMIT = 64 * 1024;
+
+    function place(text: string, last: boolean): string {
+      if (placed) return text;
+      head += text;
+      const at = reporterInsertionPoint(head, last || head.length >= HEAD_LIMIT);
+      if (at === null) return "";
+      placed = true;
+      const out = head.slice(0, at) + HEIGHT_REPORTER_SCRIPT + head.slice(at);
+      head = "";
+      return out;
+    }
+
     const transform = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
-        const out = stripper.push(decoder.decode(chunk, { stream: true }));
+        const out = place(stripper.push(decoder.decode(chunk, { stream: true })), false);
         if (out) controller.enqueue(encoder.encode(out));
       },
       flush(controller) {
-        const tail = stripper.push(decoder.decode()) + stripper.flush();
-        // A script after </body> is parsed into the body and runs, so the
-        // reporter can go on the end and the stream never has to look ahead.
-        const out = bare ? tail : tail + HEIGHT_REPORTER_SCRIPT;
+        const out = place(stripper.push(decoder.decode()) + stripper.flush(), true);
         if (out) controller.enqueue(encoder.encode(out));
       },
     });

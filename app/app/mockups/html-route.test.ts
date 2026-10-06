@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { injectHeightReporter, HTML_HEIGHT_MESSAGE } from "@/lib/html-embed";
+import { injectHeightReporter, stripHeightReporter, HTML_HEIGHT_MESSAGE } from "@/lib/html-embed";
 
 const maybeSingle = vi.fn();
 const createSignedUrl = vi.fn();
@@ -64,8 +64,9 @@ describe("serving an uploaded HTML design", () => {
   it("swaps the uploader's reporter for the current one, keeping the page intact", async () => {
     const body = await (await get()).text();
     // Exactly one reporter, and the page's own script and content survive.
-    expect(body.split(HTML_HEIGHT_MESSAGE).length - 1).toBeGreaterThan(0);
-    expect(body.match(/markitup:pointer/g)?.length).toBe(1);
+    expect(body).toContain(HTML_HEIGHT_MESSAGE);
+    // Exactly one reporter: stripping it leaves no trace of another.
+    expect(stripHeightReporter(body)).not.toContain(HTML_HEIGHT_MESSAGE);
     expect(body).toContain("window.hero=1");
     expect(body).toContain("Take your practice to the next level");
     expect(body).toContain("data:image/png;base64,AAAA");
