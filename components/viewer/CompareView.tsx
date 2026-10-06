@@ -5,7 +5,6 @@ import Link from "next/link";
 import { CompareComments, type CompareCommentGroup } from "./CompareComments";
 import { PinMarker } from "./PinMarker";
 import type { ViewerPin } from "./MockupViewer";
-import { stripHeightReporter } from "@/lib/html-embed";
 
 export type CompareMockup = { id: string; name: string; url: string; version?: number; isHtml?: boolean };
 
@@ -18,8 +17,9 @@ export type CompareMockup = { id: string; name: string; url: string; version?: n
 const HTML_COMPARE_W = 1440;
 
 function HtmlPane({ m }: { m: CompareMockup }) {
-  const [doc, setDoc] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  // The frame reports its own failure now: the route answers with a page that
+  // says so, inside the pane, rather than this component guessing.
+  const [ready, setReady] = useState(false);
   const paneRef = useRef<HTMLDivElement>(null);
   const [pane, setPane] = useState({ w: 0, h: 0 });
 
@@ -33,42 +33,18 @@ function HtmlPane({ m }: { m: CompareMockup }) {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [doc]);
+  }, []);
 
   const scale = pane.w > 0 ? pane.w / HTML_COMPARE_W : 0;
   const paneH = pane.h;
 
-  // Pointing an iframe at the storage URL showed the page's SOURCE instead of the
-  // page: Supabase doesn't serve these to render inline, whatever content type
-  // they were stored with. Fetch the file and hand it to the frame directly, the
-  // same way the main viewer does — the caller keys this component by url, so a
-  // version switch remounts it rather than needing a synchronous state reset.
-  useEffect(() => {
-    let alive = true;
-    const ctrl = new AbortController();
-    fetch(m.url, { signal: ctrl.signal })
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
-      // Drop the height reporter the uploader injected: compare draws no pins,
-      // so nothing here listens for what it posts.
-      .then((text) => { if (alive) setDoc(stripHeightReporter(text)); })
-      .catch((e) => { if (alive && e?.name !== "AbortError") setFailed(true); });
-    return () => { alive = false; ctrl.abort(); };
-  }, [m.url]);
+  // Storage serves these as text/plain whatever they were stored as, so an
+  // iframe pointed at the signed URL shows source. Our own route serves the
+  // same file as text/html and streams it, which is what lets a page of inlined
+  // images appear at all — ?bare=1 leaves the height reporter out, since
+  // compare draws no pins and nothing here listens for what it posts.
+  const src = `/app/mockups/${m.id}/html?bare=1`;
 
-  if (failed) {
-    return (
-      <div className="grid h-full place-items-center rounded-lg bg-canvas text-sm text-faint">
-        Couldn&apos;t load this page.
-      </div>
-    );
-  }
-  if (doc === null) {
-    return (
-      <div className="grid h-full place-items-center rounded-lg bg-canvas text-sm text-faint">
-        Loading page…
-      </div>
-    );
-  }
   // Render at a real desktop width and scale the whole frame down to fit the
   // pane. A compare pane is about half the screen, and an iframe sized to the
   // pane is a ~700px viewport as far as the page inside is concerned — so its
@@ -78,8 +54,14 @@ function HtmlPane({ m }: { m: CompareMockup }) {
   // a desktop viewport.
   return (
     <div ref={paneRef} className="relative h-full w-full overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-border">
+      {!ready && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-canvas text-sm text-faint">
+          Loading page…
+        </div>
+      )}
       <iframe
-        srcDoc={doc}
+        src={src}
+        onLoad={() => setReady(true)}
         title={m.name}
         sandbox="allow-scripts allow-popups allow-forms allow-modals"
         referrerPolicy="no-referrer"

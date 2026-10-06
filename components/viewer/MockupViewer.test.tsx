@@ -363,3 +363,50 @@ describe("feedback stays with its own version", () => {
     expect(screen.queryByRole("link", { name: /Open v/ })).not.toBeInTheDocument();
   });
 });
+
+// An uploaded page used to be fetched into a string and handed to the frame as
+// srcdoc, which meant nothing rendered until every byte had arrived — fatal for
+// a design whose images are inlined. It is streamed from our own route now.
+describe("an uploaded HTML design", () => {
+  it("points the frame at the route instead of downloading the page itself", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    render(
+      <MockupViewer
+        mockupId="m1"
+        projectId="proj1"
+        imageUrl="http://x/y.html"
+        imageName="y.html"
+        htmlUrl="http://storage.example/y.html"
+        initialPins={[]}
+        siblings={[{ id: "m1" }]}
+        members={[]}
+        currentUserName="Tester"
+      />,
+    );
+    const frame = document.querySelector("iframe");
+    expect(frame).toHaveAttribute("src", "/app/mockups/m1/html");
+    expect(frame).not.toHaveAttribute("srcdoc");
+    // Nothing should be pulling the design through JavaScript any more.
+    expect(fetchSpy.mock.calls.some(([u]) => String(u).includes("storage.example"))).toBe(false);
+    fetchSpy.mockRestore();
+  });
+
+  it("keeps the frame sandboxed without same-origin access", () => {
+    render(
+      <MockupViewer
+        mockupId="m1"
+        projectId="proj1"
+        imageUrl="http://x/y.html"
+        imageName="y.html"
+        htmlUrl="http://storage.example/y.html"
+        initialPins={[]}
+        siblings={[{ id: "m1" }]}
+        members={[]}
+        currentUserName="Tester"
+      />,
+    );
+    const sandbox = document.querySelector("iframe")?.getAttribute("sandbox") ?? "";
+    expect(sandbox).toContain("allow-scripts");
+    expect(sandbox).not.toContain("allow-same-origin");
+  });
+});

@@ -44,3 +44,65 @@ export function stripHeightReporter(html: string): string {
     "",
   );
 }
+
+// The reporter itself, for callers that append it to a document they are
+// streaming rather than holding in one string.
+export const HEIGHT_REPORTER_SCRIPT = REPORTER;
+
+/**
+ * stripHeightReporter, for a document arriving in pieces.
+ *
+ * An uploaded page can be several megabytes — one of ours is 99% base64 images
+ * — and reading all of it before sending any of it is what made a big file
+ * unopenable. The route streams instead, so the stale reporter has to be found
+ * across chunk boundaries without holding the document in memory.
+ *
+ * Only a `<script>` containing the height message is dropped; the page's own
+ * scripts pass through untouched, in order. The buffer holds nothing but the
+ * script currently being examined, so a page made of images never buffers.
+ */
+export function createReporterStripper() {
+  const OPEN = /<script\b/gi;
+  const CLOSE = /<\/script\s*>/gi;
+  // The longest prefix of "<script" that could be split across a chunk.
+  const PARTIAL = "<script".length - 1;
+  let buf = "";
+
+  return {
+    /** Feed the next piece; returns what is safe to send on. */
+    push(text: string): string {
+      buf += text;
+      let out = "";
+      for (;;) {
+        OPEN.lastIndex = 0;
+        const open = OPEN.exec(buf);
+        if (!open) {
+          // Hold back only enough to catch a "<script" split down the middle.
+          const keep = Math.min(buf.length, PARTIAL);
+          out += buf.slice(0, buf.length - keep);
+          buf = buf.slice(buf.length - keep);
+          return out;
+        }
+        CLOSE.lastIndex = open.index;
+        const close = CLOSE.exec(buf);
+        if (!close) {
+          // The script has not finished arriving. Send what precedes it.
+          out += buf.slice(0, open.index);
+          buf = buf.slice(open.index);
+          return out;
+        }
+        const end = close.index + close[0].length;
+        const script = buf.slice(open.index, end);
+        out += buf.slice(0, open.index);
+        if (!script.includes(HTML_HEIGHT_MESSAGE)) out += script;
+        buf = buf.slice(end);
+      }
+    },
+    /** Whatever is still held back, once the document has ended. */
+    flush(): string {
+      const rest = buf;
+      buf = "";
+      return rest;
+    },
+  };
+}

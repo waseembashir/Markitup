@@ -6,7 +6,7 @@ import { toNormalized } from "@/lib/coords";
 import { PinMarker } from "./PinMarker";
 import { PinComposer } from "./PinComposer";
 import { CommentThread, type Member } from "./CommentThread";
-import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, HTML_MODE_MESSAGE, HTML_POINTER_MESSAGE, injectHeightReporter, stripHeightReporter } from "@/lib/html-embed";
+import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, HTML_MODE_MESSAGE, HTML_POINTER_MESSAGE } from "@/lib/html-embed";
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
 import { createPin, addComment, movePin } from "@/app/app/mockups/[mockupId]/actions";
@@ -69,12 +69,6 @@ const ZOOM_OPTIONS: { label: string; value: Zoom }[] = [
 
 // A press that barely moves is a point pin (exactly the old behaviour); drag
 // further and it becomes a region, the way Figma's comment tool works.
-// Give up on a download only once nothing has arrived for this long. It is a
-// stall detector, not a deadline: a multi-megabyte page on a phone connection
-// is slow, not broken.
-const STALL_TIMEOUT_MS = 45000;
-const mb = (n: number) => `${(n / 1048576).toFixed(1)} MB`;
-
 const DRAG_THRESHOLD_PX = 4;
 
 const RAIL_DEFAULT = 280;
@@ -263,23 +257,10 @@ export function MockupViewer({
   const [htmlHeight, setHtmlHeight] = useState(0);
   const [htmlScrollY, setHtmlScrollY] = useState(0);
   const [htmlMode, setHtmlMode] = useState<"browse" | "comment">("browse");
-  const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
-  const [htmlError, setHtmlError] = useState(false);
-  // Bytes in so far, so a big page shows progress instead of the word
-  // "Loading" for a minute. Null until the first chunk arrives.
-  const [htmlProgress, setHtmlProgress] = useState<{ loaded: number; total: number } | null>(null);
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  // The frame covers its own loading: the overlay lifts on its load event.
+  const [htmlReady, setHtmlReady] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const htmlFrameRef = useRef<HTMLIFrameElement>(null);
-  // Latest signed URL, without making the fetch effect depend on it (it changes
-  // on every revalidatePath after a comment, which would reload the iframe).
-  const htmlUrlRef = useRef(htmlUrl);
-  // Synced in an effect rather than assigned during render — writing a ref while
-  // rendering is unsafe under concurrent rendering. Declared before the fetch
-  // effect below so it has the current URL by the time that effect runs.
-  useEffect(() => {
-    htmlUrlRef.current = htmlUrl;
-  }, [htmlUrl]);
   const [activePinId, setActivePinId] = useState<string | null>(initialPinId ?? null);
   const [filter, setFilter] = useState<Filter>("active");
   const [sort, setSort] = useState<SortKey>("pins");
@@ -358,70 +339,12 @@ export function MockupViewer({
     return () => ro.disconnect();
   }, []);
 
-  // Storage serves the uploaded .html as text/plain, so an <iframe src> would
-  // show source. Fetch the markup and render it via srcdoc, which is always
-  // parsed as HTML and stays in the sandbox's opaque origin.
-  useEffect(() => {
-    if (!isHtml) return;
-    const url = htmlUrlRef.current;
-    if (!url) return;
-    let alive = true;
-    const ctrl = new AbortController();
-    setHtmlDoc(null);
-    setHtmlError(false);
-    setHtmlProgress(null);
-
-    // A deadline on the whole download was the wrong shape. Uploads that inline
-    // their images run to several MB, and 20 seconds is a sentence on anything
-    // slower than an office line: the fetch was aborted mid-flight and the
-    // canvas showed "Couldn't load this HTML page" — a dead end with nothing to
-    // click, so the file could not be commented on at all. Give up only when
-    // the connection actually stalls, and say how far along it is meanwhile.
-    let lastByteAt = Date.now();
-    const stall = setInterval(() => {
-      if (Date.now() - lastByteAt > STALL_TIMEOUT_MS) ctrl.abort();
-    }, 4000);
-
-    (async () => {
-      try {
-        const r = await fetch(url, { signal: ctrl.signal });
-        if (!r.ok) throw new Error(String(r.status));
-        const total = Number(r.headers.get("content-length")) || 0;
-        let text: string;
-        if (r.body) {
-          const reader = r.body.getReader();
-          const chunks: Uint8Array[] = [];
-          let loaded = 0;
-          for (;;) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (value) {
-              chunks.push(value);
-              loaded += value.length;
-              lastByteAt = Date.now();
-              if (alive) setHtmlProgress({ loaded, total });
-            }
-          }
-          const joined = new Uint8Array(loaded);
-          let at = 0;
-          for (const c of chunks) { joined.set(c, at); at += c.length; }
-          text = new TextDecoder().decode(joined);
-        } else {
-          text = await r.text();
-        }
-        if (alive) setHtmlDoc(injectHeightReporter(stripHeightReporter(text)));
-      } catch {
-        if (alive) setHtmlError(true);
-      } finally {
-        clearInterval(stall);
-      }
-    })();
-
-    return () => { alive = false; ctrl.abort(); clearInterval(stall); };
-    // Fetch ONCE per mockup, not per signed-URL change — a comment's
-    // revalidatePath() mints a fresh URL, and re-fetching it reloads the page.
-    // htmlUrl is read through htmlUrlRef for exactly that reason.
-  }, [isHtml, mockupId, loadAttempt]);
+  // The uploaded page is streamed from our own route, which serves it as
+  // text/html and swaps in the current reporter on the way through. The frame
+  // renders it as it arrives — a design whose images are inlined can be several
+  // megabytes, and pulling that through JavaScript meant nothing showed until
+  // every byte had landed.
+  const htmlSrc = isHtml ? `/app/mockups/${mockupId}/html` : null;
 
   // Read inside the pointer handler below, which must not be re-subscribed on
   // every scroll frame just to see a current value.
@@ -553,7 +476,7 @@ export function MockupViewer({
     // never hears the message would silently swallow nothing.
     const t = setTimeout(send, 300);
     return () => clearTimeout(t);
-  }, [isHtml, htmlMode, htmlDoc]);
+  }, [isHtml, htmlMode, htmlReady]);
   const htmlOffsetX = Math.max(0, (box.w - htmlVisualW) / 2); // center the phone; 0 when filling width
 
   // displayed width of the image for the current zoom mode
@@ -1311,30 +1234,16 @@ export function MockupViewer({
           /* HTML: a real-browser view that scrolls INSIDE the iframe (so scroll
              animations play), with a pin layer translated to match its scroll. */
           <div ref={scrollRef} className="absolute inset-0 overflow-x-auto overflow-y-hidden">
-            {htmlError ? (
-              <div className="absolute inset-0 grid place-items-center bg-canvas px-6 text-center">
-                <div>
-                  <p className="text-sm font-semibold text-ink">This page didn&apos;t finish loading.</p>
-                  <p className="mt-1 text-xs text-faint">
-                    {htmlProgress && htmlProgress.total
-                      ? `It stopped after ${mb(htmlProgress.loaded)} of ${mb(htmlProgress.total)}.`
-                      : "The connection dropped before the design arrived."}
-                  </p>
-                  <button type="button" className="btn-secondary btn-sm mt-3" onClick={() => setLoadAttempt((n) => n + 1)}>
-                    Try again
-                  </button>
-                </div>
+            {!htmlReady && (
+              <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-canvas text-sm text-faint">
+                Loading page…
               </div>
-            ) : htmlDoc === null ? (
-              <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">
-                {htmlProgress && htmlProgress.total
-                  ? `Loading page… ${mb(htmlProgress.loaded)} of ${mb(htmlProgress.total)}`
-                  : "Loading page…"}
-              </div>
-            ) : (
+            )}
+            {htmlSrc && (
               <iframe
                 ref={htmlFrameRef}
-                srcDoc={htmlDoc}
+                src={htmlSrc}
+                onLoad={() => setHtmlReady(true)}
                 title={imageName}
                 sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-pointer-lock"
                 referrerPolicy="no-referrer"
