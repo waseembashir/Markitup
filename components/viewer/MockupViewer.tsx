@@ -69,6 +69,12 @@ const ZOOM_OPTIONS: { label: string; value: Zoom }[] = [
 
 // A press that barely moves is a point pin (exactly the old behaviour); drag
 // further and it becomes a region, the way Figma's comment tool works.
+// Give up on a download only once nothing has arrived for this long. It is a
+// stall detector, not a deadline: a multi-megabyte page on a phone connection
+// is slow, not broken.
+const STALL_TIMEOUT_MS = 45000;
+const mb = (n: number) => `${(n / 1048576).toFixed(1)} MB`;
+
 const DRAG_THRESHOLD_PX = 4;
 
 const RAIL_DEFAULT = 280;
@@ -259,6 +265,10 @@ export function MockupViewer({
   const [htmlMode, setHtmlMode] = useState<"browse" | "comment">("browse");
   const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
   const [htmlError, setHtmlError] = useState(false);
+  // Bytes in so far, so a big page shows progress instead of the word
+  // "Loading" for a minute. Null until the first chunk arrives.
+  const [htmlProgress, setHtmlProgress] = useState<{ loaded: number; total: number } | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
   const htmlFrameRef = useRef<HTMLIFrameElement>(null);
   // Latest signed URL, without making the fetch effect depend on it (it changes
@@ -357,19 +367,61 @@ export function MockupViewer({
     if (!url) return;
     let alive = true;
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 20000);
     setHtmlDoc(null);
     setHtmlError(false);
-    fetch(url, { signal: ctrl.signal })
-      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
-      .then((text) => { if (alive) setHtmlDoc(injectHeightReporter(stripHeightReporter(text))); })
-      .catch(() => { if (alive) setHtmlError(true); })
-      .finally(() => clearTimeout(timer));
-    return () => { alive = false; ctrl.abort(); clearTimeout(timer); };
+    setHtmlProgress(null);
+
+    // A deadline on the whole download was the wrong shape. Uploads that inline
+    // their images run to several MB, and 20 seconds is a sentence on anything
+    // slower than an office line: the fetch was aborted mid-flight and the
+    // canvas showed "Couldn't load this HTML page" — a dead end with nothing to
+    // click, so the file could not be commented on at all. Give up only when
+    // the connection actually stalls, and say how far along it is meanwhile.
+    let lastByteAt = Date.now();
+    const stall = setInterval(() => {
+      if (Date.now() - lastByteAt > STALL_TIMEOUT_MS) ctrl.abort();
+    }, 4000);
+
+    (async () => {
+      try {
+        const r = await fetch(url, { signal: ctrl.signal });
+        if (!r.ok) throw new Error(String(r.status));
+        const total = Number(r.headers.get("content-length")) || 0;
+        let text: string;
+        if (r.body) {
+          const reader = r.body.getReader();
+          const chunks: Uint8Array[] = [];
+          let loaded = 0;
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) {
+              chunks.push(value);
+              loaded += value.length;
+              lastByteAt = Date.now();
+              if (alive) setHtmlProgress({ loaded, total });
+            }
+          }
+          const joined = new Uint8Array(loaded);
+          let at = 0;
+          for (const c of chunks) { joined.set(c, at); at += c.length; }
+          text = new TextDecoder().decode(joined);
+        } else {
+          text = await r.text();
+        }
+        if (alive) setHtmlDoc(injectHeightReporter(stripHeightReporter(text)));
+      } catch {
+        if (alive) setHtmlError(true);
+      } finally {
+        clearInterval(stall);
+      }
+    })();
+
+    return () => { alive = false; ctrl.abort(); clearInterval(stall); };
     // Fetch ONCE per mockup, not per signed-URL change — a comment's
     // revalidatePath() mints a fresh URL, and re-fetching it reloads the page.
     // htmlUrl is read through htmlUrlRef for exactly that reason.
-  }, [isHtml, mockupId]);
+  }, [isHtml, mockupId, loadAttempt]);
 
   // Read inside the pointer handler below, which must not be re-subscribed on
   // every scroll frame just to see a current value.
@@ -1260,9 +1312,25 @@ export function MockupViewer({
              animations play), with a pin layer translated to match its scroll. */
           <div ref={scrollRef} className="absolute inset-0 overflow-x-auto overflow-y-hidden">
             {htmlError ? (
-              <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">Couldn&apos;t load this HTML page.</div>
+              <div className="absolute inset-0 grid place-items-center bg-canvas px-6 text-center">
+                <div>
+                  <p className="text-sm font-semibold text-ink">This page didn&apos;t finish loading.</p>
+                  <p className="mt-1 text-xs text-faint">
+                    {htmlProgress && htmlProgress.total
+                      ? `It stopped after ${mb(htmlProgress.loaded)} of ${mb(htmlProgress.total)}.`
+                      : "The connection dropped before the design arrived."}
+                  </p>
+                  <button type="button" className="btn-secondary btn-sm mt-3" onClick={() => setLoadAttempt((n) => n + 1)}>
+                    Try again
+                  </button>
+                </div>
+              </div>
             ) : htmlDoc === null ? (
-              <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">Loading page…</div>
+              <div className="absolute inset-0 grid place-items-center bg-canvas text-sm text-faint">
+                {htmlProgress && htmlProgress.total
+                  ? `Loading page… ${mb(htmlProgress.loaded)} of ${mb(htmlProgress.total)}`
+                  : "Loading page…"}
+              </div>
             ) : (
               <iframe
                 ref={htmlFrameRef}
