@@ -920,29 +920,29 @@ export function MockupViewer({
     <div className="flex shrink-0 overflow-hidden rounded-md border">
       <button
         onClick={() => switchDevice("desktop")}
+        title="Desktop view"
         aria-label="Desktop view"
         aria-pressed={device === "desktop"}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
+        className="grid h-7 w-8 place-items-center transition-colors"
         style={tabStyle(device === "desktop")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
           <rect x="3" y="4" width="18" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
           <path d="M9 20h6M12 16v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
         </svg>
-        Desktop
       </button>
       <button
         onClick={() => switchDevice("mobile")}
+        title="Mobile view"
         aria-label="Mobile view"
         aria-pressed={device === "mobile"}
-        className="flex items-center gap-1.5 border-l px-3 py-1.5 text-xs font-semibold transition-colors"
+        className="grid h-7 w-8 place-items-center border-l transition-colors"
         style={tabStyle(device === "mobile")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
           <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" strokeWidth="1.7" />
           <path d="M11 18h2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
         </svg>
-        Mobile
       </button>
     </div>
   );
@@ -1018,36 +1018,6 @@ export function MockupViewer({
           <div className="flex min-w-0 items-center gap-2">{titleSlot}</div>
           {isHtml && !compact && <div className="ml-1">{browseTabs}</div>}
         </div>
-
-        {/* pagination (center) */}
-        {!compact && (
-        <div className="flex shrink-0 items-center gap-1">
-          {prev ? (
-            <Link href={`/app/mockups/${prev.id}`} className="btn-secondary btn-sm gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              Prev
-            </Link>
-          ) : (
-            <span className="btn-secondary btn-sm pointer-events-none gap-1 opacity-40">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              Prev
-            </span>
-          )}
-          <span className="px-1 font-mono text-xs text-muted">{idx >= 0 ? idx + 1 : 1} of {siblings.length || 1}</span>
-          {next ? (
-            <Link href={`/app/mockups/${next.id}`} className="btn-secondary btn-sm gap-1">
-              Next
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M10 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </Link>
-          ) : (
-            <span className="btn-secondary btn-sm pointer-events-none gap-1 opacity-40">
-              Next
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M10 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
-          )}
-        </div>
-
-        )}
 
         {/* zoom + actions + page-supplied actions (right) */}
         {!compact && (

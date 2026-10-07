@@ -9,7 +9,10 @@ export type Viewer = { id: string; name: string; email: string; viewedAt: string
 export function RecentViewers({ viewers }: { viewers: Viewer[] }) {
   const [open, setOpen] = useState(false);
   if (viewers.length === 0) return null;
-  const shown = viewers.slice(0, 5);
+  // Two faces and a count. Six overlapping circles were the widest thing in a
+  // bar that already held the version, the tabs and the share button, and the
+  // sixth face told nobody anything the count does not.
+  const shown = viewers.slice(0, 2);
   const extra = viewers.length - shown.length;
 
   return (
