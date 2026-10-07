@@ -28,6 +28,8 @@ export type ProjectItem = {
   coverUrl?: string;
   coverIsHtml?: boolean;
   updatedAt: string;
+  /** File names, so searching for a file finds the project holding it. */
+  files: string[];
   stats: ProjectStats;
   viewers?: Viewer[];
   lastViewedAt?: string | null;
@@ -40,7 +42,7 @@ export type ProjectItem = {
 export async function getProjectItems(supabase: SupabaseClient<any>, workspaceId: string) {
   const { data } = await supabase
     .from("projects")
-    .select("id, name, created_at, mockups(id, file_path, created_at, type)")
+    .select("id, name, created_at, mockups(id, name, file_path, created_at, type, archived_at)")
     .eq("workspace_id", workspaceId)
     .is("archived_at", null)
     .order("created_at", { ascending: false });
@@ -67,6 +69,10 @@ export async function getProjectItems(supabase: SupabaseClient<any>, workspaceId
       coverUrl: latest ? covers.get(latest.file_path) : undefined,
       coverIsHtml: latest?.type === "html",
       updatedAt: p.created_at,
+      files: (p.mockups as { name?: string; archived_at?: string | null }[])
+        .filter((m) => !m.archived_at)
+        .map((m) => m.name ?? "")
+        .filter(Boolean),
       stats: stats.get(p.id) ?? zero,
       viewers: pv?.viewers,
       lastViewedAt: pv?.lastAt,

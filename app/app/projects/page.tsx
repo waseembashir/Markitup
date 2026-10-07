@@ -2,7 +2,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "../actions";
 import { getProjectItems } from "../dashboard-data";
 import { plural, emailLocalPart } from "@/lib/format";
-import { ProjectGrid } from "@/components/app/ProjectGrid";
+import { SearchableProjects } from "@/components/app/SearchableProjects";
 import { NewProjectDialog } from "@/components/app/NewProjectDialog";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
@@ -37,7 +37,7 @@ export default async function ProjectsPage() {
           <NewProjectDialog />
         </div>
       ) : (
-        <ProjectGrid items={items} />
+        <SearchableProjects items={items} />
       )}
     </div>
   );

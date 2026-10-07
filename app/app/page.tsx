@@ -31,13 +31,12 @@ export default async function DashboardPage() {
   const openComments = Math.max(0, totalThreads - totalResolved);
 
   const recentProjects = items.slice(0, 6);
-  const tableProjects = items.slice(0, 8);
-  const tableIds = tableProjects.map((p) => p.id);
+  const tableIds = items.map((p) => p.id);
   const [feedback, filesByProject] = await Promise.all([
     getFeedbackRows(supabase, tableIds),
     getFileRows(supabase, tableIds),
   ]);
-  const tableRows: TableRow[] = tableProjects
+  const tableRows: TableRow[] = items
     .map((p) => {
       const row = feedback.get(p.id);
       if (!row) return null;

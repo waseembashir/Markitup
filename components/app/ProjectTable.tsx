@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { timeAgo, plural } from "@/lib/format";
 import type { FeedbackRow, FileRow, ViewerFace } from "@/app/app/dashboard-data";
 import { NudgeDialog } from "@/components/app/NudgeDialog";
+import { SearchField } from "@/components/app/SearchField";
+import { searchTerms, matchesSearch } from "@/lib/search";
 import { Avatar } from "@/components/app/AppSidebar";
 
 export type TableRow = FeedbackRow & {
@@ -247,9 +249,35 @@ function ProjectRows({ row }: { row: TableRow }) {
   );
 }
 
-export function ProjectTable({ rows }: { rows: TableRow[] }) {
+export function ProjectTable({ rows, visible = 8 }: { rows: TableRow[]; visible?: number }) {
+  const [query, setQuery] = useState("");
+  const terms = searchTerms(query);
+  // Searching reaches past the rows on screen: every project in the workspace
+  // is here, and the first few are shown only because a dashboard that opens
+  // with forty rows is not a dashboard.
+  const matches = useMemo(
+    () => rows.filter((r) => matchesSearch(terms, r.name, r.fileRows.map((f) => f.name))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, query],
+  );
+  const shown = terms.length > 0 ? matches : matches.slice(0, visible);
+  const hidden = terms.length > 0 ? 0 : matches.length - shown.length;
+
   return (
     <div className="card overflow-x-auto p-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          placeholder="Search projects and files"
+          className="w-full max-w-xs"
+        />
+        {terms.length > 0 && (
+          <p className="text-xs text-muted">
+            {matches.length === 0 ? "No matches" : `${matches.length} of ${rows.length}`}
+          </p>
+        )}
+      </div>
       <table className="w-full min-w-[48rem] border-collapse text-sm">
         <thead>
           <tr className="border-b text-left text-xs font-semibold tracking-wide text-faint uppercase">
@@ -266,12 +294,21 @@ export function ProjectTable({ rows }: { rows: TableRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {shown.map((r) => (
             <ProjectRows key={r.projectId} row={r} />
           ))}
+          {shown.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-4 py-10 text-center">
+                <p className="text-sm font-semibold text-ink">Nothing matches “{query.trim()}”</p>
+                <p className="mt-1 text-xs text-muted">Searching project names and the files inside them.</p>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
       <p className="border-t px-4 py-2.5 text-xs text-faint">
+        {hidden > 0 && <span className="mr-1 font-semibold text-muted">{hidden} more — search to reach them.</span>}
         <span className="font-semibold text-muted">Waiting</span> is {WAITING_HELP}
       </p>
     </div>
