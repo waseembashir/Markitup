@@ -901,7 +901,6 @@ export function MockupViewer({
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
         style={tabStyle(htmlMode === "browse")}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.7" /></svg>
         Browse
       </button>
       <button
@@ -911,7 +910,6 @@ export function MockupViewer({
         className="flex items-center gap-1.5 border-l px-3 py-1.5 text-xs font-semibold transition-colors"
         style={tabStyle(htmlMode === "comment")}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 5h16v10H9l-5 4V5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
         Comment
       </button>
     </div>

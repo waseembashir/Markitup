@@ -92,10 +92,6 @@ export function VersionSwitcher({
         className="btn-secondary btn-sm gap-2"
         title="Versions"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M4 7.5 12 4l8 3.5-8 3.5-8-3.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="m4 12 8 3.5L20 12M4 16.5 12 20l8-3.5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-        </svg>
         {pending ? "Uploading…" : `Version ${current?.version ?? 1}`}
         {versions.length > 1 && (
           <span className="rounded-full bg-brand-soft px-2 text-[0.625rem] font-bold text-brand-ink">{versions.length}</span>
@@ -186,10 +182,6 @@ export function VersionSwitcher({
       </div>
       {compareHref && (
         <Link href={compareHref} className="btn-secondary btn-sm gap-2" title="Compare previous vs latest — hold Space to flip">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <rect x="3" y="4" width="8" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
-            <rect x="13" y="4" width="8" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
-          </svg>
           Compare
         </Link>
       )}
