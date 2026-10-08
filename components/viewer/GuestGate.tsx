@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { reportIssue, reportError } from "@/lib/observability";
@@ -109,6 +110,20 @@ export function GuestGate({ token, fileName }: { token: string; fileName: string
             No account needed. Your name is shown next to your comments.
           </p>
         </form>
+
+        {/* A teammate who types their name here becomes an anonymous guest, and
+            nothing can tell that guest apart from a client — so their comments
+            go to the team's Slack channel as a client's would. Signing in keeps
+            them on their own account. */}
+        <p className="mt-5 border-t pt-4 text-center text-sm text-muted">
+          Part of the team?{" "}
+          <Link
+            href={`/login?next=${encodeURIComponent(`/s/${token}`)}`}
+            className="font-semibold text-brand-ink hover:underline"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
