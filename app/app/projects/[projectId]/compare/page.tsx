@@ -59,14 +59,20 @@ export default async function ComparePage({
   const initialLeft = left && list.some((m) => m.id === left) ? left : previous?.id;
   const initialRight = right && list.some((m) => m.id === right) ? right : latest?.id;
 
+  // A guest has no project page to go back to (see the viewer), so the arrow
+  // returns them to the file they were comparing.
+  const { data: authData } = await supabase.auth.getUser();
+  const isGuest = authData.user?.is_anonymous === true;
+  const backHref = isGuest && initialRight ? `/app/mockups/${initialRight}` : undefined;
+
   if (list.length < 2) {
     return (
       <div className="flex h-full flex-col">
         <header className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface px-3">
           <Link
-            href={`/app/projects/${projectId}`}
+            href={backHref ?? `/app/projects/${projectId}`}
             className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-brand-soft hover:text-brand-ink"
-            aria-label="Back to project"
+            aria-label={backHref ? "Back to file" : "Back to project"}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -159,6 +165,7 @@ export default async function ComparePage({
       projectId={projectId}
       projectName={project.name}
       commentGroups={commentGroups}
+      backHref={backHref}
     />
   );
 }

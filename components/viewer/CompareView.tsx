@@ -172,6 +172,7 @@ export function CompareView({
   projectId,
   projectName,
   commentGroups = [],
+  backHref,
 }: {
   mockups: CompareMockup[];
   initialLeft: string; // previous / old
@@ -179,6 +180,9 @@ export function CompareView({
   projectId: string;
   projectName: string;
   commentGroups?: CompareCommentGroup[];
+  // Where the back arrow goes. Defaults to the project; a guest has no project
+  // page to return to, so they're sent back to the file instead.
+  backHref?: string;
 }) {
   const [mode, setMode] = useState<"overlay" | "side">("overlay");
   const [newId, setNewId] = useState(initialRight);
@@ -259,9 +263,9 @@ export function CompareView({
       {/* one minimal header: back · title · controls */}
       <header className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface px-3">
         <Link
-          href={`/app/projects/${projectId}`}
+          href={backHref ?? `/app/projects/${projectId}`}
           className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-brand-soft hover:text-brand-ink"
-          aria-label="Back to project"
+          aria-label={backHref ? "Back to file" : "Back to project"}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

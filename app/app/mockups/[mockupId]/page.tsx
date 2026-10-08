@@ -158,17 +158,23 @@ export default async function MockupPage({
       ? buildEmbedUrl(mk.figma_file_key as string, (mk.figma_node_id as string) ?? "")
       : null;
 
+  // No way back for a guest: the project page behind this arrow is a workspace
+  // screen with no sidebar for them (they have no workspace), so they landed on a
+  // dead end full of buttons they can't use. A guest reviews the file they were
+  // sent — views it and comments on it — and that's all.
   const titleSlot = (
     <>
-      <Link
-        href={`/app/projects/${mockup.project_id}`}
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-brand-soft hover:text-brand-ink"
-        aria-label="Back to project"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </Link>
+      {!isGuest && (
+        <Link
+          href={`/app/projects/${mockup.project_id}`}
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-brand-soft hover:text-brand-ink"
+          aria-label="Back to project"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+      )}
       <h1 className="truncate text-sm font-bold text-ink">{mockup.name}</h1>
       <VersionSwitcher versions={versions} currentId={mockupId} projectId={mockup.project_id} canUpload={canManage} />
     </>
