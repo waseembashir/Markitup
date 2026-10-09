@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { htmlToPlainText } from "@/lib/sanitize";
+import { signFilesWithThumbs } from "@/lib/thumbs";
 
 export type ProjectStats = { mockups: number; comments: number; resolved: number };
 
@@ -26,6 +27,9 @@ export type ProjectItem = {
   id: string;
   name: string;
   coverUrl?: string;
+  coverThumbUrl?: string;
+  /** The cover's storage path, so a card missing its preview can make one. */
+  coverPath?: string;
   coverIsHtml?: boolean;
   updatedAt: string;
   /** File names, so searching for a file finds the project holding it. */
@@ -53,9 +57,12 @@ export async function getProjectItems(supabase: SupabaseClient<any>, workspaceId
   const [stats, activity, covers] = await Promise.all([
     getWorkspaceStats(supabase, ids),
     getActivityData(supabase, ids),
-    signCovers(
+    signFilesWithThumbs(
       supabase,
-      projects.map((p) => [...p.mockups].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.file_path).filter(Boolean) as string[],
+      projects
+        .map((p) => [...p.mockups].sort((a, b) => b.created_at.localeCompare(a.created_at))[0])
+        .filter((m) => m?.file_path)
+        .map((m) => ({ path: m.file_path as string, isHtml: m.type === "html" })),
     ),
   ]);
 
@@ -66,7 +73,11 @@ export async function getProjectItems(supabase: SupabaseClient<any>, workspaceId
     return {
       id: p.id,
       name: p.name,
-      coverUrl: latest ? covers.get(latest.file_path) : undefined,
+      coverUrl: latest ? covers.get(latest.file_path)?.url : undefined,
+      coverThumbUrl: latest ? covers.get(latest.file_path)?.thumbUrl : undefined,
+      // Only the team sees these cards (they're the workspace's own projects),
+      // and the team may store files, so a missing preview gets made.
+      coverPath: latest?.file_path,
       coverIsHtml: latest?.type === "html",
       updatedAt: p.created_at,
       files: (p.mockups as { name?: string; archived_at?: string | null }[])
@@ -342,18 +353,4 @@ export async function getWorkspaceStats(supabase: SupabaseClient<any>, projectId
   // for it rather than leaving the card blank.
   for (const id of projectIds) if (!map.has(id)) map.set(id, { mockups: 0, comments: 0, resolved: 0 });
   return map;
-}
-
-export async function signCovers(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: SupabaseClient<any>,
-  covers: string[],
-) {
-  const signed = new Map<string, string>();
-  const paths = covers.filter(Boolean);
-  if (paths.length) {
-    const { data: urls } = await supabase.storage.from("mockups").createSignedUrls(paths, 60 * 60);
-    for (const u of urls ?? []) if (u.signedUrl && u.path) signed.set(u.path, u.signedUrl);
-  }
-  return signed;
 }

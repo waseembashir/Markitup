@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { validateUpload, HTML_MIME } from "@/lib/validation";
 import { injectHeightReporter } from "@/lib/html-embed";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { thumbFromFile, saveThumb } from "@/lib/thumbs-client";
 import { useToast } from "@/components/ui/toast";
 import {
   createMockupUploadUrl,
@@ -75,6 +76,10 @@ export function UploadDropzone({ projectId, folderId = null, onDone }: { project
           .from("mockups")
           .uploadToSignedUrl(target.path!, target.token!, body, { contentType: uploadType });
         if (upErr) return fail(upErr.message, iv);
+
+        // The card's small preview, stored beside the file before anyone sees
+        // the card, so the grid never has to download the original for it.
+        if (!isHtml) await saveThumb(target.path!, await thumbFromFile(file));
 
         // 3. Record the mockup row (reference only, no bytes).
         const res = await finalizeMockup(projectId, target.path!, file.name, folderId, DEVICES_FOR[views]);

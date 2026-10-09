@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { reportIssue } from "@/lib/observability";
 import { ACCEPTED_IMAGE_TYPES, HTML_MIME } from "@/lib/validation";
+import { thumbPathFor } from "@/lib/thumbs";
 
 function extForType(type: string) {
   if (type === HTML_MIME) return "html";
@@ -186,7 +187,7 @@ export async function replaceMockupFile(mockupId: string, path: string) {
       .eq("file_path", oldPath)
       .limit(1);
     if (!others?.length) {
-      const { error: rmErr } = await supabase.storage.from("mockups").remove([oldPath]);
+      const { error: rmErr } = await supabase.storage.from("mockups").remove([oldPath, thumbPathFor(oldPath)]);
       // A failed cleanup is wasted bytes, not a failed replace.
       if (rmErr) reportIssue("Could not delete the replaced file from Storage", { oldPath, reason: rmErr.message });
     }
@@ -264,7 +265,7 @@ export async function deleteMockupVersion(mockupId: string) {
       .eq("file_path", oldPath)
       .limit(1);
     if (!stillUsed?.length) {
-      const { error: rmErr } = await supabase.storage.from("mockups").remove([oldPath]);
+      const { error: rmErr } = await supabase.storage.from("mockups").remove([oldPath, thumbPathFor(oldPath)]);
       if (rmErr) reportIssue("Could not delete a removed version's file from Storage", { oldPath, reason: rmErr.message });
     }
   }
@@ -369,7 +370,7 @@ export async function deleteMockup(mockupId: string) {
 
   // Best-effort storage cleanup (non-fatal).
   if (mockup?.file_path) {
-    await supabase.storage.from("mockups").remove([mockup.file_path]);
+    await supabase.storage.from("mockups").remove([mockup.file_path, thumbPathFor(mockup.file_path)]);
   }
   if (mockup?.project_id) revalidatePath(`/app/projects/${mockup.project_id}`);
   revalidatePath("/app/archive");

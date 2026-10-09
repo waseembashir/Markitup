@@ -2,14 +2,14 @@ import Link from "next/link";
 import { timeAgo, plural } from "@/lib/format";
 import { Avatar } from "@/components/app/AppSidebar";
 import { HtmlThumbnail } from "@/components/viewer/HtmlThumbnail";
+import { ThumbImage } from "@/components/app/ThumbImage";
 
-function Cover({ url, name, isHtml }: { url?: string; name: string; isHtml?: boolean }) {
+function Cover({ url, thumbUrl, path, name, isHtml }: { url?: string; thumbUrl?: string; path?: string; name: string; isHtml?: boolean }) {
   if (url && isHtml) {
     return <HtmlThumbnail url={url} className="h-full w-full" />;
   }
   if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt="" loading="lazy" className="media-in h-full w-full object-cover object-top" />;
+    return <ThumbImage url={url} thumbUrl={thumbUrl} filePath={path} className="media-in h-full w-full object-cover object-top" />;
   }
   return (
     <div className="grid h-full w-full place-items-center bg-brand-soft">
@@ -31,6 +31,8 @@ export function ProjectCard({
   id,
   name,
   coverUrl,
+  coverThumbUrl,
+  coverPath,
   coverIsHtml,
   updatedAt,
   stats,
@@ -41,6 +43,9 @@ export function ProjectCard({
   id: string;
   name: string;
   coverUrl?: string;
+  coverThumbUrl?: string;
+  /** Set for someone who may store files here, so a missing preview gets made. */
+  coverPath?: string;
   coverIsHtml?: boolean;
   updatedAt: string;
   stats: { mockups: number; comments: number; resolved: number };
@@ -55,7 +60,7 @@ export function ProjectCard({
         <div className="h-4 w-[40%] rounded-t-[8px]" style={{ background: "var(--secondary)" }} aria-hidden />
         <div className="rounded-[8px] rounded-tl-none p-4 transition-colors group-hover:brightness-[0.985]" style={{ background: "var(--secondary)" }}>
           <div className="aspect-[16/10] w-full overflow-hidden rounded-[6px] bg-canvas ring-1 ring-[color:var(--border)]">
-            <Cover url={coverUrl} name={name} isHtml={coverIsHtml} />
+            <Cover url={coverUrl} thumbUrl={coverThumbUrl} path={coverPath} name={name} isHtml={coverIsHtml} />
           </div>
 
           {/* meta */}

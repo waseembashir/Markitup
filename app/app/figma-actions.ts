@@ -6,6 +6,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
 import { parseFigmaUrl, buildEmbedUrl, figmaRenderPng, figmaNodeName } from "@/lib/figma";
 import { getCurrentWorkspace } from "./actions";
+import { thumbPathFor, forgetSigned } from "@/lib/thumbs";
 
 export async function getFigmaConnection(): Promise<{ connected: boolean }> {
   const supabase = await createServerSupabase();
@@ -102,6 +103,12 @@ async function renderToStorage(
     .from("mockups")
     .upload(path, Buffer.from(bytes), { contentType: "image/png", upsert });
   if (error) return { error: error.message };
+  // A re-sync overwrites the file in place, so its preview now shows the old
+  // frame. Drop it; the next teammate to see the card makes a fresh one.
+  if (upsert) {
+    await supabase.storage.from("mockups").remove([thumbPathFor(path)]);
+    forgetSigned(thumbPathFor(path));
+  }
   return {};
 }
 

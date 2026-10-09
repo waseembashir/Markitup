@@ -50,6 +50,11 @@ export async function deleteProject(projectId: string) {
   if (files?.length) {
     await supabase.storage.from("mockups").remove(files.map((f) => `${projectId}/${f.name}`));
   }
+  // Card previews live one folder down (lib/thumbs.ts).
+  const { data: thumbs } = await supabase.storage.from("mockups").list(`${projectId}/thumbs`);
+  if (thumbs?.length) {
+    await supabase.storage.from("mockups").remove(thumbs.map((f) => `${projectId}/thumbs/${f.name}`));
+  }
 
   // Cascades handle mockups, pins, comments, attachments, share links,
   // notifications and views.

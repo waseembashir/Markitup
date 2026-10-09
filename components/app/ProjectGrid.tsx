@@ -11,6 +11,8 @@ export function ProjectGrid({ items }: { items: ProjectItem[] }) {
             id={p.id}
             name={p.name}
             coverUrl={p.coverUrl}
+            coverThumbUrl={p.coverThumbUrl}
+            coverPath={p.coverPath}
             coverIsHtml={p.coverIsHtml}
             updatedAt={p.updatedAt}
             stats={p.stats}

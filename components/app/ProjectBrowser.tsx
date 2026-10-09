@@ -8,10 +8,24 @@ import { MockupCardMenu } from "@/components/app/MockupCardMenu";
 import { UploadDropzone } from "@/components/viewer/UploadDropzone";
 import { FigmaImport } from "@/components/viewer/FigmaImport";
 import { HtmlThumbnail } from "@/components/viewer/HtmlThumbnail";
+import { ThumbImage } from "@/components/app/ThumbImage";
 import type { FolderOption } from "@/components/app/MoveToFolderDialog";
 
 type Folder = { id: string; name: string };
-export type FileItem = { id: string; name: string; url: string | null; version: number; count: number; isNew: boolean; createdAt: string; type?: string };
+export type FileItem = {
+  id: string;
+  name: string;
+  url: string | null;
+  /** Small preview for the card; absent until one has been made. */
+  thumbUrl?: string;
+  /** Set only for someone who may store files here, so a missing preview gets made. */
+  filePath?: string;
+  version: number;
+  count: number;
+  isNew: boolean;
+  createdAt: string;
+  type?: string;
+};
 
 const TABS = [
   { key: "all", label: "All" },
@@ -115,8 +129,7 @@ export function ProjectBrowser({
                           </span>
                         </>
                       ) : m.url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.url} alt="" loading="lazy" className="media-in h-full w-full object-cover object-top" />
+                        <ThumbImage url={m.url} thumbUrl={m.thumbUrl} filePath={m.filePath} className="media-in h-full w-full object-cover object-top" />
                       ) : (
                         <div className="h-full w-full bg-brand-soft" />
                       )}

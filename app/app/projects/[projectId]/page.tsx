@@ -5,6 +5,7 @@ import { NewSubProjectDialog } from "@/components/app/NewSubProjectDialog";
 import { ProjectBrowser, type FileItem } from "@/components/app/ProjectBrowser";
 import type { FolderOption } from "@/components/app/MoveToFolderDialog";
 import { plural } from "@/lib/format";
+import { signFilesWithThumbs } from "@/lib/thumbs";
 
 function Chevron() {
   return (
@@ -86,15 +87,15 @@ export default async function ProjectPage({
   }
   const rows = [...fileMap.values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-  const signed = new Map<string, string>();
-  if (rows.length) {
-    const { data: urls } = await supabase.storage.from("mockups").createSignedUrls(rows.map((m) => m.file_path), 3600);
-    for (const u of urls ?? []) if (u.signedUrl && u.path) signed.set(u.path, u.signedUrl);
-  }
-
-  const { data: authData } = await supabase.auth.getUser();
-  const meId = authData.user?.id ?? "";
   const ids = rows.map((m) => m.id);
+  const [signed, { data: authData }, { data: canManageData }] = await Promise.all([
+    signFilesWithThumbs(supabase, rows.map((m) => ({ path: m.file_path as string, isHtml: m.type === "html" }))),
+    supabase.auth.getUser(),
+    supabase.rpc("can_manage_project", { p: projectId }),
+  ]);
+  // Only someone who may store files here can make a missing preview.
+  const canManage = canManageData === true;
+  const meId = authData.user?.id ?? "";
   const viewedIds = new Set<string>();
   if (meId && ids.length) {
     const { data: views } = await supabase.from("mockup_views").select("mockup_id").eq("user_id", meId).in("mockup_id", ids);
@@ -104,7 +105,9 @@ export default async function ProjectPage({
   const files: FileItem[] = rows.map((m) => ({
     id: m.id,
     name: m.name,
-    url: signed.get(m.file_path) ?? null,
+    url: signed.get(m.file_path)?.url ?? null,
+    thumbUrl: signed.get(m.file_path)?.thumbUrl,
+    filePath: canManage ? (m.file_path as string) : undefined,
     version: m.version,
     count: m.count,
     isNew: !viewedIds.has(m.id),

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { validateUpload, HTML_MIME } from "@/lib/validation";
 import { injectHeightReporter } from "@/lib/html-embed";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { thumbFromFile, saveThumb } from "@/lib/thumbs-client";
 import { useToast } from "@/components/ui/toast";
 import { createMockupUploadUrl, addMockupVersion, replaceMockupFile } from "@/app/app/projects/[projectId]/actions";
 
@@ -69,6 +70,10 @@ export function useVersionUpload({
           .from("mockups")
           .uploadToSignedUrl(target.path!, target.token!, body, { contentType: uploadType });
         if (upErr) return failToast(upErr.message);
+
+        // The card's small preview, stored beside the file before anyone sees
+        // the card, so the grid never has to download the original for it.
+        if (!isHtml) await saveThumb(target.path!, await thumbFromFile(file));
 
         const res = replaceId
           ? await replaceMockupFile(replaceId, target.path!)
