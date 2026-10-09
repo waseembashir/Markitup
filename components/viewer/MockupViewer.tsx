@@ -344,7 +344,18 @@ export function MockupViewer({
   // renders it as it arrives — a design whose images are inlined can be several
   // megabytes, and pulling that through JavaScript meant nothing showed until
   // every byte had landed.
-  const htmlSrc = isHtml ? `/app/mockups/${mockupId}/html` : null;
+  //
+  // The address names the file being shown. Replacing a file gives it a new
+  // storage path, so the address changes and the frame loads the new page; with
+  // a fixed address the old page stayed up until someone reloaded by hand.
+  const htmlFile = htmlUrl ? new URL(htmlUrl).pathname.split("/").pop() ?? "" : "";
+  const htmlSrc = isHtml ? `/app/mockups/${mockupId}/html?v=${encodeURIComponent(htmlFile)}` : null;
+  const [shownHtmlSrc, setShownHtmlSrc] = useState(htmlSrc);
+  if (shownHtmlSrc !== htmlSrc) {
+    // A new page: show the loading state until it reports in, as on first load.
+    setShownHtmlSrc(htmlSrc);
+    setHtmlReady(false);
+  }
 
   // Read inside the pointer handler below, which must not be re-subscribed on
   // every scroll frame just to see a current value.
@@ -1209,6 +1220,7 @@ export function MockupViewer({
             )}
             {htmlSrc && (
               <iframe
+                key={htmlSrc}
                 ref={htmlFrameRef}
                 src={htmlSrc}
                 onLoad={() => setHtmlReady(true)}

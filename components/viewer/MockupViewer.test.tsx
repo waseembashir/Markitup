@@ -384,11 +384,31 @@ describe("an uploaded HTML design", () => {
       />,
     );
     const frame = document.querySelector("iframe");
-    expect(frame).toHaveAttribute("src", "/app/mockups/m1/html");
+    expect(frame).toHaveAttribute("src", "/app/mockups/m1/html?v=y.html");
     expect(frame).not.toHaveAttribute("srcdoc");
     // Nothing should be pulling the design through JavaScript any more.
     expect(fetchSpy.mock.calls.some(([u]) => String(u).includes("storage.example"))).toBe(false);
     fetchSpy.mockRestore();
+  });
+
+  it("loads the new page when the file is replaced, without a manual reload", () => {
+    const props = {
+      mockupId: "m1",
+      projectId: "proj1",
+      imageName: "y.html",
+      initialPins: [],
+      siblings: [{ id: "m1" }],
+      members: [],
+      currentUserName: "Tester",
+    };
+    const { rerender } = render(
+      <MockupViewer {...props} imageUrl="http://storage.example/p/old.html" htmlUrl="http://storage.example/p/old.html" />,
+    );
+    expect(document.querySelector("iframe")).toHaveAttribute("src", "/app/mockups/m1/html?v=old.html");
+    // A replace stores the new file at a new path; the refreshed page passes it in.
+    rerender(<MockupViewer {...props} imageUrl="http://storage.example/p/new.html" htmlUrl="http://storage.example/p/new.html" />);
+    expect(document.querySelector("iframe")).toHaveAttribute("src", "/app/mockups/m1/html?v=new.html");
+    expect(screen.getByText("Loading page…")).toBeInTheDocument();
   });
 
   it("keeps the frame sandboxed without same-origin access", () => {
