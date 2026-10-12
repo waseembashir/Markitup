@@ -119,6 +119,34 @@ export async function inviteTeamMember(email: string, role: "admin" | "member") 
   const { data: profileId } = await supabase.rpc("find_profile_id_by_email", { p_email: clean });
 
   if (profileId) {
+    // Already on the team: inviting them again is how you change their role.
+    // Inserting a second row is what used to surface the raw unique-key error.
+    const { data: existing } = await supabase
+      .from("workspace_members")
+      .select("role, profiles(name)")
+      .eq("workspace_id", ws.id)
+      .eq("user_id", profileId)
+      .maybeSingle();
+    if (existing) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const who = ((existing as any).profiles?.name as string) || clean;
+      if (existing.role === "owner") return { error: `${who} owns this workspace, so their role can't change.` };
+      if (profileId === me.id) return { error: "You can't change your own role." };
+      if (existing.role === safeRole) return { error: `${who} is already ${safeRole === "admin" ? "an Admin" : "a Manager"}.` };
+      const { data: changed, error: roleErr } = await supabase
+        .from("workspace_members")
+        .update({ role: safeRole })
+        .eq("workspace_id", ws.id)
+        .eq("user_id", profileId)
+        .select("user_id")
+        .maybeSingle();
+      if (roleErr) return { error: roleErr.message };
+      // RLS turns a refused update into "no rows", not an error (0046).
+      if (!changed) return { error: `Couldn't change ${who}'s role.` };
+      revalidatePath("/app/settings");
+      return { ok: true, invited: false, roleChanged: true, message: `${who} is now ${safeRole === "admin" ? "an Admin" : "a Manager"}.` };
+    }
+
     const { error } = await supabase
       .from("workspace_members")
       .insert({ workspace_id: ws.id, user_id: profileId, role: safeRole });

@@ -35,6 +35,11 @@ export function TeamInviteDialog() {
       setOpen(false);
       reset();
       const roleLabel = role === "admin" ? "Admin" : "Manager";
+      if ("roleChanged" in res && res.roleChanged) {
+        toast.success("Role changed", { description: res.message });
+        router.refresh();
+        return;
+      }
       toast.success(
         res.invited ? "Invitation sent" : "Teammate added",
         { description: res.invited ? `${email.trim()} will get an email to join as ${roleLabel}.` : `Added as ${roleLabel}.` },
