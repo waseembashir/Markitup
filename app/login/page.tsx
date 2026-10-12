@@ -6,9 +6,9 @@ import { GoogleButton } from "@/components/auth/GoogleButton";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; guest?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, guest } = await searchParams;
   // Set by /auth/callback when a Google sign-in doesn't complete.
   const notice =
     error === "cancelled"
@@ -35,6 +35,13 @@ export default async function LoginPage({
           role="alert"
         >
           {notice}
+        </p>
+      )}
+      {guest && !notice && (
+        // Sent here by the proxy: this browser still holds a guest session from
+        // a shared link, which can open that file but not a workspace.
+        <p className="mb-4 rounded-lg border bg-brand-soft px-3 py-2 text-sm text-ink" role="status">
+          You were reviewing a shared file as a guest. Log in with your own account to see your projects.
         </p>
       )}
       <GoogleButton next={next} label="Continue with Google" />
