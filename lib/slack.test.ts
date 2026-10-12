@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { commentSlackMessage, commentRollupSlackMessage, mockupSlackWebhook, commentIsFromClient, SLACK_BATCH_WINDOW_MINUTES } from "./slack";
+import { commentSlackMessage, commentRollupSlackMessage, mockupSlackWebhook, commentIsFromClient, commentGoesToSlack, SLACK_BATCH_WINDOW_MINUTES } from "./slack";
 import { encryptSecret } from "./crypto";
 
 // Slack renders `text` in notifications and previews, so that string is what
@@ -132,5 +132,23 @@ describe("whose comments the channel is for", () => {
     // They can see the file but are not in the workspace, which is the same
     // line the dashboard draws for "Seen by" and client replies.
     expect(commentIsFromClient("u-collaborator", team)).toBe(true);
+  });
+});
+
+describe("commentGoesToSlack", () => {
+  const team = ["u-vinay"];
+
+  it("keeps a teammate who commented as a guest under their own name out of the channel", () => {
+    // The roster can't see a guest, so on its own it would call them a client.
+    expect(commentGoesToSlack({ fromTeam: true, checkFailed: false, authorId: "u-guest", workspaceMemberIds: [] })).toBe(false);
+  });
+
+  it("announces a client", () => {
+    expect(commentGoesToSlack({ fromTeam: false, checkFailed: false, authorId: "u-client", workspaceMemberIds: team })).toBe(true);
+  });
+
+  it("falls back to the roster when the database can't answer yet", () => {
+    expect(commentGoesToSlack({ fromTeam: null, checkFailed: true, authorId: "u-vinay", workspaceMemberIds: team })).toBe(false);
+    expect(commentGoesToSlack({ fromTeam: null, checkFailed: true, authorId: "u-client", workspaceMemberIds: team })).toBe(true);
   });
 });

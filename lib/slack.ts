@@ -68,6 +68,25 @@ export function commentIsFromClient(authorId: string, workspaceMemberIds: readon
   return !workspaceMemberIds.includes(authorId);
 }
 
+/**
+ * Whether a comment is announced in the channel.
+ *
+ * The roster misses one kind of teammate: one who opened a client link signed
+ * out and commented as a guest under their own name or email. A guest may not
+ * read the roster, so `comment_from_team` (migration 0045) answers from the
+ * database, matching such a guest by name. Where that function isn't there yet
+ * — a database behind the code — the roster decides, as it always did.
+ */
+export function commentGoesToSlack(input: {
+  fromTeam: boolean | null;
+  checkFailed: boolean;
+  authorId: string;
+  workspaceMemberIds: readonly string[];
+}): boolean {
+  if (input.checkFailed) return commentIsFromClient(input.authorId, input.workspaceMemberIds);
+  return input.fromTeam !== true;
+}
+
 export async function postToSlack(webhook: string, payload: object): Promise<boolean> {
   try {
     const r = await fetch(webhook, {

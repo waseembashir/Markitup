@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { commentNotification } from "@/lib/email/templates";
-import { workspaceSlackWebhook, mockupSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, commentIsFromClient, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
+import { workspaceSlackWebhook, mockupSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, commentGoesToSlack, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
 import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
 import { loadViewerPins } from "./pins-data";
 import { reportError } from "@/lib/observability";
@@ -156,7 +156,9 @@ export async function addComment(
           // The team's own comments are not announced: everyone in the channel
           // was already part of that conversation. They are not recorded as a
           // burst either, so they can never turn up inside a roll-up.
-          if (commentIsFromClient(author.id, teamIds)) {
+          // That includes a teammate commenting as a guest under their own name.
+          const { data: fromTeam, error: teamErr } = await supabase.rpc("comment_from_team", { p_mockup: mockupId });
+          if (commentGoesToSlack({ fromTeam: fromTeam ?? null, checkFailed: !!teamErr, authorId: author.id, workspaceMemberIds: teamIds })) {
             const { data: opensBurst } = await supabase.rpc("slack_batch_record", {
               p_workspace: workspaceId,
               p_project: projectId,
