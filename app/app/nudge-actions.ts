@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "./actions";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmail, emailSendingConfigured } from "@/lib/email/send";
 import { reminderEmail } from "@/lib/email/templates";
 import { fillTemplate, REMINDER_DEFAULTS, type ReminderSettings } from "@/lib/reminders";
 import { emailLocalPart } from "@/lib/format";
@@ -189,7 +189,12 @@ export async function sendNudge(projectId: string, email: string, name?: string,
   });
   if (!sent.ok) {
     reportIssue("A reminder could not be sent from the dashboard", { projectId });
-    return { error: "The email couldn't be sent — check email delivery in Settings." };
+    // Settings has nothing that fixes this: the sender is set up on the server.
+    return {
+      error: emailSendingConfigured()
+        ? "The email couldn't be sent. Try again in a moment."
+        : "Email sending isn't set up yet, so the reminder wasn't sent. Copy the file's share link and send it yourself for now.",
+    };
   }
 
   // Keep the schedule in step: the follow-up clock restarts from this send, and

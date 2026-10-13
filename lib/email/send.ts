@@ -10,6 +10,13 @@ export const EMAIL_FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
 // unset EMAIL_FROM as the outage it is.
 const USING_TEST_SENDER = !process.env.EMAIL_FROM;
 
+// Whether mail can reach anyone but the Resend account owner: a key to send
+// with, and a sender on a verified domain. Callers use it to tell people why a
+// send failed, rather than pointing them at a screen that can't fix it.
+export function emailSendingConfigured(): boolean {
+  return !!process.env.RESEND_API_KEY && !USING_TEST_SENDER;
+}
+
 // Report configuration problems once per server instance, not once per email.
 let warnedNoKey = false;
 let warnedTestSender = false;
