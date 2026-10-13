@@ -10,8 +10,12 @@ export default async function LoginPage({
 }) {
   const { next, error, guest } = await searchParams;
   // Set by /auth/callback when a Google sign-in doesn't complete.
-  const notice =
-    error === "cancelled"
+  // A reset link that couldn't sign anyone in: almost always opened in a
+  // different browser or device from the one that asked for it.
+  const resetFailed = !!error && next === "/reset-password";
+  const notice = resetFailed
+    ? "That password reset link didn't work here. Open it in the same browser you requested it from, or ask for a new one below."
+    : error === "cancelled"
       ? "Google sign-in was cancelled. Try again, or use your email and password."
       : error
         ? "Google sign-in didn't complete. Try again, or use your email and password."

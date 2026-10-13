@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { welcome } from "@/lib/email/templates";
@@ -84,7 +85,21 @@ export async function requestPasswordReset(
   // Route through /auth/callback so the PKCE code is exchanged server-side,
   // which makes cross-device / cross-browser resets work.
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${APP_URL}/auth/callback?next=/reset-password`,
+    redirectTo: `${await requestOrigin()}/auth/callback?next=/reset-password`,
   });
   return { sent: true };
+}
+
+// Where the person asking is: the link in the email must bring them back here.
+// It used to be NEXT_PUBLIC_APP_URL, which on production still named (or fell
+// back to) the old markitup-woad.vercel.app. Supabase only redirects to addresses
+// on its allow list (review.apexure.com/**), so it refused that one and dropped
+// people on the Site URL's home page — the reset never started. A forged Host
+// header gains nothing: the allow list still decides where Supabase will go.
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) return APP_URL;
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
 }
