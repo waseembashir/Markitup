@@ -5,14 +5,6 @@ export default function DashboardLoading() {
     <div className="mx-auto max-w-6xl px-8 py-8">
       <SkeletonPageHeader />
 
-      {/* Needs attention: a row of small action cards */}
-      <Skeleton className="mb-3 h-4 w-32 rounded" />
-      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[7.5rem] rounded-xl" />
-        ))}
-      </div>
-
       {/* "Where each project stands", compact: five rows */}
       <Skeleton className="mb-4 h-4 w-40 rounded" />
       <Skeleton className="mb-8 h-[17rem] w-full rounded-xl" />

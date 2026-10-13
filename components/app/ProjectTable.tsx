@@ -133,12 +133,25 @@ function Cells({
   if (compact) {
     return (
       <>
-        <td className={`${pad} text-right tabular-nums`}>{row.comments}</td>
+        <td className={`${pad} text-right tabular-nums`}>
+          <span className={row.openThreads > 0 ? "font-semibold text-ink" : "text-faint"}>{row.openThreads}</span>
+        </td>
         <td className={pad}>
           <span className="flex items-center gap-2 whitespace-nowrap">
             <Pill label={s.label} tone={s.tone} />
             {s.at && <span className="text-xs text-faint">{timeAgo(s.at)}</span>}
           </span>
+        </td>
+        <td className={`${pad} whitespace-nowrap`}>
+          {w ? (
+            <span className={w.late ? "font-semibold text-ink" : "text-muted"} title={w.why}>
+              {w.text}
+            </span>
+          ) : (
+            <span className="text-faint" title={row.lastClientComment ? "They have replied." : "Not shared yet."}>
+              —
+            </span>
+          )}
         </td>
         <td className={`${pad} text-right`}>
           <NudgeDialog projectId={projectId} projectName={nudgeName} mockupId={mockupId} />
@@ -305,7 +318,7 @@ export function ProjectTable({
   title?: string;
   rows: TableRow[];
   visible?: number;
-  /** Squeezed for the dashboard: project, comments, client, remind — no search. */
+  /** Squeezed for the dashboard: project, open, client, no reply for, remind — no search. */
   compact?: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -357,8 +370,13 @@ export function ProjectTable({
             {compact ? (
               <tr className="border-b text-left text-xs font-semibold tracking-wide text-faint uppercase">
                 <th className="px-3 py-2 font-semibold">Project</th>
-                <th className="px-3 py-2 text-right font-semibold">Comments</th>
+                <th className="px-3 py-2 text-right font-semibold" title="Comments still open">Open</th>
                 <th className="px-3 py-2 font-semibold">Client</th>
+                <th className="px-3 py-2 font-semibold">
+                  <span className="cursor-help border-b border-dotted border-[color:var(--color-border)]" title={WAITING_HELP}>
+                    No reply for
+                  </span>
+                </th>
                 <th className="px-3 py-2 text-right font-semibold">Reminder</th>
               </tr>
             ) : (
@@ -382,7 +400,7 @@ export function ProjectTable({
             ))}
             {shown.length === 0 && (
               <tr>
-                <td colSpan={compact ? 4 : 6} className="px-4 py-10 text-center">
+                <td colSpan={compact ? 5 : 6} className="px-4 py-10 text-center">
                   <p className="text-sm font-semibold text-ink">Nothing matches “{query.trim()}”</p>
                   <p className="mt-1 text-xs text-muted">Searching project names and the files inside them.</p>
                 </td>
