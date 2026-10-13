@@ -9,6 +9,8 @@ import { Collapsible } from "@/components/app/Collapsible";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
 import { NewProjectDialog } from "@/components/app/NewProjectDialog";
+import { NeedsAttention } from "@/components/app/NeedsAttention";
+import { needsAttention } from "@/lib/attention";
 import { WorkspaceHeading } from "@/components/app/WorkspaceHeading";
 
 const RECENT = 6;
@@ -44,6 +46,7 @@ export default async function DashboardPage() {
     // top, newest first. The rest keep their order.
     .sort((a, b) => (b.unread ? 1 : 0) - (a.unread ? 1 : 0) || (b.unreadAt ?? "").localeCompare(a.unreadAt ?? ""));
   const totalUnread = tableRows.reduce((n, r) => n + (r.unread ?? 0), 0);
+  const attention = needsAttention(tableRows);
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-8">
@@ -55,6 +58,9 @@ export default async function DashboardPage() {
           <ProfileMenu name={userName} email={userEmail} />
         </div>
       </div>
+
+      {/* What to act on now comes first; the projects themselves, after. */}
+      {tableRows.length > 0 && <NeedsAttention items={attention} />}
 
       {team && (
         // The team's work is the point of the page, so it leads, set apart.

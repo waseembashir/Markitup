@@ -8,6 +8,7 @@ import { NudgeDialog } from "@/components/app/NudgeDialog";
 import { SearchField } from "@/components/app/SearchField";
 import { searchTerms, matchesSearch } from "@/lib/search";
 import { Avatar } from "@/components/app/AppSidebar";
+import { quietFor, QUIET_DAYS } from "@/lib/attention";
 
 export type TableRow = FeedbackRow & {
   name: string;
@@ -20,8 +21,6 @@ export type TableRow = FeedbackRow & {
   viewers: ViewerFace[];
 };
 
-const DAY = 24 * 3600 * 1000;
-const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
 
 /** Everything the two kinds of row — project and file — have in common. */
 type Standing = {
@@ -99,13 +98,12 @@ function Faces({ people, total }: { people: ViewerFace[]; total: number }) {
  * is emphasised from the third day, which is when a nudge is usually due.
  */
 function waiting(r: Standing) {
-  if (r.lastClientComment) return null;
-  const since = r.lastClientView ?? r.sharedAt;
-  if (!since) return null;
-  const days = daysSince(since);
+  const q = quietFor(r);
+  if (!q) return null;
+  const { days } = q;
   const what = r.lastClientView ? "since they last opened it" : "since it was shared, and they haven't opened it";
   if (days < 1) return { text: "today", late: false, why: `Opened or shared today — no reply yet.` };
-  return { text: plural(days, "day"), late: days >= 3, why: `${plural(days, "day")} ${what}, with no reply.` };
+  return { text: plural(days, "day"), late: days >= QUIET_DAYS, why: `${plural(days, "day")} ${what}, with no reply.` };
 }
 
 const WAITING_HELP =
