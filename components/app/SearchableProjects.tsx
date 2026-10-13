@@ -5,12 +5,19 @@ import { ProjectGrid } from "@/components/app/ProjectGrid";
 import { SearchField } from "@/components/app/SearchField";
 import { NewProjectDialog } from "@/components/app/NewProjectDialog";
 import { searchTerms, matchesSearch } from "@/lib/search";
+import { plural } from "@/lib/format";
 import type { ProjectItem } from "@/app/app/dashboard-data";
 import type { MyWorkspace } from "@/app/app/actions";
 
 type Group = { workspace: MyWorkspace; items: ProjectItem[] };
 
 const TAB_KEY = "projects.workspace";
+
+// "Apexure Success's Workspace" → "Apexure Success": on a tab, the word adds
+// nothing — every tab is a workspace.
+export function tabLabel(name: string) {
+  return name.replace(/(?:'s)?\s+workspace$/i, "").trim() || name;
+}
 
 /**
  * The Projects page: a tab per workspace, the team's first. New project sits
@@ -52,11 +59,13 @@ export function SearchableProjects({ groups }: { groups: Group[] }) {
   const current = filtered.find((g) => g.workspace.id === tab) ?? filtered[0];
   if (!current) return null;
   const ws = current.workspace;
+  // How many the tab holds, before any search narrows it.
+  const total = groups.find((g) => g.workspace.id === ws.id)?.items.length ?? 0;
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-        <div role="tablist" aria-label="Workspaces" className="flex flex-wrap items-center gap-1">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b">
+        <div role="tablist" aria-label="Workspaces" className="-mb-px flex flex-wrap gap-6">
           {filtered.map((g) => {
             const active = g.workspace.id === ws.id;
             return (
@@ -66,29 +75,31 @@ export function SearchableProjects({ groups }: { groups: Group[] }) {
                 type="button"
                 aria-selected={active}
                 onClick={() => pick(g.workspace.id)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
-                style={
-                  active
-                    ? { background: "var(--primary)", color: "var(--primary-foreground)" }
-                    : { color: "var(--muted-foreground)" }
-                }
+                className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-semibold transition-colors ${
+                  active ? "border-[color:var(--color-brand)] text-ink" : "border-transparent text-muted hover:text-ink"
+                }`}
               >
-                <span>{g.workspace.name}</span>
-                <span
-                  className="rounded-full px-1.5 text-xs tabular-nums"
-                  style={{ background: active ? "color-mix(in oklch, var(--primary-foreground) 14%, transparent)" : "var(--accent)" }}
-                >
-                  {g.items.length}
-                </span>
-                {!g.workspace.primary && g.workspace.ownedByMe && <span className="text-xs font-medium opacity-75">Personal</span>}
+                {tabLabel(g.workspace.name)}
+                {!g.workspace.primary && g.workspace.ownedByMe && (
+                  <span className="text-xs font-medium text-faint">Personal</span>
+                )}
               </button>
             );
           })}
         </div>
-        <NewProjectDialog workspaceId={ws.id} workspaceName={ws.name} />
+        <div className="pb-2.5">
+          <NewProjectDialog workspaceId={ws.id} workspaceName={ws.name} />
+        </div>
       </div>
 
-      <SearchField value={query} onChange={setQuery} placeholder="Search projects and files" className="mb-6 w-full max-w-xs" />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <SearchField value={query} onChange={setQuery} placeholder="Search projects and files" className="w-full max-w-xs" />
+        <p className="text-sm text-muted tabular-nums">
+          {terms.length > 0
+            ? `${current.items.length} of ${plural(total, "project")}`
+            : plural(total, "project")}
+        </p>
+      </div>
 
       {current.items.length > 0 ? (
         <ProjectGrid items={current.items} />
