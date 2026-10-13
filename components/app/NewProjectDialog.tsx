@@ -6,7 +6,16 @@ import { createProject } from "@/app/app/actions";
 import { useToast } from "@/components/ui/toast";
 import { ModalPortal } from "@/components/ui/ModalPortal";
 
-export function NewProjectDialog({ variant = "primary" }: { variant?: "primary" | "secondary" }) {
+export function NewProjectDialog({
+  variant = "primary",
+  workspaceId,
+  workspaceName,
+}: {
+  variant?: "primary" | "secondary";
+  /** Create it here instead of in the workspace the app opens. */
+  workspaceId?: string;
+  workspaceName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [pending, start] = useTransition();
@@ -19,6 +28,7 @@ export function NewProjectDialog({ variant = "primary" }: { variant?: "primary" 
     start(async () => {
       const fd = new FormData();
       fd.set("name", name.trim());
+      if (workspaceId) fd.set("workspace_id", workspaceId);
       const res = (await createProject(fd)) as { error?: string } | undefined;
       if (res?.error) { toast.error(res.error); return; }
       setName("");
@@ -43,7 +53,10 @@ export function NewProjectDialog({ variant = "primary" }: { variant?: "primary" 
           <div className="fade-anim absolute inset-0 bg-black/30" onClick={() => !pending && setOpen(false)} />
           <form onSubmit={submit} className="pop-anim relative z-10 w-full max-w-sm rounded-2xl border bg-surface-2 p-5 shadow-lg">
             <h2 className="text-base font-bold text-ink">New project</h2>
-            <p className="mt-1 text-xs text-muted">Give your project a name — you can add files and projects next.</p>
+            <p className="mt-1 text-xs text-muted">
+              {workspaceName ? <>In <span className="font-semibold text-ink">{workspaceName}</span>. </> : null}
+              Give your project a name — you can add files and projects next.
+            </p>
             <input
               autoFocus
               value={name}

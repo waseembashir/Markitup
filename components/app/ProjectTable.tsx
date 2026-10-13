@@ -275,7 +275,7 @@ function ProjectRows({ row }: { row: TableRow }) {
   );
 }
 
-export function ProjectTable({ title, rows, visible = 5 }: { title: string; rows: TableRow[]; visible?: number }) {
+export function ProjectTable({ title, rows, visible = 5 }: { title?: string; rows: TableRow[]; visible?: number }) {
   const [query, setQuery] = useState("");
   const [all, setAll] = useState(false);
   const terms = searchTerms(query);
@@ -294,14 +294,16 @@ export function ProjectTable({ title, rows, visible = 5 }: { title: string; rows
   return (
     <>
       {/* The heading lives here so "Show all" can sit beside it, on the right. */}
+      {(title || canToggle) && (
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-ink">{title}</h2>
+        {title ? <h2 className="text-sm font-bold text-ink">{title}</h2> : <span />}
         {canToggle && (
           <button type="button" onClick={() => setAll((v) => !v)} className="text-sm font-semibold text-brand-ink hover:underline">
             {all ? "Show fewer" : `Show all ${matches.length} projects`}
           </button>
         )}
       </div>
+      )}
       <div className="card overflow-x-auto p-0">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
           <SearchField

@@ -20,12 +20,41 @@ export async function getCurrentWorkspace() {
   return { id: ws.id, name: ws.name };
 }
 
+export type MyWorkspace = { id: string; name: string; primary: boolean; ownedByMe: boolean };
+
+// Every workspace the caller belongs to, the one the app opens first (the
+// company's, where they have one — see 0047) and the rest in the order they
+// joined. Someone at the company with a workspace of their own sees both.
+export async function getMyWorkspaces(): Promise<MyWorkspace[]> {
+  const supabase = await createServerSupabase();
+  const [primary, { data: auth }] = await Promise.all([getCurrentWorkspace(), supabase.auth.getUser()]);
+  const me = auth.user?.id;
+  if (!me || !primary) return [];
+  const { data } = await supabase
+    .from("workspace_members")
+    .select("created_at, workspaces(id, name, owner_id)")
+    .eq("user_id", me)
+    .order("created_at");
+  const rest: MyWorkspace[] = [];
+  let primaryOwned = false;
+  for (const row of data ?? []) {
+    const w = row.workspaces as unknown as { id: string; name: string; owner_id: string } | null;
+    if (!w) continue;
+    if (w.id === primary.id) primaryOwned = w.owner_id === me;
+    else rest.push({ id: w.id, name: w.name, primary: false, ownedByMe: w.owner_id === me });
+  }
+  return [{ ...primary, primary: true, ownedByMe: primaryOwned }, ...rest];
+}
+
 export async function createProject(formData: FormData) {
   const name = String(formData.get("name")).trim();
   if (!name) return { error: "Project name is required" };
   const supabase = await createServerSupabase();
-  const ws = await getCurrentWorkspace();
-  if (!ws) return { error: "No workspace" };
+  // Which workspace it goes in: the one asked for, if the caller belongs to it
+  // (the insert policy checks that too), else the one the app opens.
+  const asked = String(formData.get("workspace_id") ?? "").trim();
+  const ws = asked ? (await getMyWorkspaces()).find((w) => w.id === asked) : await getCurrentWorkspace();
+  if (!ws) return { error: asked ? "You're not a member of that workspace." : "No workspace" };
   const { data: userData } = await supabase.auth.getUser();
   const { error } = await supabase
     .from("projects")
