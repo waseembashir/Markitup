@@ -245,6 +245,30 @@ export async function getFeedbackRows(
   return map;
 }
 
+/** Client comments the caller hasn't seen: per project, and per file within it. */
+export type Unread = { count: number; latestAt: string | null; byMockup: Map<string, number> };
+
+// See 0048_unread_client_comments.sql. Like the rows above, an addition: without
+// the function the dashboard renders as it did, with no red counts.
+export async function getUnreadClientComments(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any>,
+  projectIds: string[],
+) {
+  const map = new Map<string, Unread>();
+  if (!projectIds.length) return map;
+  const { data, error } = await supabase.rpc("unread_client_comments", { p: projectIds });
+  if (error) return map;
+  for (const r of (data ?? []) as { project_id: string; mockup_id: string; unread: number; latest_at: string | null }[]) {
+    const u = map.get(r.project_id) ?? { count: 0, latestAt: null, byMockup: new Map<string, number>() };
+    u.count += r.unread;
+    if (r.latest_at && (!u.latestAt || r.latest_at > u.latestAt)) u.latestAt = r.latest_at;
+    u.byMockup.set(r.mockup_id, r.unread);
+    map.set(r.project_id, u);
+  }
+  return map;
+}
+
 /** Someone outside the team who opened a file — enough to draw a face. */
 export type ViewerFace = { name: string; email: string };
 

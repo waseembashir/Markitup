@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "./actions";
-import { getProjectItems, getFeedbackRows, getFileRows, mergeViewers } from "./dashboard-data";
+import { getProjectItems, getFeedbackRows, getFileRows, getUnreadClientComments, mergeViewers } from "./dashboard-data";
 import { plural, emailLocalPart } from "@/lib/format";
 import { ProjectGrid } from "@/components/app/ProjectGrid";
 import { ProjectTable, type TableRow } from "@/components/app/ProjectTable";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
+import { NewProjectDialog } from "@/components/app/NewProjectDialog";
 
 function StatTile({ label, value, accent }: { label: string; value: number; accent?: string }) {
   return (
@@ -32,18 +33,23 @@ export default async function DashboardPage() {
 
   const recentProjects = items.slice(0, 6);
   const tableIds = items.map((p) => p.id);
-  const [feedback, filesByProject] = await Promise.all([
+  const [feedback, filesByProject, unread] = await Promise.all([
     getFeedbackRows(supabase, tableIds),
     getFileRows(supabase, tableIds),
+    getUnreadClientComments(supabase, tableIds),
   ]);
   const tableRows: TableRow[] = items
-    .map((p) => {
+    .map((p): TableRow | null => {
       const row = feedback.get(p.id);
       if (!row) return null;
-      const fileRows = filesByProject.get(p.id) ?? [];
-      return { ...row, name: p.name, fileRows, viewers: mergeViewers(fileRows) };
+      const u = unread.get(p.id);
+      const fileRows = (filesByProject.get(p.id) ?? []).map((f) => ({ ...f, unread: u?.byMockup.get(f.mockupId) ?? 0 }));
+      return { ...row, name: p.name, fileRows, viewers: mergeViewers(fileRows), unread: u?.count ?? 0, unreadAt: u?.latestAt ?? null };
     })
-    .filter((r): r is TableRow => r !== null);
+    .filter((r): r is TableRow => r !== null)
+    // A client just said something you haven't read: that project goes to the
+    // top, newest first. The rest keep their order.
+    .sort((a, b) => (b.unread ? 1 : 0) - (a.unread ? 1 : 0) || (b.unreadAt ?? "").localeCompare(a.unreadAt ?? ""));
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-8">
@@ -53,7 +59,7 @@ export default async function DashboardPage() {
           <p className="mt-1 text-sm text-muted">{ws?.name} · {plural(items.length, "project")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/app/members" className="btn-secondary btn-sm">Invite</Link>
+          <NewProjectDialog />
           <NotificationBell />
           <ProfileMenu name={userName} email={userEmail} />
         </div>

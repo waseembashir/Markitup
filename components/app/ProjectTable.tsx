@@ -12,7 +12,10 @@ import { Avatar } from "@/components/app/AppSidebar";
 export type TableRow = FeedbackRow & {
   name: string;
   /** The project's files, newest first. Listed under the project when >1. */
-  fileRows: FileRow[];
+  fileRows: (FileRow & { unread?: number })[];
+  /** Client comments the viewer hasn't seen yet, and when the newest was left. */
+  unread?: number;
+  unreadAt?: string | null;
   /** Clients who opened any of them, most recent visit first. */
   viewers: ViewerFace[];
 };
@@ -176,6 +179,21 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+/** The red count of client comments you haven't seen. */
+function UnreadBadge({ count }: { count?: number }) {
+  if (!count) return null;
+  return (
+    <span
+      className="inline-grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[0.6875rem] leading-none font-bold text-white tabular-nums"
+      style={{ background: "var(--color-danger, #dc2626)" }}
+      title={`${count} new client ${count === 1 ? "comment" : "comments"}`}
+      aria-label={`${count} new client ${count === 1 ? "comment" : "comments"}`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 /** A project, and — when it holds more than one file — each of its files. */
 function ProjectRows({ row }: { row: TableRow }) {
   const files = row.fileRows;
@@ -201,9 +219,16 @@ function ProjectRows({ row }: { row: TableRow }) {
               <span className="w-5 shrink-0" />
             )}
             <span className="min-w-0">
-              <Link href={`/app/projects/${row.projectId}`} className="font-semibold text-ink hover:text-brand-ink">
-                {row.name}
-              </Link>
+              <span className="flex items-center gap-2">
+                {/* One file: straight to it, where the new comments are. */}
+                <Link
+                  href={row.unread && files.length === 1 ? `/app/mockups/${files[0].mockupId}` : `/app/projects/${row.projectId}`}
+                  className="font-semibold text-ink hover:text-brand-ink"
+                >
+                  {row.name}
+                </Link>
+                <UnreadBadge count={row.unread} />
+              </span>
               <span className="mt-0.5 block text-xs text-faint">
                 {plural(row.files, "file")}
                 {many && !open ? " · open to see each" : ""}
@@ -233,6 +258,7 @@ function ProjectRows({ row }: { row: TableRow }) {
                     <Link href={`/app/mockups/${f.mockupId}`} className="truncate font-medium text-ink hover:text-brand-ink">
                       {f.name}
                     </Link>
+                    <UnreadBadge count={f.unread} />
                   </span>
                   {f.createdAt && (
                     <span className="mt-0.5 block pl-[18px] text-xs text-faint">added {timeAgo(f.createdAt)}</span>
@@ -249,8 +275,9 @@ function ProjectRows({ row }: { row: TableRow }) {
   );
 }
 
-export function ProjectTable({ rows, visible = 8 }: { rows: TableRow[]; visible?: number }) {
+export function ProjectTable({ rows, visible = 5 }: { rows: TableRow[]; visible?: number }) {
   const [query, setQuery] = useState("");
+  const [all, setAll] = useState(false);
   const terms = searchTerms(query);
   // Searching reaches past the rows on screen: every project in the workspace
   // is here, and the first few are shown only because a dashboard that opens
@@ -260,7 +287,7 @@ export function ProjectTable({ rows, visible = 8 }: { rows: TableRow[]; visible?
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [rows, query],
   );
-  const shown = terms.length > 0 ? matches : matches.slice(0, visible);
+  const shown = terms.length > 0 || all ? matches : matches.slice(0, visible);
   const hidden = terms.length > 0 ? 0 : matches.length - shown.length;
 
   return (
@@ -307,8 +334,14 @@ export function ProjectTable({ rows, visible = 8 }: { rows: TableRow[]; visible?
           )}
         </tbody>
       </table>
+      {(hidden > 0 || (all && matches.length > visible && terms.length === 0)) && (
+        <div className="border-t px-4 py-2 text-center">
+          <button type="button" onClick={() => setAll((v) => !v)} className="text-sm font-semibold text-brand-ink hover:underline">
+            {all ? "Show fewer" : `Show all ${matches.length} projects`}
+          </button>
+        </div>
+      )}
       <p className="border-t px-4 py-2.5 text-xs text-faint">
-        {hidden > 0 && <span className="mr-1 font-semibold text-muted">{hidden} more — search to reach them.</span>}
         <span className="font-semibold text-muted">Waiting</span> is {WAITING_HELP}
       </p>
     </div>
