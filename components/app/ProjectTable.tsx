@@ -275,7 +275,7 @@ function ProjectRows({ row }: { row: TableRow }) {
   );
 }
 
-export function ProjectTable({ rows, visible = 5 }: { rows: TableRow[]; visible?: number }) {
+export function ProjectTable({ title, rows, visible = 5 }: { title: string; rows: TableRow[]; visible?: number }) {
   const [query, setQuery] = useState("");
   const [all, setAll] = useState(false);
   const terms = searchTerms(query);
@@ -288,62 +288,64 @@ export function ProjectTable({ rows, visible = 5 }: { rows: TableRow[]; visible?
     [rows, query],
   );
   const shown = terms.length > 0 || all ? matches : matches.slice(0, visible);
-  const hidden = terms.length > 0 ? 0 : matches.length - shown.length;
+
+  const canToggle = terms.length === 0 && matches.length > visible;
 
   return (
-    <div className="card overflow-x-auto p-0">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
-        <SearchField
-          value={query}
-          onChange={setQuery}
-          placeholder="Search projects and files"
-          className="w-full max-w-xs"
-        />
-        {terms.length > 0 && (
-          <p className="text-xs text-muted">
-            {matches.length === 0 ? "No matches" : `${matches.length} of ${rows.length}`}
-          </p>
-        )}
-      </div>
-      <table className="w-full min-w-[48rem] border-collapse text-sm">
-        <thead>
-          <tr className="border-b text-left text-xs font-semibold tracking-wide text-faint uppercase">
-            <th className="px-4 py-3 font-semibold">Project</th>
-            <th className="px-4 py-3 text-right font-semibold">Comments</th>
-            <th className="px-4 py-3 text-right font-semibold">Open</th>
-            <th className="px-4 py-3 font-semibold">Client</th>
-            <th className="px-4 py-3 font-semibold">
-              <span className="cursor-help border-b border-dotted border-[color:var(--color-border)]" title={WAITING_HELP}>
-                Waiting
-              </span>
-            </th>
-            <th className="px-4 py-3 text-right font-semibold">Reminder</th>
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((r) => (
-            <ProjectRows key={r.projectId} row={r} />
-          ))}
-          {shown.length === 0 && (
-            <tr>
-              <td colSpan={6} className="px-4 py-10 text-center">
-                <p className="text-sm font-semibold text-ink">Nothing matches “{query.trim()}”</p>
-                <p className="mt-1 text-xs text-muted">Searching project names and the files inside them.</p>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      {(hidden > 0 || (all && matches.length > visible && terms.length === 0)) && (
-        <div className="border-t px-4 py-2 text-center">
+    <>
+      {/* The heading lives here so "Show all" can sit beside it, on the right. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-bold text-ink">{title}</h2>
+        {canToggle && (
           <button type="button" onClick={() => setAll((v) => !v)} className="text-sm font-semibold text-brand-ink hover:underline">
             {all ? "Show fewer" : `Show all ${matches.length} projects`}
           </button>
+        )}
+      </div>
+      <div className="card overflow-x-auto p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+          <SearchField
+            value={query}
+            onChange={setQuery}
+            placeholder="Search projects and files"
+            className="w-full max-w-xs"
+          />
+          {terms.length > 0 && (
+            <p className="text-xs text-muted">
+              {matches.length === 0 ? "No matches" : `${matches.length} of ${rows.length}`}
+            </p>
+          )}
         </div>
-      )}
-      <p className="border-t px-4 py-2.5 text-xs text-faint">
-        <span className="font-semibold text-muted">Waiting</span> is {WAITING_HELP}
-      </p>
-    </div>
+        <table className="w-full min-w-[48rem] border-collapse text-sm">
+          <thead>
+            <tr className="border-b text-left text-xs font-semibold tracking-wide text-faint uppercase">
+              <th className="px-4 py-3 font-semibold">Project</th>
+              <th className="px-4 py-3 text-right font-semibold">Comments</th>
+              <th className="px-4 py-3 text-right font-semibold">Open</th>
+              <th className="px-4 py-3 font-semibold">Client</th>
+              <th className="px-4 py-3 font-semibold">
+                <span className="cursor-help border-b border-dotted border-[color:var(--color-border)]" title={WAITING_HELP}>
+                  Waiting
+                </span>
+              </th>
+              <th className="px-4 py-3 text-right font-semibold">Reminder</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((r) => (
+              <ProjectRows key={r.projectId} row={r} />
+            ))}
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center">
+                  <p className="text-sm font-semibold text-ink">Nothing matches “{query.trim()}”</p>
+                  <p className="mt-1 text-xs text-muted">Searching project names and the files inside them.</p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

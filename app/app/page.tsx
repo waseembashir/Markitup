@@ -62,10 +62,7 @@ export default async function DashboardPage() {
         <>
           {tableRows.length > 0 && (
             <div className="mb-10">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-ink">Where each project stands</h2>
-              </div>
-              <ProjectTable rows={tableRows} />
+              <ProjectTable title="Where each project stands" rows={tableRows} />
             </div>
           )}
 
