@@ -9,15 +9,6 @@ import { NotificationBell } from "@/components/app/NotificationBell";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
 import { NewProjectDialog } from "@/components/app/NewProjectDialog";
 
-function StatTile({ label, value, accent }: { label: string; value: number; accent?: string }) {
-  return (
-    <div className="rounded-xl border bg-surface p-4">
-      <div className="text-2xl font-bold tabular-nums" style={{ color: accent ?? "var(--color-ink)" }}>{value}</div>
-      <div className="mt-0.5 text-xs text-muted">{label}</div>
-    </div>
-  );
-}
-
 export default async function DashboardPage() {
   const ws = await getCurrentWorkspace();
   const supabase = await createServerSupabase();
@@ -25,11 +16,8 @@ export default async function DashboardPage() {
   const userEmail = authData.user?.email ?? "";
   const userName = (authData.user?.user_metadata?.name as string) || emailLocalPart(userEmail) || "";
 
-  const { items, stats } = await getProjectItems(supabase, ws?.id ?? "");
+  const { items } = await getProjectItems(supabase, ws?.id ?? "");
 
-  let totalMockups = 0, totalThreads = 0, totalResolved = 0;
-  for (const s of stats.values()) { totalMockups += s.mockups; totalThreads += s.comments; totalResolved += s.resolved; }
-  const openComments = Math.max(0, totalThreads - totalResolved);
 
   const recentProjects = items.slice(0, 6);
   const tableIds = items.map((p) => p.id);
@@ -72,13 +60,6 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatTile label={plural(items.length, "project")} value={items.length} />
-            <StatTile label={plural(totalMockups, "file")} value={totalMockups} />
-            <StatTile label="Open comments" value={openComments} accent={openComments > 0 ? "var(--color-brand)" : undefined} />
-            <StatTile label="Resolved" value={totalResolved} accent={totalResolved > 0 ? "var(--color-success)" : undefined} />
-          </div>
-
           {tableRows.length > 0 && (
             <div className="mb-10">
               <div className="mb-4 flex items-center justify-between">

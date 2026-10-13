@@ -4,15 +4,6 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`skeleton ${className}`} aria-hidden />;
 }
 
-export function SkeletonStatTile() {
-  return (
-    <div className="card p-5">
-      <Skeleton className="h-7 w-10 rounded" />
-      <Skeleton className="mt-2 h-3 w-20 rounded" />
-    </div>
-  );
-}
-
 export function SkeletonProjectCard() {
   return (
     <div>
