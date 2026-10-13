@@ -5,7 +5,6 @@ import { getProjectItems, getFeedbackRows, getFileRows, getUnreadClientComments,
 import { emailLocalPart } from "@/lib/format";
 import { ProjectGrid } from "@/components/app/ProjectGrid";
 import { ProjectTable, type TableRow } from "@/components/app/ProjectTable";
-import { Collapsible } from "@/components/app/Collapsible";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { ProfileMenu } from "@/components/app/ProfileMenu";
 import { NewProjectDialog } from "@/components/app/NewProjectDialog";
@@ -45,7 +44,6 @@ export default async function DashboardPage() {
     // A client just said something you haven't read: that project goes to the
     // top, newest first. The rest keep their order.
     .sort((a, b) => (b.unread ? 1 : 0) - (a.unread ? 1 : 0) || (b.unreadAt ?? "").localeCompare(a.unreadAt ?? ""));
-  const totalUnread = tableRows.reduce((n, r) => n + (r.unread ?? 0), 0);
   const attention = needsAttention(tableRows);
 
   return (
@@ -61,6 +59,14 @@ export default async function DashboardPage() {
 
       {/* What to act on now comes first; the projects themselves, after. */}
       {tableRows.length > 0 && <NeedsAttention items={attention} />}
+
+      {tableRows.length > 0 && (
+        // Squeezed so the workspace below keeps the room: five projects, the
+        // columns that matter at a glance; the rest is a click away.
+        <div className="mb-8">
+          <ProjectTable title="Where each project stands" rows={tableRows} compact />
+        </div>
+      )}
 
       {team && (
         // The team's work is the point of the page, so it leads, set apart.
@@ -85,26 +91,6 @@ export default async function DashboardPage() {
             <ProjectGrid items={items.slice(0, RECENT)} />
           )}
         </section>
-      )}
-
-      {tableRows.length > 0 && (
-        <div className="mb-10">
-          <Collapsible
-            title="Where each project stands"
-            storageKey="dashboard.standing"
-            summary={
-              totalUnread > 0 ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white" style={{ background: "var(--color-danger)" }}>
-                  {totalUnread} new client {totalUnread === 1 ? "comment" : "comments"}
-                </span>
-              ) : (
-                <span className="text-xs text-muted">Comments, client activity and reminders for each project</span>
-              )
-            }
-          >
-            <ProjectTable rows={tableRows} />
-          </Collapsible>
-        </div>
       )}
 
       {others.map((ws, i) => {

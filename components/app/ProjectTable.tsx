@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { timeAgo, plural } from "@/lib/format";
 import type { FeedbackRow, FileRow, ViewerFace } from "@/app/app/dashboard-data";
@@ -9,6 +9,10 @@ import { SearchField } from "@/components/app/SearchField";
 import { searchTerms, matchesSearch } from "@/lib/search";
 import { Avatar } from "@/components/app/AppSidebar";
 import { quietFor, QUIET_DAYS } from "@/lib/attention";
+
+// The dashboard shows a squeezed table: fewer columns, tighter rows, no search.
+const Compact = createContext(false);
+const usePad = () => (useContext(Compact) ? "px-3 py-2" : "px-4 py-3");
 
 export type TableRow = FeedbackRow & {
   name: string;
@@ -124,6 +128,24 @@ function Cells({
 }) {
   const s = status(row, faces);
   const w = waiting(row);
+  const compact = useContext(Compact);
+  const pad = usePad();
+  if (compact) {
+    return (
+      <>
+        <td className={`${pad} text-right tabular-nums`}>{row.comments}</td>
+        <td className={pad}>
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <Pill label={s.label} tone={s.tone} />
+            {s.at && <span className="text-xs text-faint">{timeAgo(s.at)}</span>}
+          </span>
+        </td>
+        <td className={`${pad} text-right`}>
+          <NudgeDialog projectId={projectId} projectName={nudgeName} mockupId={mockupId} />
+        </td>
+      </>
+    );
+  }
   return (
     <>
       <td className="px-4 py-3 text-right tabular-nums">{row.comments}</td>
@@ -194,6 +216,7 @@ function UnreadBadge({ count }: { count?: number }) {
 
 /** A project, and — when it holds more than one file — each of its files. */
 function ProjectRows({ row }: { row: TableRow }) {
+  const pad = usePad();
   const files = row.fileRows;
   const many = files.length > 1;
   const [open, setOpen] = useState(false);
@@ -201,7 +224,7 @@ function ProjectRows({ row }: { row: TableRow }) {
   return (
     <>
       <tr className="border-b transition-colors hover:bg-[color:var(--accent)]">
-        <td className="px-4 py-3">
+        <td className={pad}>
           <span className="flex items-start gap-1.5">
             {many ? (
               <button
@@ -245,7 +268,7 @@ function ProjectRows({ row }: { row: TableRow }) {
             className="border-b text-[13px] transition-colors hover:bg-[color:var(--accent)]"
             style={{ background: "color-mix(in oklch, var(--accent) 45%, transparent)" }}
           >
-            <td className="px-4 py-2.5">
+            <td className={pad}>
               <span className="flex items-start gap-1.5">
                 <span className="w-5 shrink-0" />
                 <span className="min-w-0">
@@ -273,7 +296,18 @@ function ProjectRows({ row }: { row: TableRow }) {
   );
 }
 
-export function ProjectTable({ title, rows, visible = 5 }: { title?: string; rows: TableRow[]; visible?: number }) {
+export function ProjectTable({
+  title,
+  rows,
+  visible = 5,
+  compact = false,
+}: {
+  title?: string;
+  rows: TableRow[];
+  visible?: number;
+  /** Squeezed for the dashboard: project, comments, client, remind — no search. */
+  compact?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [all, setAll] = useState(false);
   const terms = searchTerms(query);
@@ -290,7 +324,7 @@ export function ProjectTable({ title, rows, visible = 5 }: { title?: string; row
   const canToggle = terms.length === 0 && matches.length > visible;
 
   return (
-    <>
+    <Compact.Provider value={compact}>
       {/* The heading lives here so "Show all" can sit beside it, on the right. */}
       {(title || canToggle) && (
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -303,6 +337,7 @@ export function ProjectTable({ title, rows, visible = 5 }: { title?: string; row
       </div>
       )}
       <div className="card overflow-x-auto p-0">
+        {!compact && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
           <SearchField
             value={query}
@@ -316,8 +351,17 @@ export function ProjectTable({ title, rows, visible = 5 }: { title?: string; row
             </p>
           )}
         </div>
-        <table className="w-full min-w-[48rem] border-collapse text-sm">
+        )}
+        <table className={`w-full border-collapse text-sm ${compact ? "min-w-[34rem]" : "min-w-[48rem]"}`}>
           <thead>
+            {compact ? (
+              <tr className="border-b text-left text-xs font-semibold tracking-wide text-faint uppercase">
+                <th className="px-3 py-2 font-semibold">Project</th>
+                <th className="px-3 py-2 text-right font-semibold">Comments</th>
+                <th className="px-3 py-2 font-semibold">Client</th>
+                <th className="px-3 py-2 text-right font-semibold">Reminder</th>
+              </tr>
+            ) : (
             <tr className="border-b text-left text-xs font-semibold tracking-wide text-faint uppercase">
               <th className="px-4 py-3 font-semibold">Project</th>
               <th className="px-4 py-3 text-right font-semibold">Comments</th>
@@ -330,6 +374,7 @@ export function ProjectTable({ title, rows, visible = 5 }: { title?: string; row
               </th>
               <th className="px-4 py-3 text-right font-semibold">Reminder</th>
             </tr>
+            )}
           </thead>
           <tbody>
             {shown.map((r) => (
@@ -337,7 +382,7 @@ export function ProjectTable({ title, rows, visible = 5 }: { title?: string; row
             ))}
             {shown.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center">
+                <td colSpan={compact ? 4 : 6} className="px-4 py-10 text-center">
                   <p className="text-sm font-semibold text-ink">Nothing matches “{query.trim()}”</p>
                   <p className="mt-1 text-xs text-muted">Searching project names and the files inside them.</p>
                 </td>
@@ -346,6 +391,6 @@ export function ProjectTable({ title, rows, visible = 5 }: { title?: string; row
           </tbody>
         </table>
       </div>
-    </>
+    </Compact.Provider>
   );
 }
