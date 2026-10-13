@@ -58,10 +58,7 @@ export default async function DashboardPage() {
 
       {team && (
         // The team's work is the point of the page, so it leads, set apart.
-        <section
-          className="mb-8 rounded-2xl border p-6"
-          style={{ background: "color-mix(in oklch, var(--color-brand-soft) 45%, var(--color-surface, transparent))" }}
-        >
+        <section className="mb-8 rounded-2xl border bg-surface p-6">
           <WorkspaceHeading
             ws={team}
             count={items.length}
