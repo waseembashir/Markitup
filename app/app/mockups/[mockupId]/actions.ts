@@ -6,7 +6,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { commentNotification } from "@/lib/email/templates";
 import { workspaceSlackWebhook, mockupSlackWebhook, postToSlack, commentSlackMessage, commentRollupSlackMessage, commentGoesToSlack, SLACK_BATCH_WINDOW_MINUTES } from "@/lib/slack";
-import { sanitizeCommentHtml, htmlToPlainText } from "@/lib/sanitize";
+import { sanitizeCommentHtml, htmlToPlainText, mentionedUserIds } from "@/lib/sanitize";
 import { loadViewerPins } from "./pins-data";
 import { reportError } from "@/lib/observability";
 
@@ -113,25 +113,34 @@ export async function addComment(
       }
       const commenterName = (author.user_metadata?.name as string) || author.email || "Someone";
       const plain = htmlToPlainText(cleanBody);
+      // Who was @mentioned — they get a "mentioned you" notification/email
+      // instead of the generic "commented" one.
+      const mentioned = new Set(mentionedUserIds(cleanBody));
       // fan out in parallel rather than one-at-a-time
       await Promise.all(
         [...recipients.values()].map(async (r) => {
+          const isMention = mentioned.has(r.id);
           const tpl = commentNotification({
             recipientName: r.name,
             commenterName,
             mockupName: mk.name as string,
             body: plain,
             mockupId,
+            mentioned: isMention,
           });
           await Promise.allSettled([
             sendEmail({ to: r.email, ...tpl }),
             supabase.rpc("create_notification", {
               p_user_id: r.id,
               p_actor_id: author.id,
+              // 'mention' isn't an allowed notification type; keep 'comment'
+              // and let the body carry the distinction.
               p_type: "comment",
               p_mockup_id: mockupId,
               p_project_id: projectId ?? null,
-              p_body: `${commenterName} commented on ${mk.name as string}`,
+              p_body: isMention
+                ? `${commenterName} mentioned you on ${mk.name as string}`
+                : `${commenterName} commented on ${mk.name as string}`,
             }),
           ]);
         }),

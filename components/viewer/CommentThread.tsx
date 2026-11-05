@@ -78,8 +78,7 @@ export function CommentThread({
   mockupId,
   projectId,
   pin,
-  // `members` stays in the props type (callers pass it, and it's what @mention
-  // autocomplete will read) but nothing in here consumes it yet.
+  members,
   currentUserName,
   currentUserId,
   onChange,
@@ -162,6 +161,7 @@ export function CommentThread({
       return (
         <RichCommentInput
           projectId={projectId}
+          members={members}
           initialHtml={c.body}
           submitLabel="Save"
           autoFocus
@@ -294,6 +294,7 @@ export function CommentThread({
 
         <RichCommentInput
           projectId={projectId}
+          members={members}
           placeholder="Add a comment…"
           // Hitting Reply is the decision to write; the box at the bottom of a
           // thread someone is only reading should not steal their caret.

@@ -23,16 +23,21 @@ export function commentNotification(opts: {
   mockupName: string;
   body: string;
   mockupId: string;
+  // A mention makes it personal: the subject and intro say "mentioned you".
+  mentioned?: boolean;
 }) {
   const href = `${APP_URL}/app/mockups/${opts.mockupId}`;
-  const subject = `New comment on ${opts.mockupName}`;
+  const verb = opts.mentioned ? "mentioned you" : "commented";
+  const subject = opts.mentioned
+    ? `${opts.commenterName} mentioned you on ${opts.mockupName}`
+    : `New comment on ${opts.mockupName}`;
   const html = layout(
     subject,
-    `<p style="margin:0 0 8px"><strong>${esc(opts.commenterName)}</strong> commented:</p>
+    `<p style="margin:0 0 8px"><strong>${esc(opts.commenterName)}</strong> ${verb}:</p>
      <blockquote style="margin:0;padding:10px 14px;background:#f3f4f6;border-radius:8px;font-size:14px">${esc(opts.body)}</blockquote>`,
     { label: "View comment", href },
   );
-  const text = `${opts.commenterName} commented on ${opts.mockupName}:\n\n${opts.body}\n\n${href}`;
+  const text = `${opts.commenterName} ${verb} on ${opts.mockupName}:\n\n${opts.body}\n\n${href}`;
   return { subject, html, text };
 }
 

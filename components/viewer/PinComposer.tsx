@@ -1,11 +1,12 @@
 "use client";
 
-import { RichCommentInput, type PendingAttachment } from "@/components/viewer/RichCommentInput";
+import { RichCommentInput, type PendingAttachment, type MentionMember } from "@/components/viewer/RichCommentInput";
 
 export function PinComposer({
   xPct,
   yPct,
   projectId,
+  members,
   onCancel,
   onSubmit,
   pending,
@@ -16,6 +17,7 @@ export function PinComposer({
   xPct: number;
   yPct: number;
   projectId: string;
+  members?: MentionMember[];
   onCancel: () => void;
   onSubmit: (body: string, attachments: PendingAttachment[]) => void;
   pending: boolean;
@@ -36,6 +38,7 @@ export function PinComposer({
     >
       <RichCommentInput
         projectId={projectId}
+        members={members}
         placeholder="Add comment here…"
         pending={pending}
         author={author}

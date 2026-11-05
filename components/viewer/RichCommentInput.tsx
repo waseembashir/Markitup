@@ -7,6 +7,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/validation";
 import { Avatar } from "@/components/app/AppSidebar";
 
 export type PendingAttachment = { path: string; type: "image" | "pdf"; name: string };
+export type MentionMember = { id: string; name: string; email?: string };
 
 const ACCEPTED_ATTACHMENT_TYPES = ["image/png", "image/jpeg", "application/pdf"];
 
@@ -36,6 +37,7 @@ export function RichCommentInput({
   autoFocus,
   initialHtml,
   submitLabel,
+  members,
 }: {
   value?: string;
   onSubmit: (html: string, attachments: PendingAttachment[]) => void;
@@ -50,6 +52,9 @@ export function RichCommentInput({
   // "Comment" unless this box is editing something, where "Save" is honest.
   submitLabel?: string;
   projectId: string;
+  // Teammates offered by @mention autocomplete. Each selected mention tags the
+  // person (notifies them) and renders as a highlighted chip.
+  members?: MentionMember[];
   // Shown at the top-left of the box so it's obvious who is about to speak.
   author?: { name: string; email: string };
   // When given, a Cancel button sits beside Comment in the footer.
@@ -62,6 +67,20 @@ export function RichCommentInput({
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // @mention autocomplete: the active "@query" under the caret, plus the caret's
+  // screen position so the dropdown can sit right under it.
+  const [mention, setMention] = useState<{ query: string; left: number; top: number } | null>(null);
+  const [mentionSel, setMentionSel] = useState(0);
+  const mentionMatches =
+    mention && members?.length
+      ? members
+          .filter((m) => {
+            const q = mention.query.toLowerCase();
+            return !q || m.name.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q);
+          })
+          .slice(0, 6)
+      : [];
 
   // Seed the editor once, for editing a comment that already exists.
   useEffect(() => {
@@ -101,6 +120,53 @@ export function RichCommentInput({
   function syncEmpty() {
     const html = ref.current?.innerHTML ?? "";
     setEmpty(html.replace(/<br>|\s|&nbsp;/g, "").length === 0);
+  }
+
+  // Detect an "@query" immediately before the caret and open the mention menu.
+  function updateMention() {
+    if (!members?.length) { setMention(null); return; }
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) { setMention(null); return; }
+    const node = sel.anchorNode;
+    if (!node || node.nodeType !== Node.TEXT_NODE || !ref.current?.contains(node)) { setMention(null); return; }
+    const before = (node.textContent ?? "").slice(0, sel.anchorOffset);
+    const m = before.match(/(?:^|\s)@([\w.-]{0,30})$/);
+    if (!m) { setMention(null); return; }
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    const base = ref.current.getBoundingClientRect();
+    setMention({ query: m[1], left: rect.left || base.left + 12, top: (rect.bottom || base.top + 24) + 4 });
+    setMentionSel(0);
+  }
+
+  // Replace the "@query" under the caret with a non-editable mention chip.
+  function insertMention(member: MentionMember) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) { setMention(null); return; }
+    const node = sel.anchorNode;
+    if (!node || node.nodeType !== Node.TEXT_NODE) { setMention(null); return; }
+    const offset = sel.anchorOffset;
+    const m = (node.textContent ?? "").slice(0, offset).match(/@([\w.-]{0,30})$/);
+    if (!m) { setMention(null); return; }
+    const range = document.createRange();
+    range.setStart(node, offset - m[0].length);
+    range.setEnd(node, offset);
+    range.deleteContents();
+    const chip = document.createElement("span");
+    chip.className = "mention";
+    chip.setAttribute("data-mention", member.id);
+    chip.setAttribute("contenteditable", "false");
+    chip.textContent = `@${member.name}`;
+    range.insertNode(chip);
+    const space = document.createTextNode(" ");
+    chip.parentNode?.insertBefore(space, chip.nextSibling);
+    const after = document.createRange();
+    after.setStartAfter(space);
+    after.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(after);
+    setMention(null);
+    syncEmpty();
+    ref.current?.focus();
   }
 
   // Is the caret inside a list item of this editor?
@@ -278,11 +344,20 @@ export function RichCommentInput({
           aria-label="Comment"
           contentEditable
           suppressContentEditableWarning
-          onInput={syncEmpty}
+          onInput={() => { syncEmpty(); updateMention(); }}
+          onMouseUp={updateMention}
+          onBlur={() => setMention(null)}
           onPaste={onPaste}
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
           onKeyDown={(e) => {
+            // When the @mention menu is open, arrows/enter/tab drive it.
+            if (mention && mentionMatches.length) {
+              if (e.key === "ArrowDown") { e.preventDefault(); setMentionSel((i) => (i + 1) % mentionMatches.length); return; }
+              if (e.key === "ArrowUp") { e.preventDefault(); setMentionSel((i) => (i - 1 + mentionMatches.length) % mentionMatches.length); return; }
+              if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); insertMention(mentionMatches[mentionSel]); return; }
+              if (e.key === "Escape") { e.preventDefault(); setMention(null); return; }
+            }
             if (e.key !== "Enter") return;
             // Shift+Enter is a line break, as it is everywhere else people type.
             if (e.shiftKey) return;
@@ -344,6 +419,28 @@ export function RichCommentInput({
           </button>
         </div>
       </div>
+
+      {mention && mentionMatches.length > 0 && (
+        <div
+          className="fixed z-[60] max-h-56 w-60 overflow-y-auto rounded-lg border bg-surface-2 p-1 shadow-xl"
+          style={{ left: mention.left, top: mention.top }}
+        >
+          {mentionMatches.map((m, i) => (
+            <button
+              key={m.id}
+              type="button"
+              // keep the editor's caret/selection while the item is clicked
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertMention(m)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${i === mentionSel ? "bg-[color:var(--accent)]" : "hover:bg-[color:var(--accent)]"}`}
+            >
+              <Avatar name={m.name} email={m.email ?? m.name} size={22} />
+              <span className="min-w-0 flex-1 truncate text-ink">{m.name}</span>
+              {m.email && <span className="shrink-0 truncate text-xs text-faint">{m.email}</span>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

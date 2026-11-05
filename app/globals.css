@@ -243,6 +243,17 @@
   .nav-item:hover { background: color-mix(in oklch, var(--primary) 8%, transparent); color: var(--color-brand-ink); }
   .nav-item-active { background: var(--color-brand-soft); color: var(--color-brand-ink); font-weight: 600; }
 
+  /* @mention chip, in the composer and in rendered comments */
+  .mention {
+    display: inline;
+    background: var(--color-brand-soft);
+    color: var(--color-brand-ink);
+    border-radius: 0.25rem;
+    padding: 0 0.2rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   /* Material 3 navigation rail — icon-over-label with a pill active indicator */
   .rail-link { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; width: 100%; padding-block: 0.25rem; }
   .rail-ind {

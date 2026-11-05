@@ -841,6 +841,7 @@ export function MockupViewer({
           xPct={(draft.x + (draft.w ?? 0)) * 100}
           yPct={(draft.y + (draft.h ?? 0)) * 100}
           projectId={projectId}
+          members={members}
           pending={false}
           error={pinError}
           author={{ name: currentUserName, email: currentUserEmail ?? "" }}
