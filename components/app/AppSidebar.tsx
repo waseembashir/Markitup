@@ -58,22 +58,24 @@ export function Avatar({
 function LogoMark() {
   return (
     <span className="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" aria-hidden>
-        <path
-          d="M21.5 11.1V12a9.5 9.5 0 1 1-5.63-8.68"
-          stroke="var(--color-brand)"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M21.5 4.5 12 14.01l-3-3"
-          fill="none"
-          stroke="var(--color-brand)"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <span className="grid h-9 w-9 place-items-center rounded-full bg-black">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+          <path
+            d="M21.5 11.1V12a9.5 9.5 0 1 1-5.63-8.68"
+            stroke="var(--color-brand)"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M21.5 4.5 12 14.01l-3-3"
+            fill="none"
+            stroke="var(--color-brand)"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
       <span className="flex flex-col items-center leading-tight">
         <span className="text-xs font-bold tracking-tight text-ink">Review</span>
         <span className="text-[9px] font-medium text-muted">by Apexure</span>
