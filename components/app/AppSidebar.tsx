@@ -52,21 +52,30 @@ export function Avatar({
   );
 }
 
-// The landing page's pin and wordmark, stacked to fit the rail. The outline and
-// dot use the theme's on-brand colour, so the pin reads on every accent theme.
+// A review/comment bubble with a check, plus the wordmark, stacked to fit the
+// rail. The bubble fills with the theme's brand colour and the tick uses the
+// on-brand foreground, so the mark reads on every accent theme.
 function LogoMark() {
   return (
     <span className="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 24 28" className="h-8 w-7" aria-hidden>
+      <svg viewBox="0 0 28 26" className="h-8 w-8" aria-hidden>
         <path
-          d="M12 26.2c-.4 0-.8-.2-1-.5C8.4 22.4 3 16.6 3 11.2a9 9 0 0 1 18 0c0 5.4-5.4 11.2-8 14.5-.2.3-.6.5-1 .5Z"
+          d="M6 3h16a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-8.6l-4.7 3.9A1 1 0 0 1 9 22.1V19H6a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"
           fill="var(--color-brand)"
-          stroke="var(--primary-foreground)"
-          strokeWidth="1.8"
         />
-        <circle cx="12" cy="11" r="3.2" fill="var(--primary-foreground)" />
+        <path
+          d="M9.5 11l3 3 6-6.5"
+          fill="none"
+          stroke="var(--primary-foreground)"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
-      <span className="text-xs font-bold tracking-tight text-ink">MarkItUp</span>
+      <span className="flex flex-col items-center leading-tight">
+        <span className="text-xs font-bold tracking-tight text-ink">Review App</span>
+        <span className="text-[9px] font-medium text-muted">by Apexure</span>
+      </span>
     </span>
   );
 }
