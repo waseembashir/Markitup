@@ -52,28 +52,30 @@ export function Avatar({
   );
 }
 
-// A review/comment bubble with a check, plus the wordmark, stacked to fit the
-// rail. The bubble fills with the theme's brand colour and the tick uses the
-// on-brand foreground, so the mark reads on every accent theme.
+// An open circle-check mark (approved / reviewed), plus the wordmark, stacked to
+// fit the rail. The ring and tick stroke in the theme's brand colour, so the
+// mark reads on every accent theme.
 function LogoMark() {
   return (
     <span className="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 28 26" className="h-8 w-8" aria-hidden>
+      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" aria-hidden>
         <path
-          d="M6 3h16a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-8.6l-4.7 3.9A1 1 0 0 1 9 22.1V19H6a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"
-          fill="var(--color-brand)"
+          d="M21.5 11.1V12a9.5 9.5 0 1 1-5.63-8.68"
+          stroke="var(--color-brand)"
+          strokeWidth="2.4"
+          strokeLinecap="round"
         />
         <path
-          d="M9.5 11l3 3 6-6.5"
+          d="M21.5 4.5 12 14.01l-3-3"
           fill="none"
-          stroke="var(--primary-foreground)"
+          stroke="var(--color-brand)"
           strokeWidth="2.4"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>
       <span className="flex flex-col items-center leading-tight">
-        <span className="text-xs font-bold tracking-tight text-ink">Review App</span>
+        <span className="text-xs font-bold tracking-tight text-ink">Review</span>
         <span className="text-[9px] font-medium text-muted">by Apexure</span>
       </span>
     </span>
