@@ -11,6 +11,32 @@ export type MentionMember = { id: string; name: string; email?: string };
 
 const ACCEPTED_ATTACHMENT_TYPES = ["image/png", "image/jpeg", "application/pdf"];
 
+// Minimal shape of the Web Speech API we rely on. The browser lib ships no
+// types for it, so declare just what we touch rather than pull in a dependency.
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((e: {
+    resultIndex: number;
+    results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>;
+  }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+};
+
+function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
 function ToolBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -67,6 +93,15 @@ export function RichCommentInput({
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Voice dictation (Web Speech API). Only offered where the browser supports it.
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setSpeechSupported(getSpeechRecognition() !== null), []);
+  // Stop listening if the box unmounts mid-dictation.
+  useEffect(() => () => recognitionRef.current?.abort(), []);
 
   // @mention autocomplete: the active "@query" under the caret, plus the caret's
   // screen position so the dropdown can sit right under it.
@@ -292,6 +327,44 @@ export function RichCommentInput({
     syncEmpty();
   }
 
+  // Start/stop voice dictation. Final phrases are inserted at the caret as
+  // plain text, so dictation and typing mix freely in the same comment.
+  function toggleDictation() {
+    if (recording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const Ctor = getSpeechRecognition();
+    if (!Ctor) return;
+    const rec = new Ctor();
+    rec.lang = typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      ref.current?.focus();
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (!r.isFinal) continue;
+        let phrase = r[0].transcript.trim();
+        if (!phrase) continue;
+        // Space off the preceding word, since dictation yields bare phrases.
+        const prev = ref.current?.textContent ?? "";
+        if (prev && !/\s$/.test(prev)) phrase = " " + phrase;
+        insertPlainText(phrase);
+      }
+      syncEmpty();
+    };
+    rec.onerror = () => { setRecording(false); recognitionRef.current = null; };
+    rec.onend = () => { setRecording(false); recognitionRef.current = null; };
+    recognitionRef.current = rec;
+    setRecording(true);
+    try {
+      rec.start();
+    } catch {
+      // start() throws if called twice in a row; treat as already-listening.
+    }
+  }
+
   function submit() {
     const html = ref.current?.innerHTML ?? "";
     if (empty && attachments.length === 0) return;
@@ -322,6 +395,29 @@ export function RichCommentInput({
         <ToolBtn label="Attach file" onClick={() => fileInputRef.current?.click()}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M8 12.5V7a4 4 0 1 1 8 0v8a2.5 2.5 0 1 1-5 0V8.5a1 1 0 1 1 2 0V15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </ToolBtn>
+        {speechSupported && (
+          <button
+            type="button"
+            aria-label={recording ? "Stop dictation" : "Dictate with your voice"}
+            aria-pressed={recording}
+            title={recording ? "Stop dictation" : "Dictate with your voice"}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={toggleDictation}
+            className={`relative grid h-7 w-7 place-items-center rounded transition-colors ${
+              recording
+                ? "bg-danger-soft text-danger"
+                : "text-muted hover:bg-[color:var(--accent)] hover:text-ink"
+            }`}
+          >
+            {recording && (
+              <span className="absolute h-7 w-7 animate-ping rounded-full bg-danger/30" aria-hidden />
+            )}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.7" />
+              <path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
       </div>
       <input
         ref={fileInputRef}

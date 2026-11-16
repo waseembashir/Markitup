@@ -9,7 +9,8 @@ import { CommentThread, type Member } from "./CommentThread";
 import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, HTML_MODE_MESSAGE, HTML_POINTER_MESSAGE } from "@/lib/html-embed";
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
-import { createPin, addComment, movePin } from "@/app/app/mockups/[mockupId]/actions";
+import { createPin, addComment, movePin, setPinsStatus } from "@/app/app/mockups/[mockupId]/actions";
+import { celebrate } from "@/lib/confetti";
 import { useLivePins } from "./useLivePins";
 import { timeAgo, htmlToText } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
@@ -103,7 +104,21 @@ export function htmlScrollDelta(
   return Math.round(target - currentScrollY);
 }
 
-function PinListItem({ pin, onSelect }: { pin: ViewerPin; onSelect: () => void }) {
+function PinListItem({
+  pin,
+  onSelect,
+  selectable = false,
+  selected = false,
+  onToggle,
+}: {
+  pin: ViewerPin;
+  onSelect: () => void;
+  // In select mode the whole row toggles a checkbox instead of opening the
+  // thread, so a reviewer can tick off a batch and resolve them in one go.
+  selectable?: boolean;
+  selected?: boolean;
+  onToggle?: () => void;
+}) {
   const first = pin.comments.find((c) => !c.parentCommentId);
   const resolved = pin.status === "resolved";
   // Everything after the opening comment is a reply. A faint "3 messages" read
@@ -113,9 +128,29 @@ function PinListItem({ pin, onSelect }: { pin: ViewerPin; onSelect: () => void }
   const repliers = [...new Map(replies.map((c) => [c.authorName, c])).values()];
   return (
     <button
-      onClick={onSelect}
-      className="flex w-full items-start gap-3 px-3 py-3 text-left transition-colors duration-150 hover:bg-[color:var(--accent)]"
+      onClick={selectable ? onToggle : onSelect}
+      aria-pressed={selectable ? selected : undefined}
+      className={`flex w-full items-start gap-3 px-3 py-3 text-left transition-colors duration-150 hover:bg-[color:var(--accent)] ${
+        selectable && selected ? "bg-[color:var(--color-brand-soft)]" : ""
+      }`}
     >
+      {selectable && (
+        <span
+          aria-hidden
+          className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md border-2 transition-colors"
+          style={
+            selected
+              ? { background: "var(--color-brand)", borderColor: "var(--color-brand)" }
+              : { borderColor: "var(--color-border)" }
+          }
+        >
+          {selected && (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="m5 12 4.5 4.5L19 7" stroke="var(--primary-foreground)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </span>
+      )}
       <span
         className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full font-mono text-xs font-bold"
         style={{
@@ -171,19 +206,25 @@ function ToolbarButton({
   label,
   children,
   disabled,
+  active = false,
 }: {
   onClick?: () => void;
   label: string;
   children: React.ReactNode;
   disabled?: boolean;
+  // Held-down look for a toggle button, e.g. while select mode is on.
+  active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-pressed={active}
       title={label}
-      className="grid h-8 w-8 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-[color:var(--accent)] hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+      className={`grid h-8 w-8 place-items-center rounded-md transition-colors duration-150 hover:bg-[color:var(--accent)] hover:text-ink disabled:pointer-events-none disabled:opacity-40 ${
+        active ? "bg-[color:var(--color-brand-soft)] text-brand-ink" : "text-muted"
+      }`}
     >
       {children}
     </button>
@@ -263,6 +304,11 @@ export function MockupViewer({
   const htmlFrameRef = useRef<HTMLIFrameElement>(null);
   const [activePinId, setActivePinId] = useState<string | null>(initialPinId ?? null);
   const [filter, setFilter] = useState<Filter>("active");
+  // Bulk select: tick several threads in the rail and resolve them at once,
+  // instead of opening twenty popups one after another.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPending, setBulkPending] = useState(false);
   const [sort, setSort] = useState<SortKey>("pins");
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -576,6 +622,37 @@ export function MockupViewer({
     if (p?.isCurrentVersion) requestAnimationFrame(() => scrollToPin(p));
   }
 
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelect() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  // Resolve every ticked thread in one request, then reflect it locally so the
+  // rail updates without waiting on realtime.
+  async function bulkResolve() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkPending(true);
+    const res = await setPinsStatus(mockupId, ids, "resolved");
+    setBulkPending(false);
+    if (res?.error) { toast.error(res.error); return; }
+    const chosen = new Set(ids);
+    setPins((ps) => ps.map((p) => (chosen.has(p.id) ? { ...p, status: "resolved" } : p)));
+    if (activePinId && chosen.has(activePinId)) setActivePinId(null);
+    celebrate();
+    toast.success(ids.length === 1 ? "Comment resolved" : `${ids.length} comments resolved`);
+    exitSelect();
+  }
+
   // Pin popups are centred on their pin, which puts them half outside the canvas
   // for any pin near an edge — and the canvas is `overflow-hidden`, so the
   // overhang was being clipped by the comments rail. Nudge each popup back
@@ -773,6 +850,18 @@ export function MockupViewer({
       if (sort === "newest") return latestAt(b).localeCompare(latestAt(a));
       return latestAt(a).localeCompare(latestAt(b));
     });
+
+  // Bulk-select bookkeeping over whatever the rail is currently showing.
+  const visibleSelectedCount = visiblePins.reduce((n, p) => n + (selectedIds.has(p.id) ? 1 : 0), 0);
+  const allVisibleSelected = visiblePins.length > 0 && visibleSelectedCount === visiblePins.length;
+  function toggleSelectAllVisible() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) visiblePins.forEach((p) => next.delete(p.id));
+      else visiblePins.forEach((p) => next.add(p.id));
+      return next;
+    });
+  }
 
   // Every pin in the rail belongs to this version now, so the canvas draws
   // the same set. A pin reached by a ?pin= link from an older version is still
@@ -1112,6 +1201,17 @@ export function MockupViewer({
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-bold text-ink">Comments</h2>
                 <div className="flex items-center gap-0.5">
+                  {/* multi-select → bulk resolve */}
+                  <ToolbarButton
+                    label={selectMode ? "Cancel selection" : "Select comments"}
+                    onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+                    active={selectMode}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </ToolbarButton>
                   {/* sort */}
                   <div className="relative">
                     <ToolbarButton label="Sort" onClick={() => { setSortOpen((o) => !o); setSearchOpen(false); }}>
@@ -1169,6 +1269,30 @@ export function MockupViewer({
               )}
               <CommentFilter value={filter} onChange={setFilter} counts={counts} />
             </div>
+            {selectMode && (
+              <div className="flex items-center gap-2 border-b bg-brand-soft px-3 py-2">
+                <button
+                  onClick={toggleSelectAllVisible}
+                  disabled={visiblePins.length === 0}
+                  className="text-xs font-semibold text-brand-ink transition-colors hover:text-brand-hover disabled:opacity-40"
+                >
+                  {allVisibleSelected ? "Clear all" : "Select all"}
+                </button>
+                <span className="text-xs font-medium text-brand-ink/80">
+                  {selectedIds.size} selected
+                </span>
+                <div className="ml-auto flex items-center gap-1">
+                  <button onClick={exitSelect} className="btn-ghost btn-sm">Cancel</button>
+                  <button
+                    onClick={bulkResolve}
+                    disabled={selectedIds.size === 0 || bulkPending}
+                    className="btn-primary btn-sm"
+                  >
+                    {bulkPending ? "Resolving…" : `Resolve${selectedIds.size ? ` ${selectedIds.size}` : ""}`}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex-1 divide-y overflow-y-auto">
               {visiblePins.length === 0 ? (
                 <div className="px-4 py-10 text-center">
@@ -1190,7 +1314,16 @@ export function MockupViewer({
                   </p>
                 </div>
               ) : (
-                visiblePins.map((p) => <PinListItem key={p.id} pin={p} onSelect={() => selectPin(p.id)} />)
+                visiblePins.map((p) => (
+                  <PinListItem
+                    key={p.id}
+                    pin={p}
+                    onSelect={() => selectPin(p.id)}
+                    selectable={selectMode}
+                    selected={selectedIds.has(p.id)}
+                    onToggle={() => toggleSelected(p.id)}
+                  />
+                ))
               )}
             </div>
           </>

@@ -244,6 +244,26 @@ export async function setPinStatus(
   return {};
 }
 
+// Set the status of several pins at once, so a reviewer can clear a backlog of
+// comments without opening each thread. One UPDATE … IN (…) rather than a round
+// trip per pin; RLS still decides which of the ids the caller may touch.
+export async function setPinsStatus(
+  mockupId: string,
+  pinIds: string[],
+  status: "active" | "resolved",
+) {
+  if (pinIds.length === 0) return { count: 0 };
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pins")
+    .update({ status })
+    .in("id", pinIds)
+    .select("id");
+  if (error) return { error: error.message };
+  revalidatePath(`/app/mockups/${mockupId}`);
+  return { count: data?.length ?? 0 };
+}
+
 // Delete a whole comment thread (the pin + its comments, via cascade).
 export async function deletePin(mockupId: string, pinId: string) {
   const supabase = await createServerSupabase();
