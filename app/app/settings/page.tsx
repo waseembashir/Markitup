@@ -104,7 +104,7 @@ export default async function SettingsPage() {
         <>
           <SectionHead
             title="Transactional email"
-            desc="The emails MarkItUp sends on your behalf. Placeholders fill in automatically at send time."
+            desc="The emails Review App sends on your behalf. Placeholders fill in automatically at send time."
           />
           <TransactionalEmailSettings initial={emailTemplates.templates} canManage={emailTemplates.canManage} sample={emailSample} />
         </>

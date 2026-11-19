@@ -11,17 +11,16 @@ const serif = Instrument_Serif({
   variable: "--font-serif",
 });
 
-// The MarkItUp pin, in the theme's brand colour with an ink outline.
+// The Review App mark: an open circle-check (approved / reviewed) in the brand
+// colour, on a dark disc so the colour reads on a light background.
 function Mark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 28" className={className} aria-hidden>
-      <path
-        d="M12 26.2c-.4 0-.8-.2-1-.5C8.4 22.4 3 16.6 3 11.2a9 9 0 0 1 18 0c0 5.4-5.4 11.2-8 14.5-.2.3-.6.5-1 .5Z"
-        fill="var(--color-brand)"
-        stroke="#1c1c17"
-        strokeWidth="1.8"
-      />
-      <circle cx="12" cy="11" r="3.2" fill="#1c1c17" />
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="12" fill="#1c1c17" />
+      <g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="var(--color-brand)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21.5 11.1V12a9.5 9.5 0 1 1-5.63-8.68" />
+        <path d="M21.5 4.5 12 14.01l-3-3" />
+      </g>
     </svg>
   );
 }
@@ -149,9 +148,9 @@ export function AuthShell({
         className={`as-panel relative hidden w-[58%] flex-col justify-center overflow-hidden p-12 text-white lg:flex ${serif.variable}`}
         style={{ background: "hsl(60 5% 11%)" }}
       >
-        <Link href="/" className="absolute top-12 left-12 flex w-fit items-center gap-2.5" aria-label="MarkItUp home">
-          <Mark className="h-8 w-7" />
-          <span className="text-lg font-bold tracking-tight">MarkItUp</span>
+        <Link href="/" className="absolute top-12 left-12 flex w-fit items-center gap-2.5" aria-label="Review App home">
+          <Mark className="h-8 w-8" />
+          <span className="text-lg font-bold tracking-tight">Review App</span>
         </Link>
 
         {/* centred in the panel: left-aligned, it left a wide empty strip
@@ -172,9 +171,9 @@ export function AuthShell({
       {/* form */}
       <section className="flex w-full flex-col justify-center px-6 py-12 lg:w-[42%]">
         <div className="mx-auto w-full max-w-sm">
-          <Link href="/" className="mb-8 flex w-fit items-center gap-2.5 lg:hidden" aria-label="MarkItUp home">
-            <Mark className="h-8 w-7" />
-            <span className="text-lg font-bold tracking-tight text-ink">MarkItUp</span>
+          <Link href="/" className="mb-8 flex w-fit items-center gap-2.5 lg:hidden" aria-label="Review App home">
+            <Mark className="h-8 w-8" />
+            <span className="text-lg font-bold tracking-tight text-ink">Review App</span>
           </Link>
 
           <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>

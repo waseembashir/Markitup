@@ -158,7 +158,7 @@ export async function addComment(
           (await mockupSlackWebhook(supabase, mockupId)) ??
           (await workspaceSlackWebhook(supabase, workspaceId));
         if (webhook) {
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const projectName = ((mk as any).projects?.name as string) || "a project";
 

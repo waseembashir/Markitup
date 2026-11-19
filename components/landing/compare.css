@@ -1,6 +1,6 @@
 /* Before and after as one sticky scene. The old way's clutter is scattered
    across the whole screen in black and white; the scroll gathers it into a
-   pile, the MarkItUp pin swallows it, and the app opens out of the pin in
+   pile, the Review App pin swallows it, and the app opens out of the pin in
    colour. Everything is sized in em off the frame's type size, so each
    piece scales as one picture. The resting styles are the finished state; the
    scroll animation starts from its own explicit values. With reduced motion
@@ -157,11 +157,11 @@
 }
 .lp-scribble-note { position: absolute; left: 44%; top: -1em; color: #1f1f1d; font-size: 1.5em; font-style: italic; rotate: -6deg; white-space: nowrap; }
 
-/* ---- With MarkItUp: in colour, one comment start to finish ------------- */
+/* ---- With Review App: in colour, one comment start to finish ------------- */
 /* The panel is centred in the frame below the caption. */
 .lp-ba-new { position: absolute; inset: 12% 0 0; margin: auto; }
 
-/* ---- The MarkItUp folder the mess drops into ---------------------------
+/* ---- The Review App folder the mess drops into ---------------------------
    Back (with its tab) behind the pieces, front in front of them, both
    bottom-aligned; the mouth marker is where the pieces are aimed. */
 .lp-ba-folder-back,
@@ -178,7 +178,7 @@
 .lp-ba-folder-back .lp-ba-folder-shape path { fill: #a9d52b; }
 .lp-ba-folder-front .lp-ba-folder-shape path { fill: var(--lp-lime); }
 .lp-ba-folder-front { filter: drop-shadow(0 18px 22px rgb(28 28 23 / 0.2)); }
-/* the small MarkItUp label on the front */
+/* the small Review App label on the front */
 .lp-ba-folder-logo {
   position: relative;
   display: inline-flex;

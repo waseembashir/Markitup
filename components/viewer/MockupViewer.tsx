@@ -820,6 +820,37 @@ export function MockupViewer({
     else el.requestFullscreen?.();
   }
 
+  // Download the underlying file (the uploaded HTML page, or the image) for the
+  // team. Fetched as a blob so a cross-origin storage URL still saves instead of
+  // opening in a new tab. Gated to the team in the UI — clients never see it.
+  const [downloading, setDownloading] = useState(false);
+  const downloadUrl = isFigma ? null : isHtml ? htmlUrl : imageUrl;
+  async function downloadFile() {
+    if (!downloadUrl) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(downloadUrl);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      // A sensible filename: the stored name, with the right extension for HTML.
+      const fallback = isHtml ? "page.html" : "file";
+      let name = imageName?.trim() || fallback;
+      if (isHtml && !/\.html?$/i.test(name)) name += ".html";
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(href);
+    } catch {
+      toast.error("Could not download the file. Try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   // Desktop and mobile are separate review surfaces — a pin left on the 1440px
   // layout points at nothing on a 375px one — so the rail, the counts and the
   // canvas all show only the pins belonging to the viewport being viewed.
@@ -1077,6 +1108,11 @@ export function MockupViewer({
                   <button className="btn-secondary btn-sm" onClick={() => { toggleFullscreen(); close(); }}>
                     Fullscreen
                   </button>
+                  {canManage && downloadUrl && (
+                    <button className="btn-secondary btn-sm" disabled={downloading} onClick={() => { downloadFile(); close(); }}>
+                      {downloading ? "Downloading…" : "Download file"}
+                    </button>
+                  )}
                 </MenuGroup>
                 {siblings.length > 1 && (
                   <MenuGroup label={"File " + (idx >= 0 ? idx + 1 : 1) + " of " + siblings.length}>
@@ -1152,6 +1188,20 @@ export function MockupViewer({
               </>
             )}
           </div>
+          {/* Team-only: download the underlying file. Never rendered on the
+              client/share view, where canManage is false. */}
+          {canManage && downloadUrl && (
+            <ToolbarButton
+              label={downloading ? "Downloading…" : "Download file"}
+              onClick={downloadFile}
+              disabled={downloading}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M12 4v11m0 0 4-4m-4 4-4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5 19h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+            </ToolbarButton>
+          )}
           <ToolbarButton label="Fullscreen" onClick={toggleFullscreen}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />

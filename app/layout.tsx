@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MarkItUp — visual feedback for Apexure",
+  title: "Review App — visual feedback for Apexure",
   description:
     "Upload files and collect pinned, contextual feedback from clients directly on the design.",
 };

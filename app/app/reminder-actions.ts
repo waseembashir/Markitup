@@ -60,7 +60,7 @@ export async function getEmailSampleContext(): Promise<EmailSample> {
   };
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 
 export type ScheduleRow = {
   id: string;

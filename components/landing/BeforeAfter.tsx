@@ -94,7 +94,7 @@ function Piece({ className, children }: { className: string; children: React.Rea
 /**
  * Before and after as one scroll. The old way's clutter is scattered across
  * the screen in black and white; as you scroll it gathers into a pile, drops
- * piece by piece into a MarkItUp folder, and when the folder opens the app
+ * piece by piece into a Review App folder, and when the folder opens the app
  * comes up out of it in colour, where the same comment plays out: pin,
  * comment, reply, resolved.
  */
@@ -285,7 +285,7 @@ export function BeforeAfter() {
             </span>
           </p>
 
-          {/* the MarkItUp folder the mess drops into: its back and inner glow
+          {/* the Review App folder the mess drops into: its back and inner glow
               sit behind the pieces */}
           <span className="lp-ba-folder-back" aria-hidden>
             <svg className="lp-ba-folder-shape" viewBox="0 0 220 160" preserveAspectRatio="none">
@@ -366,7 +366,7 @@ export function BeforeAfter() {
           <p className="lp-ba-cap lp-ba-cap-new">
             <span className="lp-ba-dot" data-tone="new" />
             <span>
-              <b>With MarkItUp.</b> Click the spot. Say it once. Tick it off.
+              <b>With Review App.</b> Click the spot. Say it once. Tick it off.
             </span>
           </p>
 
@@ -378,7 +378,7 @@ export function BeforeAfter() {
             </svg>
             <span className="lp-ba-folder-logo">
               <Mark />
-              MarkItUp
+              Review App
             </span>
           </div>
           <span className="lp-ba-merge" aria-hidden />
@@ -390,7 +390,7 @@ export function BeforeAfter() {
                 <i />
                 <i />
                 <i />
-                <span className="lp-tnum">markitup.apexure.com/s/fernleaf</span>
+                <span className="lp-tnum">review.apexure.com/s/fernleaf</span>
               </div>
               <div className="lp-ba-canvas">
                 <MiniSite>

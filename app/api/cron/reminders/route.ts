@@ -10,7 +10,7 @@ import { reportError } from "@/lib/observability";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 
 // Daily job: send the next feedback reminder to clients who haven't responded.
 // Protected by CRON_SECRET (Vercel Cron sends it as a Bearer token).

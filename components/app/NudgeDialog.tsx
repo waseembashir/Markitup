@@ -123,11 +123,11 @@ export function NudgeDialog({
                     <div className="overflow-hidden rounded-xl border bg-canvas">
                       <div className="border-b px-4 py-2.5">
                         <p className="text-sm font-semibold text-ink">{preview.subject}</p>
-                        <p className="mt-0.5 text-xs text-faint">From MarkItUp · to {email || "your client"}</p>
+                        <p className="mt-0.5 text-xs text-faint">From Review App · to {email || "your client"}</p>
                       </div>
                       <div className="bg-surface px-4 py-4">
                         <p className="text-sm font-semibold" style={{ color: "var(--color-brand-ink)" }}>
-                          MarkItUp
+                          Review App
                         </p>
                         <p className="mt-3 text-sm whitespace-pre-line text-ink">{preview.message}</p>
                         <span className="mt-4 inline-flex rounded-lg px-3 py-2 text-sm font-semibold" style={{ background: "var(--color-brand)", color: "var(--primary-foreground)" }}>

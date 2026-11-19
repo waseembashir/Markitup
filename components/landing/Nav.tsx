@@ -42,9 +42,9 @@ export function Nav() {
   return (
     <>
       <header className="lp-nav" data-scrolled={scrolled} data-menu={open || undefined}>
-        <a href="#top" className="flex items-center gap-2" aria-label="MarkItUp, back to top" onClick={() => setOpen(false)}>
+        <a href="#top" className="flex items-center gap-2" aria-label="Review App, back to top" onClick={() => setOpen(false)}>
           <Mark className="h-7 w-6" />
-          <span className="text-[1.0625rem] font-bold tracking-tight">MarkItUp</span>
+          <span className="text-[1.0625rem] font-bold tracking-tight">Review App</span>
         </a>
         <nav className="lp-nav-links" aria-label="Page sections">
           {NAV_LINKS.map((l) => (

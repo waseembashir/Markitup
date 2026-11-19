@@ -1,5 +1,5 @@
 // All landing-page copy lives here so it can be reviewed and edited in one
-// place. Product claims are kept true to what MarkItUp actually does: uploads are
+// place. Product claims are kept true to what Review App actually does: uploads are
 // PNG/JPG, HTML and Figma frames (PDFs are comment attachments only).
 
 export const NAV_LINKS = [
@@ -173,7 +173,7 @@ export const PLANS: Plan[] = [
     name: "Pro",
     price: "$40",
     per: "/month",
-    note: "Everything MarkItUp does",
+    note: "Everything Review App does",
     line: "For agencies running client reviews every week.",
     features: [
       "Unlimited projects",

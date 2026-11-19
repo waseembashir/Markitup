@@ -72,7 +72,7 @@ test.describe("landing page", () => {
     await expect(page.getByRole("button", { name: "Play the demo" })).toBeVisible();
   });
 
-  test("before and after merges the mess into MarkItUp and ends resolved", async ({ page }) => {
+  test("before and after merges the mess into Review App and ends resolved", async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto("/");
     await expect(page.getByText("Screenshots, scribbles, long emails and “which logo?”")).toBeVisible();

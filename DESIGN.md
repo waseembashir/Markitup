@@ -1,4 +1,4 @@
-# DESIGN.md — Apexure MarkItUp design system
+# DESIGN.md — Apexure Review App design system
 
 Light theme, product register. All colors OKLCH, all neutrals tinted toward the
 brand hue (274). Tokens live in `app/globals.css` under `@theme`; use the Tailwind

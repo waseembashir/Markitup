@@ -24,13 +24,13 @@ export default async function LoginPage({
     <AuthShell
       // Not "Welcome back": plenty of people meet this page for the first
       // time, whether from the nav or from a link someone shared with them.
-      title="Log in to MarkItUp"
+      title="Log in to Review App"
       subtitle={
         next
           ? "Log in to open the file that was shared with you."
           : "Review designs and collect client feedback in one place."
       }
-      footer={<>New to MarkItUp? <AuthLink href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create an account</AuthLink></>}
+      footer={<>New to Review App? <AuthLink href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create an account</AuthLink></>}
     >
       {notice && (
         <p

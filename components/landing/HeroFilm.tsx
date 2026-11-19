@@ -16,7 +16,7 @@ const CheckGlyph = () => (
 );
 
 /**
- * The hero "video": a code-driven loop of MarkItUp at work on a client's page.
+ * The hero "video": a code-driven loop of Review App at work on a client's page.
  * A cursor pins the logo, a client comment types itself out, a region gets
  * dragged over the button, a designer replies and the first pin resolves.
  *
@@ -400,7 +400,7 @@ export function HeroFilm() {
             <i />
           </span>
           <span className="lp-film-url lp-tnum">
-            markitup.apexure.com/s/fernleaf-home
+            review.apexure.com/s/fernleaf-home
             <em className="lp-film-ver lp-tnum">v2</em>
           </span>
           <span className="lp-film-views">
@@ -427,7 +427,7 @@ export function HeroFilm() {
         <div className="lp-share-pop" aria-hidden>
           <p className="lp-share-pop-title">Share “Fernleaf home”</p>
           <span className="lp-share-pop-link">
-            <span className="lp-tnum">markitup.apexure.com/s/fernleaf</span>
+            <span className="lp-tnum">review.apexure.com/s/fernleaf</span>
             <span className="lp-share-pop-copy">
               <span className="lp-copy-idle">Copy</span>
               <span className="lp-copy-done">

@@ -76,9 +76,9 @@ export async function sendTestSlack() {
   const url = await workspaceSlackWebhook(supabase, ws.id);
   if (!url) return { error: "Connect Slack first." };
   const ok = await postToSlack(url, {
-    text: "MarkItUp is connected 🎉",
+    text: "Review App is connected 🎉",
     blocks: [
-      { type: "section", text: { type: "mrkdwn", text: ":white_check_mark: *MarkItUp is connected to this channel.* You'll get a message here whenever a client comments on a file. Your own team's comments stay quiet." } },
+      { type: "section", text: { type: "mrkdwn", text: ":white_check_mark: *Review App is connected to this channel.* You'll get a message here whenever a client comments on a file. Your own team's comments stay quiet." } },
     ],
   });
   return ok ? {} : { error: "Slack rejected the message — double-check the webhook URL." };

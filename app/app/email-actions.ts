@@ -13,7 +13,7 @@ import {
 } from "@/lib/email-templates";
 import { getEmailSampleContext } from "@/app/app/reminder-actions";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 const KEYS: EmailTemplateKey[] = ["client_invite", "team_invite"];
 
 async function isAdmin(supabase: Awaited<ReturnType<typeof createServerSupabase>>, wsId: string, userId: string) {

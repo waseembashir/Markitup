@@ -100,7 +100,7 @@ function ShareArt() {
       <p className="lp-dv-share-title">Share “Fernleaf home”</p>
 
       <span className="lp-share-link">
-        <span className="lp-tnum">markitup.apexure.com/s/fernleaf</span>
+        <span className="lp-tnum">review.apexure.com/s/fernleaf</span>
         <button type="button" className="lp-share-copy" onPointerEnter={() => setStep(1)} onFocus={() => setStep(1)} onClick={() => setStep(1)}>
           <span className="lp-dv-copy-idle">Copy</span>
           <span className="lp-dv-copy-done">

@@ -1,4 +1,4 @@
-# Markitup
+# Review App
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
@@ -21,7 +21,7 @@ Both files are gitignored. Only the `.example` templates are committed.
 ## First-time local setup
 
 1. **Create a dev Supabase project** at [supabase.com](https://supabase.com/dashboard).
-   Name it something unmistakable, e.g. `markitup-dev`. The free tier is fine.
+   Name it something unmistakable, e.g. `review-app-dev`. The free tier is fine.
 
 2. **Create your dev env file:**
    ```bash
@@ -144,7 +144,7 @@ Transactional email (comment notifications, invites, welcome) is sent via
    - `RESEND_API_KEY` — your Resend API key.
    - `EMAIL_FROM` — sender address. Use `onboarding@resend.dev` until you
      verify a domain; then set e.g. `notifications@apexure.com`.
-   - `NEXT_PUBLIC_APP_URL` — your live URL, e.g. `https://markitup-woad.vercel.app`.
+   - `NEXT_PUBLIC_APP_URL` — your live URL, e.g. `https://review.apexure.com`.
 3. In Supabase → Authentication → URL Configuration, add
    `https://<your-app>/auth/callback` to the Redirect URLs. The password-reset
    flow routes through this same route (it performs the server-side PKCE code

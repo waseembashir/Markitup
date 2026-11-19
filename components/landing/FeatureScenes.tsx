@@ -116,7 +116,7 @@ function ShareScene() {
       <div className="lp-scene-in lp-share-card" style={n(0)}>
         <p className="lp-share-title">Share “Fernleaf home”</p>
         <div className="lp-share-link">
-          <span className="lp-tnum">markitup.apexure.com/s/k7Qm2</span>
+          <span className="lp-tnum">review.apexure.com/s/k7Qm2</span>
           <span className="lp-share-copy">
             <Check /> Copied
           </span>

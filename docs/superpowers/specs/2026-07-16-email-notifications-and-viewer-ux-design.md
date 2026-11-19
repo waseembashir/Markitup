@@ -58,7 +58,7 @@ testing. The design must not hard-code any address so the switch to production i
 |------|---------|---------|
 | `RESEND_API_KEY` | Resend API key (server-only) | none — if unset, sends are skipped with a log |
 | `EMAIL_FROM` | Sender address | `onboarding@resend.dev` |
-| `NEXT_PUBLIC_APP_URL` | Base URL used to build links in emails and reset redirects | `https://markitup-woad.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | Base URL used to build links in emails and reset redirects | `https://review.apexure.com` |
 
 ### Feature 1 — Hide sidebar in the mockup viewer
 

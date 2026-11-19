@@ -37,7 +37,7 @@ function Row({ hidden }: { hidden?: boolean }) {
 }
 
 /**
- * The dark band under the hero: a marquee of what MarkItUp works with, standing
+ * The dark band under the hero: a marquee of what Review App works with, standing
  * in for a customer-logo strip. It drifts on its own, speeds up with the
  * scroll, and runs backwards while you scroll up.
  */

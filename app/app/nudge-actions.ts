@@ -9,7 +9,7 @@ import { fillTemplate, REMINDER_DEFAULTS, type ReminderSettings } from "@/lib/re
 import { emailLocalPart } from "@/lib/format";
 import { reportIssue } from "@/lib/observability";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 
 export type NudgePreview = {
   projectName: string;

@@ -4,7 +4,7 @@ Date: 2026-09-18 · Status: approved in chat, building on `feat/landing-page`
 
 ## Goal
 
-A single-page marketing site for MarkItUp by Apexure at `/`. Minimal, elegant,
+A single-page marketing site for Review App by Apexure at `/`. Minimal, elegant,
 motion-rich. Concepts borrowed from wisprflow.ai (serif display with italic
 accents, stacked rounded panels, a scroll-drawn background ribbon, a sticky
 feature walkthrough, tilted drifting quote cards, hand-drawn duo-tone icons),
@@ -86,12 +86,12 @@ scrolled into view.
      "Re: Re: Fwd:" email, "which logo?", a sticky note, a messy feedback
      spreadsheet, a missed-call chip, `v3_final_FINAL_2.png`. A floating caption
      reads "The old way. Screenshots, scribbles, long emails and “which logo?”".
-   - The pieces gather into a pile; a lime MarkItUp folder (small logo on a
+   - The pieces gather into a pile; a lime Review App folder (small logo on a
      label on its front) rises below it; the pieces drop in one by one, the
      folder giving a little as each lands, their tops peeking out.
-   - The folder flap opens with a lime glow and the MarkItUp app comes up out
+   - The folder flap opens with a lime glow and the Review App app comes up out
      of it in colour: app window + comments rail. The caption becomes "With
-     MarkItUp. Click the spot. Say it once. Tick it off." A cursor drops pin 1
+     Review App. Click the spot. Say it once. Tick it off." A cursor drops pin 1
      on the logo, "A bit bigger?" and "Done in v2." appear, the pin turns green
      and resolves, confetti (forward scroll only). Two earlier resolved
      comments sit at the foot of the rail.
@@ -122,7 +122,7 @@ scrolled into view.
    reminders · Slack digests per project · roles (Admin / Manager / Guest) ·
    live Figma frames.
 9. **Testimonials (charcoal panel).** H2 "Agencies *stopped chasing* feedback."
-   Cards styled as MarkItUp comments (numbered pin, serif quote, cartoon
+   Cards styled as Review App comments (numbered pin, serif quote, cartoon
    avatar, name/role, "Resolved" chip) drift up through a sticky view at
    different speeds and turn as they go. The stage is 230svh and the last three
    cards finish inside the view, so there is never an empty dark screen; the
@@ -148,7 +148,7 @@ scrolled into view.
     visitors (no hint line). Contact details are Apexure's public
     ones.
 
-**Name.** The product is **MarkItUp** everywhere on the landing and terms
+**Name.** The product is **Review App** everywhere on the landing and terms
 pages (the app itself was not renamed).
 
 **Icons and logo.** Every hand-drawn icon loops a small animation once drawn

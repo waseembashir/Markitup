@@ -6,7 +6,7 @@ import { sendEmail } from "@/lib/email/send";
 import { renderWorkspaceEmail } from "@/lib/email/workspace-templates";
 import { getCurrentWorkspace } from "@/app/app/actions";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 
 // Workspace roles map onto the three team tiers shown in the UI:
 //   owner / admin  → "Admin"     manage everything, incl. settings & the team

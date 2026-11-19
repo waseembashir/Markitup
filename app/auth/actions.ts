@@ -71,7 +71,7 @@ export async function signUpAction(
   return (await signUp(formData)) ?? {};
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 
 export async function requestPasswordReset(
   _prev: { error?: string; sent?: boolean },
@@ -92,7 +92,7 @@ export async function requestPasswordReset(
 
 // Where the person asking is: the link in the email must bring them back here.
 // It used to be NEXT_PUBLIC_APP_URL, which on production still named (or fell
-// back to) the old markitup-woad.vercel.app. Supabase only redirects to addresses
+// back to) an old Vercel preview host. Supabase only redirects to addresses
 // on its allow list (review.apexure.com/**), so it refused that one and dropped
 // people on the Site URL's home page — the reset never started. A forged Host
 // header gains nothing: the allow list still decides where Supabase will go.

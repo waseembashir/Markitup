@@ -12,7 +12,7 @@
 
 - Email sends are best-effort: wrapped in try/catch inside `lib/email`, return a boolean, and NEVER throw into a Server Action. The core action (comment insert, invite, signup) must succeed even if email fails.
 - If `RESEND_API_KEY` is unset, `sendEmail` logs a warning and returns `{ ok: false }` — no error. This keeps local dev and the test/e2e environment working without secrets.
-- No hard-coded email addresses or URLs in feature code. Use `EMAIL_FROM` (default `onboarding@resend.dev`) and `NEXT_PUBLIC_APP_URL` (default `https://markitup-woad.vercel.app`).
+- No hard-coded email addresses or URLs in feature code. Use `EMAIL_FROM` (default `onboarding@resend.dev`) and `NEXT_PUBLIC_APP_URL` (default `https://review.apexure.com`).
 - Emails are sent one recipient per message (no shared To/CC) so recipients never see each other.
 - Follow existing patterns: Server Actions in `"use server"` files returning `{ error }` on failure; tests mock `@/lib/supabase/server` and `next/cache`/`next/navigation` as the existing tests do.
 - All existing unit tests (17) must stay green. Run `npx vitest run` before every commit.
@@ -199,7 +199,7 @@ Expected: FAIL — `Cannot find module './templates'`.
 Create `lib/email/templates.ts`:
 
 ```ts
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 
 function layout(heading: string, bodyHtml: string, cta?: { label: string; href: string }) {
   const button = cta
@@ -282,7 +282,7 @@ RESEND_API_KEY=
 # Sender address. Use onboarding@resend.dev until a domain is verified in Resend.
 EMAIL_FROM=onboarding@resend.dev
 # Public base URL used to build links inside emails and the password-reset redirect.
-NEXT_PUBLIC_APP_URL=https://markitup-woad.vercel.app
+NEXT_PUBLIC_APP_URL=https://review.apexure.com
 ```
 
 - [ ] **Step 12: Run full suite and commit**
@@ -1104,7 +1104,7 @@ Expected: FAIL — `requestPasswordReset` is not exported.
 In `app/auth/actions.ts`, add near the bottom (after `signUpAction`):
 
 ```ts
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://markitup-woad.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://review.apexure.com";
 
 export async function requestPasswordReset(
   _prev: { error?: string; sent?: boolean },
@@ -1286,7 +1286,7 @@ Transactional email (comment notifications, invites, welcome) is sent via
    - `RESEND_API_KEY` — your Resend API key.
    - `EMAIL_FROM` — sender address. Use `onboarding@resend.dev` until you
      verify a domain; then set e.g. `notifications@apexure.com`.
-   - `NEXT_PUBLIC_APP_URL` — your live URL, e.g. `https://markitup-woad.vercel.app`.
+   - `NEXT_PUBLIC_APP_URL` — your live URL, e.g. `https://review.apexure.com`.
 3. In Supabase → Authentication → URL Configuration, add
    `https://<your-app>/reset-password` to the Redirect URLs.
 4. **Go-live:** verify `apexure.com` in Resend (add the DNS records it shows),

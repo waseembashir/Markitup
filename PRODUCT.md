@@ -1,4 +1,4 @@
-# PRODUCT.md — Apexure MarkItUp
+# PRODUCT.md — Apexure Review App
 
 register: product
 

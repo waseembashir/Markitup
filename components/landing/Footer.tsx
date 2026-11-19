@@ -104,9 +104,9 @@ export function Footer({ base = "" }: { base?: string }) {
       <div className="lp-container">
         <div className="lp-footer-top">
           <div className="lp-footer-brand">
-            <a href={href("#top")} className="inline-flex items-center gap-2.5" aria-label="MarkItUp, back to top">
+            <a href={href("#top")} className="inline-flex items-center gap-2.5" aria-label="Review App, back to top">
               <Mark className="h-8 w-7" />
-              <span className="text-xl font-bold tracking-tight">MarkItUp</span>
+              <span className="text-xl font-bold tracking-tight">Review App</span>
             </a>
             <p>
               Visual feedback for agencies and their clients. Pin it, talk it
@@ -197,7 +197,7 @@ export function Footer({ base = "" }: { base?: string }) {
       </div>
 
       {/* The sign-off: a giant wordmark, pinned like a design under review. */}
-      <div className="lp-wordmark" onClick={drop} role="img" aria-label="MarkItUp">
+      <div className="lp-wordmark" onClick={drop} role="img" aria-label="Review App">
         <span className="lp-serif lp-wm-text" aria-hidden>
           {"MarkIt".split("").map((c, i) => (
             <span key={i} className="lp-wm-letter">

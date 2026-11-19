@@ -10,14 +10,14 @@ const serif = Instrument_Serif({
   subsets: ["latin"],
 });
 
-const title = "MarkItUp by Apexure · Feedback pinned to the design";
+const title = "Review App by Apexure · Feedback pinned to the design";
 const description =
   "Clients click anywhere on your design to leave a comment. Pinned, threaded feedback on images, live HTML and Figma frames, with no account needed to comment.";
 
 export const metadata: Metadata = {
   title,
   description,
-  openGraph: { title, description, type: "website", siteName: "MarkItUp by Apexure" },
+  openGraph: { title, description, type: "website", siteName: "Review App by Apexure" },
   twitter: { card: "summary_large_image", title, description },
 };
 

@@ -14,8 +14,8 @@ const serif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Terms and conditions · MarkItUp by Apexure",
-  description: "Terms and conditions for MarkItUp by Apexure.",
+  title: "Terms and conditions · Review App by Apexure",
+  description: "Terms and conditions for Review App by Apexure.",
 };
 
 // Interim page: there are no published terms yet (Apexure's site has a privacy
@@ -25,9 +25,9 @@ export default function TermsPage() {
   return (
     <div className={`landing ${serif.variable}`}>
       <header className="lp-container flex items-center justify-between py-6">
-        <Link href="/" className="flex items-center gap-2" aria-label="MarkItUp home">
+        <Link href="/" className="flex items-center gap-2" aria-label="Review App home">
           <Mark className="h-7 w-6" />
-          <span className="text-[1.0625rem] font-bold tracking-tight">MarkItUp</span>
+          <span className="text-[1.0625rem] font-bold tracking-tight">Review App</span>
         </Link>
         <Link href="/signup" className="lp-btn lp-btn-primary lp-btn-sm">
           Start free
@@ -39,9 +39,9 @@ export default function TermsPage() {
           Terms and <em>conditions</em>
         </h1>
         <div className="lp-lede mt-8 space-y-5">
-          <p>MarkItUp’s terms of service are being finalised and will be published on this page.</p>
+          <p>Review App’s terms of service are being finalised and will be published on this page.</p>
           <p>
-            Until then, if you have a question about using MarkItUp, email{" "}
+            Until then, if you have a question about using Review App, email{" "}
             <a className="underline underline-offset-4" href="mailto:info@apexure.com">
               info@apexure.com
             </a>

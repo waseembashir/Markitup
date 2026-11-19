@@ -52,7 +52,7 @@ function Card({ q, i }: { q: Quote; i: number }) {
 }
 
 /**
- * Quotes styled as MarkItUp comments, drifting up through a sticky view at
+ * Quotes styled as Review App comments, drifting up through a sticky view at
  * different speeds and turning as they go. Narrow screens and reduced motion
  * get a simple stack.
  */
