@@ -9,7 +9,7 @@ import { CommentThread, type Member } from "./CommentThread";
 import { HTML_HEIGHT_MESSAGE, HTML_SCROLL_MESSAGE, HTML_SCROLLBY_MESSAGE, HTML_MODE_MESSAGE, HTML_POINTER_MESSAGE } from "@/lib/html-embed";
 import type { PendingAttachment } from "./RichCommentInput";
 import { CommentFilter, type Filter } from "./CommentFilter";
-import { createPin, addComment, movePin, setPinsStatus } from "@/app/app/mockups/[mockupId]/actions";
+import { createPin, addComment, movePin, setPinsStatus, deletePins } from "@/app/app/mockups/[mockupId]/actions";
 import { celebrate } from "@/lib/confetti";
 import { useLivePins } from "./useLivePins";
 import { timeAgo, htmlToText } from "@/lib/format";
@@ -309,6 +309,9 @@ export function MockupViewer({
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkPending, setBulkPending] = useState(false);
+  // Deleting many threads is irreversible, so the Delete button arms a one-step
+  // "Delete N?" confirm in the same bar rather than firing straight away.
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [sort, setSort] = useState<SortKey>("pins");
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -634,6 +637,7 @@ export function MockupViewer({
   function exitSelect() {
     setSelectMode(false);
     setSelectedIds(new Set());
+    setConfirmBulkDelete(false);
   }
 
   // Resolve every ticked thread in one request, then reflect it locally so the
@@ -650,6 +654,22 @@ export function MockupViewer({
     if (activePinId && chosen.has(activePinId)) setActivePinId(null);
     celebrate();
     toast.success(ids.length === 1 ? "Comment resolved" : `${ids.length} comments resolved`);
+    exitSelect();
+  }
+
+  // Delete every ticked thread in one request, then drop them from the rail so
+  // it updates without waiting on realtime. Armed by confirmBulkDelete above.
+  async function bulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkPending(true);
+    const res = await deletePins(mockupId, ids);
+    setBulkPending(false);
+    if (res?.error) { toast.error(res.error); return; }
+    const chosen = new Set(ids);
+    setPins((ps) => ps.filter((p) => !chosen.has(p.id)));
+    if (activePinId && chosen.has(activePinId)) setActivePinId(null);
+    toast.success(ids.length === 1 ? "Comment deleted" : `${ids.length} comments deleted`);
     exitSelect();
   }
 
@@ -1332,14 +1352,49 @@ export function MockupViewer({
                   {selectedIds.size} selected
                 </span>
                 <div className="ml-auto flex items-center gap-1">
-                  <button onClick={exitSelect} className="btn-ghost btn-sm">Cancel</button>
-                  <button
-                    onClick={bulkResolve}
-                    disabled={selectedIds.size === 0 || bulkPending}
-                    className="btn-primary btn-sm"
-                  >
-                    {bulkPending ? "Resolving…" : `Resolve${selectedIds.size ? ` ${selectedIds.size}` : ""}`}
-                  </button>
+                  {confirmBulkDelete ? (
+                    <>
+                      <span className="mr-1 text-xs font-medium text-danger">
+                        Delete {selectedIds.size}? This can&apos;t be undone.
+                      </span>
+                      <button
+                        onClick={() => setConfirmBulkDelete(false)}
+                        disabled={bulkPending}
+                        className="btn-ghost btn-sm"
+                      >
+                        Keep
+                      </button>
+                      <button
+                        onClick={bulkDelete}
+                        disabled={selectedIds.size === 0 || bulkPending}
+                        className="btn-danger btn-sm"
+                      >
+                        {bulkPending ? "Deleting…" : `Delete ${selectedIds.size}`}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={exitSelect} className="btn-ghost btn-sm">Cancel</button>
+                      <button
+                        onClick={() => setConfirmBulkDelete(true)}
+                        disabled={selectedIds.size === 0 || bulkPending}
+                        className="btn-ghost btn-sm inline-flex items-center gap-1 text-danger hover:bg-danger-soft"
+                        title="Delete selected comments"
+                      >
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6m3 5v6m4-6v6" />
+                        </svg>
+                        {`Delete${selectedIds.size ? ` ${selectedIds.size}` : ""}`}
+                      </button>
+                      <button
+                        onClick={bulkResolve}
+                        disabled={selectedIds.size === 0 || bulkPending}
+                        className="btn-primary btn-sm"
+                      >
+                        {bulkPending ? "Resolving…" : `Resolve${selectedIds.size ? ` ${selectedIds.size}` : ""}`}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}

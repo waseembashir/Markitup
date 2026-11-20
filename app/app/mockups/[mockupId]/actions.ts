@@ -273,6 +273,23 @@ export async function deletePin(mockupId: string, pinId: string) {
   return {};
 }
 
+// Delete several comment threads at once (pins + their comments, via cascade),
+// the delete counterpart to setPinsStatus. One DELETE … IN (…); RLS still
+// decides which of the ids the caller may remove, and the returned count is how
+// many actually went.
+export async function deletePins(mockupId: string, pinIds: string[]) {
+  if (pinIds.length === 0) return { count: 0 };
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pins")
+    .delete()
+    .in("id", pinIds)
+    .select("id");
+  if (error) return { error: error.message };
+  revalidatePath(`/app/mockups/${mockupId}`);
+  return { count: data?.length ?? 0 };
+}
+
 // Realtime tells the browser that something on this file changed; it does not
 // tell it what to render. A postgres_changes payload carries raw columns — no
 // author name, no signed attachment URL, no sanitized body — so rebuilding a
